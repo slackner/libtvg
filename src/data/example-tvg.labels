@@ -1,0 +1,2493 @@
+# Excerpt from the network-topics dataset
+
+1	polic
+2	depart
+3	counter
+4	violenc
+7	young
+8	live
+9	lost
+10	suicid
+11	year
+13	week
+14	issu
+15	guidelin
+16	doctor
+17	identifi
+21	spoke
+22	adult
+23	battl
+26	includ
+27	woman
+28	surviv
+29	attempt
+33	leav
+34	club
+35	cite
+37	manag
+42	assist
+43	boss
+44	expect
+45	give
+46	role
+48	hope
+49	persuad
+50	stay
+51	decid
+52	statement
+57	appear
+61	New York City
+62	highlight
+63	fourth
+64	juli
+65	serv
+67	origin
+70	find
+71	United States
+72	estim
+75	fire
+80	California
+81	record
+83	state
+86	report
+87	kill
+88	million
+92	peopl
+93	dead
+96	capit
+97	earli
+99	senior
+102	nation
+103	secur
+104	analyst
+105	join
+106	morn
+108	target
+111	extremist
+112	group
+113	prime
+114	suspect
+115	attack
+119	fatal
+120	shot
+121	offic
+122	traffic
+123	stop
+127	death
+128	spark
+130	video
+131	emerg
+135	republican
+137	Donald Trump
+138	presidenti
+139	candid
+140	short
+141	list
+142	potenti
+143	vice
+144	Barack Obama
+145	presid
+146	Warsaw
+147	Poland
+151	left
+152	wound
+153	meet
+154	european
+155	leader
+156	shoot
+158	hundr
+160	protest
+161	cover
+168	Islamic state
+169	West Bank
+170	Syria
+172	agenc
+175	isra
+176	inspir
+177	soccer
+179	smuggl
+181	cross
+182	milit
+184	plan
+187	prevent
+189	perform
+190	muslim
+192	view
+194	began
+198	built
+201	neighbor
+202	thursday
+203	Associated Press
+205	2016
+207	number
+211	execut
+212	carri
+213	world
+214	2015
+215	increas
+216	previous
+217	surg
+218	larg
+219	driven
+220	countri
+222	punish
+224	releas
+225	offici
+226	publish
+227	wednesday
+229	rise
+232	unpreced
+233	level
+236	trial
+237	account
+238	public
+239	disclos
+241	penalti
+243	figur
+245	younger
+246	time
+247	crime
+248	convict
+249	rash
+252	long-term
+253	trend
+257	grow
+258	start
+259	track
+264	compar
+265	today
+272	parliament
+273	pass
+274	crimin
+276	effect
+277	septemb
+279	note
+281	review
+282	case
+283	2007
+286	believ
+287	china
+288	continu
+290	sentenc
+291	wide
+293	offens
+295	intern
+297	author
+299	announc
+301	sourc
+302	defend
+303	access
+304	lawyer
+306	investig
+307	court
+308	admit
+309	evid
+310	confess
+311	contend
+317	testifi
+320	commit
+323	pressur
+324	2014
+325	express
+326	grave
+327	concern
+330	foreign
+331	knowledg
+333	common
+334	deni
+337	signific
+338	remain
+339	fact
+340	extract
+345	declin
+346	total
+348	1991
+349	Pennsylvania
+351	februari
+354	Taiwan
+356	golden
+360	citi
+361	south
+363	hour
+365	earthquak
+367	worst
+370	prosecutor
+371	charg
+373	compani
+379	engin
+383	regular
+386	build
+388	forc
+392	resid
+393	polit
+394	scientist
+398	water
+400	govern
+404	area
+405	develop
+408	pose
+410	risk
+412	boost
+413	Paris
+414	french
+417	socialist
+418	minist
+420	European Union
+425	achiev
+427	welfar
+428	program
+430	late
+431	properti
+434	bodi
+436	front
+440	tuesday
+442	detect
+443	joint
+446	major
+447	team
+448	launch
+453	prioriti
+457	prison
+458	murder
+459	politician
+460	mayor
+461	verdict
+463	news
+465	hous
+466	refuge
+467	stab
+469	campaign
+470	elect
+472	season
+474	histori
+476	make
+477	championship
+478	game
+481	Amazon.com
+482	subject
+483	film
+484	seri
+485	custom
+489	defens
+490	coordin
+491	produc
+494	discuss
+495	Boston
+496	feder
+498	complaint
+500	employe
+501	lead
+506	fraud
+507	honest
+508	servic
+511	David Cameron
+512	home
+513	secretari
+514	race
+517	attorney
+519	general
+523	United States Department of Justice
+524	Hillary Clinton
+525	rais
+526	question
+527	fair
+528	privat
+529	email
+530	server
+532	washington
+541	town
+544	british
+548	interest
+551	book
+552	skeptic
+559	student
+561	mind
+563	solut
+565	biggest
+566	problem
+570	Uruguay
+572	sexual
+573	abus
+576	statut
+577	limit
+579	letter
+581	websit
+582	feel
+583	pain
+587	receiv
+591	alleg
+594	medic
+598	legisl
+599	introduc
+600	propos
+601	appli
+602	perman
+605	tourism
+612	justic
+618	conserv
+619	told
+620	doubt
+621	debat
+622	approv
+623	bill
+624	critic
+626	troubl
+629	struck
+634	hold
+635	rule
+636	allow
+638	earlier
+640	request
+641	extens
+642	offer
+645	Switzerland
+646	Germany
+649	Japan
+650	hand
+651	place
+652	unit
+653	Netherlands
+655	Belgium
+656	Luxembourg
+658	condit
+661	CBS
+663	director
+665	center
+667	regul
+668	chang
+670	women
+672	arrest
+676	robert
+678	Florida
+679	power
+681	caus
+682	ground
+683	airport
+684	Miami
+685	dozen
+686	flight
+689	affect
+692	system
+695	long
+696	read
+697	rest
+698	stori
+700	hunt
+701	assault
+702	broad
+705	month
+708	help
+709	accus
+711	pull
+712	worker
+714	north
+716	walk
+717	separ
+718	busi
+719	block
+720	shop
+725	threaten
+732	registr
+733	address
+738	mediat
+743	talk
+744	defus
+745	crisi
+750	head
+751	domin
+752	parti
+754	face
+755	turmoil
+758	involv
+759	wiretap
+761	halfway
+762	term
+763	call
+766	trigger
+777	east
+790	decis
+793	spokesman
+794	Benjamin Netanyahu
+795	respond
+796	comment
+797	sunday
+801	border
+805	annex
+808	move
+809	reject
+810	german
+811	United Nations
+816	charter
+817	claim
+818	territori
+820	demand
+821	return
+822	situat
+827	control
+828	illeg
+829	migrat
+832	France
+834	latest
+835	travel
+837	weekend
+839	effort
+842	heavili
+843	protect
+845	base
+846	administr
+847	struggl
+848	establish
+849	United Kingdom
+850	support
+854	pound
+857	strengthen
+858	institut
+859	economi
+863	affili
+864	prepar
+865	train
+866	militari
+867	oper
+870	thousand
+873	work
+875	affair
+876	seek
+886	rival
+889	back
+890	islamist
+892	eastern
+893	recogn
+894	Mediterranean Sea
+895	Europe
+896	Italy
+898	similar
+904	ceremoni
+909	Reuters
+911	april
+913	boat
+917	convinc
+919	adopt
+921	polici
+925	need
+926	strong
+927	reason
+930	BBC
+936	victim
+937	central
+939	univers
+940	occur
+941	rescu
+945	relat
+947	studi
+952	southern
+953	shore
+954	come
+955	summer
+957	Turkey
+959	enter
+961	influx
+966	northern
+967	moham
+969	tradit
+970	chief
+972	member
+973	hospit
+976	demonstr
+979	extradit
+981	broke
+989	drug
+990	argu
+991	constitut
+992	extrem
+1000	implement
+1006	Maryland
+1008	parent
+1014	racial
+1017	wrote
+1019	discrimin
+1020	intoler
+1023	agre
+1024	differ
+1025	celebr
+1030	english
+1033	tension
+1034	school
+1035	suburban
+1036	high
+1037	white
+1038	racist
+1039	remark
+1041	communiti
+1042	action
+1044	process
+1050	father
+1056	free
+1057	wife
+1059	owner
+1060	deleg
+1063	middl
+1064	june
+1066	convent
+1069	ballot
+1071	narrat
+1072	focus
+1073	real
+1074	percent
+1076	Ted Cruz
+1077	american
+1079	opinion
+1080	predict
+1081	main
+1084	york
+1085	primari
+1086	addit
+1087	presumpt
+1088	nomine
+1091	wave
+1096	failur
+1097	pick
+1099	bother
+1104	true
+1106	particip
+1108	Republican Party (United States)
+1111	fight
+1112	warn
+1113	rough
+1115	reform
+1117	room
+1121	press
+1124	nationalist
+1126	soldier
+1128	bond
+1132	pair
+1134	event
+1135	held
+1138	post
+1139	onlin
+1140	fail
+1143	describ
+1146	detain
+1147	special
+1152	union
+1154	Philadelphia
+1158	local
+1159	girl
+1165	manslaught
+1168	mess
+1171	accident
+1173	eric
+1176	neighborhood
+1179	scene
+1181	night
+1184	hear
+1185	truth
+1186	happen
+1187	rachel
+1192	media
+1193	mother
+1196	play
+1198	fear
+1202	bring
+1204	wasnt
+1205	surpris
+1206	famili
+1208	life
+1211	friend
+1212	Brussels
+1213	part
+1214	expand
+1216	probe
+1217	Birmingham
+1218	link
+1219	photograph
+1220	site
+1221	raid
+1222	conduct
+1227	novemb
+1230	respons
+1234	person
+1235	london
+1236	greater
+1240	visit
+1243	belgian
+1245	bomber
+1246	spot
+1248	activ
+1249	close
+1252	resign
+1255	march
+1259	instal
+1261	camera
+1267	step
+1268	palestinian
+1270	fall
+1276	object
+1277	respect
+1280	diplomat
+1282	suffer
+1283	halt
+1287	negoti
+1289	inform
+1291	Russia
+1303	Moscow
+1304	unravel
+1305	collaps
+1306	partial
+1310	conflict
+1311	interven
+1315	alli
+1316	financ
+1317	oppon
+1319	posit
+1327	repres
+1328	difficult
+1329	frequent
+1334	hard
+1339	decemb
+1342	distribut
+1344	momentum
+1345	shift
+1346	favor
+1347	intervent
+1349	ukrainian
+1350	Ukraine
+1351	russian
+1354	separatist
+1357	conclud
+1364	armi
+1365	terror
+1366	wage
+1367	aggress
+1373	volunt
+1378	Crimea
+1380	exchang
+1382	connect
+1385	helicopt
+1387	direct
+1389	journalist
+1390	award
+1394	imprison
+1397	trade
+1398	Vladimir Putin
+1399	contact
+1400	sign
+1401	intellig
+1403	reconnaiss
+1407	activist
+1408	fighter
+1411	rural
+1419	side
+1422	resum
+1425	survey
+1426	voter
+1428	regist
+1431	angel
+1436	enrol
+1438	right
+1443	check
+1444	form
+1455	crowd
+1460	elit
+1462	deal
+1464	hire
+1465	examin
+1466	handl
+1484	standoff
+1493	region
+1494	promot
+1495	bilater
+1496	trip
+1497	agreement
+1500	lift
+1505	partner
+1519	turn
+1521	meter
+1531	royal
+1532	dinner
+1533	date
+1539	brother
+1541	welcom
+1543	White House
+1544	schedul
+1547	lunch
+1555	ralli
+1560	one-tim
+1561	independ
+1563	resolv
+1567	coalit
+1570	fuel
+1582	threat
+1583	global
+1585	deadliest
+1587	small
+1588	line
+1590	watch
+1593	driver
+1595	immedi
+1596	determin
+1600	child
+1601	observ
+1602	street
+1603	order
+1610	Joe Biden
+1611	2009
+1615	bless
+1617	sing
+1620	YouTube
+1625	2010
+1626	jewish
+1628	creat
+1632	success
+1636	sister
+1648	organ
+1654	movi
+1665	music
+1669	love
+1678	prayer
+1682	troop
+1685	green
+1686	light
+1691	parliamentari
+1693	heart
+1694	disput
+1695	drop
+1697	australian
+1700	refer
+1702	jail
+1713	destroy
+1716	suspend
+1724	deliv
+1728	Vietnam
+1729	herald
+1730	leftist
+1732	agent
+1733	orang
+1738	land
+1740	jump
+1753	financi
+1754	colleg
+1764	bank
+1766	grant
+1768	credit
+1769	tuition
+1770	board
+1771	cost
+1778	expens
+1788	founder
+1790	twitter
+1792	tweet
+1796	Facebook
+1797	Instagram
+1799	great
+1801	vast
+1803	strategi
+1806	virtual
+1807	network
+1811	user
+1814	Xi Jinping
+1816	advis
+1818	word
+1821	tell
+1824	closer
+1826	futur
+1830	social
+1832	idea
+1837	flood
+1839	heavi
+1845	damag
+1852	district
+1854	ahmad
+1861	coach
+1867	explan
+1868	featur
+1877	sudden
+1880	confer
+1884	goal
+1888	point
+1896	spend
+1899	entir
+1901	democrat
+1902	advantag
+1904	ticket
+1915	show
+1917	United States House of Representatives
+1921	clear
+1922	understand
+1925	opportun
+1926	progress
+1927	wall
+1928	break
+1937	histor
+1939	open
+1941	januari
+1958	begin
+1961	possibl
+1964	spanish
+1966	judg
+1968	file
+1973	euro
+1979	clean
+1981	membership
+1983	door
+1984	flee
+1985	anonym
+1988	didnt
+1989	messag
+1990	Flint, Michigan
+1991	Michigan
+1999	econom
+2002	magnitud
+2005	assess
+2009	depth
+2020	shook
+2024	interview
+2028	facil
+2033	plant
+2039	huge
+2041	multipl
+2043	largest
+2047	initi
+2053	Nigel Farage
+2055	wont
+2059	associ
+2065	titl
+2070	outlet
+2071	suggest
+2073	crush
+2075	realiti
+2080	controversi
+2081	topic
+2084	profil
+2092	empir
+2096	skill
+2100	charm
+2102	giant
+2104	motiv
+2105	UK Independence Party
+2109	nationwid
+2110	brexit
+2111	referendum
+2112	inth
+2113	toni
+2115	fellow
+2118	argument
+2119	favour
+2124	vote
+2125	Boris Johnson
+2126	good
+2128	suppos
+2134	felt
+2137	drama
+2138	confus
+2141	host
+2142	rare
+2143	audienc
+2146	joke
+2155	Bernie Sanders
+2156	daili
+2159	assur
+2166	actor
+2167	creator
+2171	stand
+2172	money
+2177	danger
+2182	deepen
+2188	undermin
+2189	recoveri
+2194	rail
+2200	minimum
+2206	investor
+2207	stock
+2209	analysi
+2214	rate
+2215	higher
+2221	tank
+2225	exit
+2227	2030
+2230	factor
+2232	movement
+2235	offshoot
+2249	voic
+2255	integr
+2259	popul
+2262	sentiment
+2266	bottom
+2268	manufactur
+2271	fallen
+2274	market
+2275	import
+2279	Brooklyn
+2282	prospect
+2289	spirit
+2292	poll
+2296	born
+2298	Vermont
+2301	senat
+2305	staff
+2308	attend
+2318	machineri
+2320	flip
+2324	sector
+2327	decad
+2330	governor
+2336	headquart
+2337	asset
+2340	consid
+2346	Philippines
+2347	Australia
+2349	gang
+2352	Rodrigo Duterte
+2356	anger
+2365	drive
+2366	lack
+2377	sort
+2381	miss
+2382	mark
+2386	caucus
+2393	combin
+2397	matter
+2401	learn
+2404	narrow
+2409	North Carolina
+2414	hate
+2418	youth
+2420	Illinois
+2421	Kansas
+2423	South Carolina
+2436	rose
+2437	data
+2445	accept
+2464	professor
+2468	research
+2473	competit
+2474	complain
+2475	influenc
+2490	cast
+2494	found
+2499	maintain
+2512	elector
+2514	bitter
+2517	size
+2523	black
+2525	ignor
+2532	victori
+2533	shape
+2536	benefit
+2538	wrong
+2556	memori
+2561	aviat
+2564	Sarah Palin
+2572	documentari
+2578	stood
+2582	societi
+2585	spent
+2594	warm
+2595	contrari
+2597	attent
+2601	chair
+2606	dubious
+2607	1970s
+2611	centuri
+2618	fals
+2619	2008
+2623	human
+2630	present
+2632	stupid
+2649	planet
+2650	atmospher
+2657	mountain
+2659	dislik
+2660	reveal
+2662	loom
+2666	stronger
+2667	London
+2670	poorer
+2675	altern
+2676	write
+2692	billion
+2699	commerci
+2707	beast
+2709	type
+2717	beat
+2718	defeat
+2723	paper
+2729	leak
+2738	purport
+2747	citizen
+2748	document
+2751	circl
+2756	station
+2757	United States Department of State
+2758	sever
+2759	crackdown
+2760	2013
+2763	heard
+2765	grown
+2770	save
+2775	United States Congress
+2777	enforc
+2781	revel
+2788	outlin
+2789	shield
+2790	immigr
+2794	lawsuit
+2796	pray
+2799	equal
+2817	advocaci
+2829	arriv
+2835	photo
+2836	assum
+2840	gather
+2842	licens
+2847	educ
+2848	excus
+2850	chapter
+2857	polish
+2858	holocaust
+2869	bomb
+2878	star
+2881	29-year-old
+2882	doubl
+2885	guilti
+2890	South Africa
+2900	coast
+2905	secret
+2922	televis
+2933	phone
+2937	betray
+2947	impeach
+2951	readi
+2953	refus
+2954	grand
+2955	juri
+2961	spokesperson
+2962	popular
+2973	counti
+2999	steve
+3027	upset
+3036	column
+3037	written
+3039	rumor
+3040	blew
+3042	longtim
+3051	wreck
+3056	stone
+3058	judici
+3061	editor
+3063	reflect
+3072	sound
+3077	millennium
+3078	thought
+3096	implic
+3102	plate
+3132	interior
+3135	sampl
+3139	colleagu
+3150	project
+3154	shark
+3157	moon
+3163	look
+3165	lengthi
+3173	amend
+3174	strip
+3177	labor
+3178	weaken
+3184	divis
+3190	cultur
+3194	cafe
+3197	eventu
+3199	outspoken
+3207	withdrew
+3209	champion
+3228	requir
+3230	promis
+3231	normal
+3234	mistak
+3237	hostil
+3261	valu
+3267	speech
+3268	share
+3277	rebuild
+3284	2006
+3286	correspond
+3287	seem
+3294	danc
+3296	field
+3324	tens
+3346	tone
+3349	screen
+3354	prais
+3364	emphasi
+3367	Dilma Rousseff
+3373	Brazil
+3392	price
+3396	democraci
+3398	brazilian
+3407	pictur
+3408	deputi
+3418	Petrobras
+3421	dollar
+3430	Argentina
+3438	complet
+3439	dark
+3444	loss
+3446	smaller
+3455	incom
+3459	want
+3464	convers
+3466	prescript
+3468	pharmaceut
+3470	duti
+3480	eager
+3493	exhibit
+3494	galleri
+3495	paint
+3500	artist
+3502	kind
+3507	revolut
+3514	fine
+3515	caught
+3521	migrant
+3529	Nazi Germany
+3530	entri
+3550	pollut
+3552	meant
+3554	appl
+3556	lock
+3566	commission
+3578	safe
+3590	worth
+3592	facebook
+3604	method
+3606	sold
+3609	portrait
+3647	brought
+3649	shown
+3653	2005
+3661	angri
+3666	proport
+3668	intent
+3669	avoid
+3672	Marco Rubio
+3673	Chile
+3684	co-found
+3691	candidaci
+3692	elev
+3693	wealth
+3694	freedom
+3695	steven
+3702	comput
+3703	breakdown
+3707	physic
+3710	blog
+3716	incit
+3729	patrol
+3731	vision
+3732	proud
+3736	touch
+3739	femal
+3749	reckless
+3751	window
+3753	drastic
+3754	career
+3756	speak
+3758	wouldnt
+3762	beer
+3765	shower
+3768	chamber
+3769	floor
+3770	emot
+3777	remind
+3779	babi
+3781	moment
+3782	broken
+3788	befriend
+3794	2002
+3802	articl
+3803	lawmak
+3819	undergo
+3827	South China Sea
+3839	heat
+3848	risen
+3852	chain
+3853	mainland
+3854	Malaysia
+3855	Brunei
+3856	belong
+3858	zone
+3859	claimant
+3866	radio
+3889	afterward
+3893	insist
+3894	coron
+3895	chosen
+3898	successor
+3901	laid
+3906	enrich
+3908	budget
+3909	inquiri
+3914	coup
+3920	take
+3921	grew
+3924	banker
+3925	cabinet
+3926	Venezuela
+3927	Hugo Chávez
+3928	confront
+3931	Latin America
+3942	rich
+3958	plea
+3963	result
+3965	São Paulo
+3966	leadership
+3982	appoint
+3985	passion
+3995	singl
+4003	industri
+4010	South America
+4020	exercis
+4038	maximum
+4046	rescind
+4058	thwart
+4059	ayoub
+4061	moroccan
+4064	page
+4066	hunger
+4067	strike
+4069	Cuba
+4091	cancel
+4112	Northern Ireland
+4113	irish
+4125	easier
+4127	cloth
+4137	guardian
+4152	drink
+4154	throw
+4156	miscarriag
+4163	client
+4166	administ
+4167	health
+4185	your
+4196	termin
+4217	brand
+4245	1930s
+4282	suppli
+4285	export
+4292	10000
+4295	food
+4307	worri
+4308	spread
+4326	faith
+4332	foundat
+4352	signal
+4358	ceas
+4371	wider
+4375	underscor
+4385	fled
+4390	coupl
+4409	pension
+4410	Jane O'Meara Sanders
+4413	commiss
+4414	devot
+4420	voluntari
+4428	Israel
+4446	drag
+4452	slight
+4462	bridg
+4466	electr
+4471	tourist
+4482	beach
+4483	hotel
+4489	techniqu
+4490	hide
+4495	viral
+4523	bitten
+4529	resembl
+4553	shock
+4555	tile
+4557	cell
+4570	subway
+4573	suspicion
+4593	Hamas
+4601	hidden
+4602	updat
+4608	polar
+4610	honor
+4615	ship
+4618	think
+4622	Sint-Jans-Molenbeek
+4634	superdeleg
+4635	automat
+4639	one-third
+4661	headlin
+4665	CNN
+4690	Rio de Janeiro
+4696	reput
+4698	wheel
+4699	statesman
+4715	backer
+4724	wore
+4730	comedi
+4733	trust
+4740	Iowa
+4747	1990s
+4757	disgust
+4772	gift
+4776	Jill Biden
+4781	boycott
+4787	tournament
+4791	premier
+4793	campus
+4818	Pacific Ocean
+4842	instruct
+4850	multilater
+4858	writer
+4865	harm
+4872	tangibl
+4888	rebuk
+4889	outcom
+4899	abil
+4915	reward
+4916	trick
+4928	trump
+4936	conced
+4937	pois
+4953	godfath
+4954	maria
+4955	prove
+4967	acquir
+4971	bought
+4990	smoke
+4992	space
+4993	imag
+4996	environment
+5013	municip
+5018	treat
+5025	Delhi
+5026	smart
+5031	conspir
+5044	Caribbean
+5051	revenu
+5052	shrink
+5065	factori
+5081	penal
+5094	Soviet Union
+5103	Jeb Bush
+5104	Mike Huckabee
+5107	Rick Santorum
+5109	Ben Carson
+5111	indirect
+5117	council
+5123	Cleveland
+5130	explicit
+5142	fill
+5177	cold
+5180	basi
+5193	tribun
+5196	philippin
+5207	enjoy
+5208	1974
+5213	toner
+5214	interfer
+5216	Ministry of Foreign Affairs of the People's Republic of China
+5217	Hua Chunying
+5218	spokeswoman
+5221	impuls
+5222	resist
+5227	utter
+5230	invok
+5236	reli
+5248	mexican
+5257	accompani
+5258	flag
+5262	reserv
+5275	6000
+5277	downtown
+5280	Chicago
+5297	seeker
+5311	decre
+5316	tomorrow
+5325	freeli
+5326	brutal
+5353	maritim
+5373	tactic
+5379	1978
+5393	occas
+5423	stun
+5439	bloc
+5453	nest
+5463	notori
+5469	isol
+5512	runner
+5514	hick
+5531	Central Intelligence Agency
+5539	formal
+5543	Missouri
+5560	plagu
+5573	reinstat
+5576	credenti
+5577	allay
+5582	Dominican Republic
+5584	backdrop
+5607	beforeth
+5627	pattern
+5633	Police Executive Research Forum
+5649	arrang
+5656	anticip
+5664	recommend
+5671	improv
+5677	vital
+5679	preview
+5699	byth
+5702	Los Angeles
+5706	frame
+5718	underway
+5727	bottl
+5729	estat
+5730	repair
+5733	restaur
+5753	dismal
+5772	consequ
+5773	antonio
+5781	concess
+5786	fortun
+5798	four-stori
+5825	explod
+5831	deem
+5842	Josh Earnest
+5843	asian
+5854	unveil
+5858	bright
+5871	graffiti
+5882	toss
+5893	provinci
+5905	resort
+5907	attribut
+5913	Hollywood
+5917	statist
+5937	bath
+5953	glimps
+5954	Detroit
+5963	Austin, Texas
+5973	academi
+5977	cathol
+5987	smuggler
+6018	delight
+6029	juggernaut
+6030	Provisional Irish Republican Army
+6048	patrick
+6051	lewi
+6052	tast
+6053	Tony Blair
+6063	urban
+6076	breed
+6080	anim
+6081	skin
+6090	husband
+6113	27-year-old
+6124	encourag
+6128	worldwid
+6135	trainer
+6142	coincid
+6146	museum
+6186	root
+6251	mentor
+6259	print
+6262	exploit
+6268	billionair
+6269	boast
+6289	fascist
+6291	blogger
+6299	alarm
+6300	buffet
+6405	absurd
+6409	blue
+6412	adam
+6441	palac
+6454	preserv
+6460	yellow
+6467	musician
+6468	pipe
+6487	entrepreneur
+6492	aisl
+6504	paul
+6528	magnat
+6533	dole
+6547	replic
+6565	International Criminal Court
+6571	testimoni
+6572	contemporari
+6673	mari
+6691	Nevada
+6697	alter
+6701	claw
+6703	newli
+6709	reopen
+6729	revamp
+6730	float
+6737	switch
+6749	settl
+6750	style
+6764	psycholog
+6776	begun
+6818	core
+6842	Manchester
+6847	convert
+6850	shoulder
+6856	George Clooney
+6896	100000
+6913	carv
+6922	experienc
+6931	negat
+6943	pleas
+6947	modern
+6979	difficulti
+7014	2004
+7018	workshop
+7028	disappear
+7034	grip
+7043	uniqu
+7060	deposit
+7080	terribl
+7094	indefinit
+7106	faster
+7116	cheap
+7124	booth
+7146	cent
+7168	hater
+7169	legitim
+7201	tend
+7203	aspect
+7208	revolv
+7214	winner
+7222	de-escal
+7226	demograph
+7252	sixth
+7264	overlap
+7268	context
+7269	collector
+7271	appropri
+7290	contractor
+7300	vacat
+7315	unpredict
+7353	tackl
+7368	distress
+7372	laud
+7409	yard
+7412	2020
+7449	one-on-on
+7451	warehous
+7511	lectur
+7581	content
+7598	listen
+7604	supermarket
+7606	late-night
+7613	rethink
+7646	uncov
+7651	spaniard
+7665	turnaround
+7684	metro
+7729	applaud
+7735	geograph
+7787	chomp
+7799	actress
+7806	hatr
+7834	unoffici
+7859	dress
+7875	reliabl
+7879	eman
+7892	European Commission
+7896	basketbal
+7924	beij
+7953	healthi
+7965	neo-nazi
+7967	remembr
+7982	deadlock
+8021	fashion
+8048	weeklong
+8059	railway
+8101	guarante
+8109	sale
+8114	Jeff Bezos
+8115	bankrol
+8131	World Health Organization
+8223	Quinnipiac University
+8231	portray
+8232	shallow
+8247	crest
+8260	heir
+8340	renov
+8369	140000
+8382	packag
+8398	occupi
+8424	Microsoft
+8434	counsel
+8442	Caracas
+8444	Nicolás Maduro
+8521	denial
+8523	tape
+8528	columnist
+8560	United States Environmental Protection Agency
+8591	pharmaci
+8666	script
+8668	braveri
+8710	innov
+8718	disrupt
+8725	draft
+8729	cours
+8752	havoc
+8844	persecut
+8883	heritag
+8922	23-year-old
+8970	spokespeopl
+8983	sponsor
+9007	maker
+9010	commerc
+9018	tighten
+9020	Martin O'Malley
+9027	dull
+9030	damn
+9041	edit
+9051	suspens
+9053	malik
+9058	philosophi
+9072	stymi
+9081	reassur
+9082	suffici
+9083	Ronald Davis
+9108	restraint
+9115	scrambl
+9146	tail
+9155	wood
+9195	tube
+9224	golf
+9251	card
+9253	crise
+9255	ventur
+9301	octob
+9367	Salah Abdeslam
+9377	traci
+9435	disinfect
+9443	dedic
+9484	idealist
+9491	firearm
+9569	watchdog
+9575	eras
+9636	snake
+9649	mail
+9652	wendi
+9658	height
+9690	forg
+9694	gold
+9698	keen
+9703	spin
+9717	cruis
+9725	mirror
+9731	high-level
+9749	2000s
+9766	eurostar
+9788	waver
+9793	reshap
+9842	derail
+9937	andrea
+9938	peterson
+9949	Warren Buffett
+9952	non-viol
+9967	Gaza Strip
+10053	settler
+10059	two-stat
+10123	mosqu
+10133	indiscrimin
+10144	recount
+10158	alexand
+10169	hemispher
+10192	silli
+10212	Michael Bloomberg
+10244	Bill Cosby
+10257	paralyz
+10290	refuel
+10335	wine
+10374	jersey
+10378	free-trad
+10380	Michael Gove
+10381	anchor
+10415	boyfriend
+10419	ordinari
+10456	Indiana
+10502	affin
+10563	21st
+10564	shorten
+10570	pend
+10583	Charles Koch
+10585	sooth
+10616	waterfront
+10664	baseless
+10688	stabl
+10750	1995
+10769	brick
+10786	hardlin
+10801	muscl
+10833	forecast
+10834	timothi
+10837	studio
+10914	shopper
+10950	luxuri
+11010	xenophobia
+11054	nazi
+11062	lodg
+11069	inmat
+11180	ferguson
+11232	festiv
+11235	forth
+11247	discredit
+11328	curs
+11358	harri
+11360	sympathet
+11370	wreak
+11409	low-
+11462	upend
+11475	russia-back
+11483	feedback
+11486	orient
+11577	alic
+11595	airlift
+11664	inconsist
+11666	slice
+11737	squeez
+11778	third-parti
+11863	coalesc
+11868	alien
+11958	parlor
+11972	trace
+12006	constrain
+12028	bloodsh
+12031	counselor
+12039	Margaret Thatcher
+12156	reel
+12178	Moscow Kremlin
+12197	liquid
+12247	phil
+12269	Thomas Jefferson
+12352	traitor
+12366	12-year
+12413	clarif
+12485	teresa
+12500	loreal
+12527	avid
+12659	organis
+12681	ethan
+12692	barrag
+12696	Jeremy Corbyn
+12699	filmmak
+12701	defenc
+12702	Labour Party (UK)
+12777	nate
+12814	EgyptAir
+12861	tori
+13017	Liam Fox
+13021	juror
+13049	centr
+13062	31-year-old
+13063	newborn
+13098	swiss
+13115	Western Australia
+13164	Perth
+13178	punch
+13190	rooftop
+13200	swimmer
+13211	prematur
+13255	allig
+13294	Des Moines, Iowa
+13298	Philadelphia Eagles
+13331	authoritarian
+13424	cigar
+13455	jacob
+13482	Odebrecht
+13484	Green Party of the United States
+13485	Jill Stein
+13487	high-spe
+13495	13-year-old
+13525	Temple University
+13585	manila
+13638	sharpen
+13645	1600
+13686	metr
+13731	suitabl
+13753	venezuelan
+13807	Jacksonville, Florida
+13917	diner
+13987	boxer
+13991	avenu
+13998	Charleroi
+14033	badg
+14043	assail
+14064	10-year-old
+14120	Saint Petersburg
+14162	fist
+14229	4000
+14253	amateur
+14446	forrest
+14466	classic
+14482	Bloomberg L.P.
+14673	Sky News
+14701	theatr
+14738	hiatus
+14765	two-year-old
+14772	waiv
+14773	Quinnipiac University Polling Institute
+14785	minc
+14844	smith
+14870	Australian Broadcasting Corporation
+14888	retail
+14954	Los Angeles Police Department
+14993	item
+15009	savio
+15046	segment
+15092	Brian Williams
+15151	House of Commons of the United Kingdom
+15189	autumn
+15213	tread
+15219	realis
+15242	criticis
+15338	interact
+15395	mysteri
+15425	tobi
+15483	Anheuser-Busch InBev
+15518	Gary Johnson
+15521	heaven
+15534	canal
+15595	unhealthi
+15658	16-year-old
+15661	Philadelphia Police Department
+15676	potter
+15698	Trump University
+15737	illumin
+15849	refineri
+15854	self-defens
+15927	Davenport, Iowa
+16000	nois
+16006	alex
+16025	anxious
+16064	mascot
+16091	anthem
+16096	nova
+16124	evok
+16140	buyer
+16156	entic
+16270	trademark
+16272	Cedar Rapids, Iowa
+16351	wildcat
+16668	coincident
+16716	faraway
+16725	stack
+16753	playbook
+16756	pediatrician
+16759	miseri
+16773	behav
+16811	Fort Lauderdale, Florida
+16828	president-elect
+16846	clad
+16864	luca
+16891	luckili
+16936	second-degre
+16991	taint
+17010	chlorin
+17064	unequivoc
+17091	labour
+17124	israeli-palestinian
+17170	carnag
+17249	Avigdor Lieberman
+17251	inquest
+17367	oxford
+17392	exoner
+17556	wrought
+17598	subcultur
+17604	drank
+17674	lover
+17876	class-act
+18085	Libertarian Party (United States)
+18137	Mark Zuckerberg
+18157	priorit
+18179	hesit
+18239	52-year-old
+18294	Durham University
+18302	clever
+18537	richest
+18551	felin
+18647	handpick
+18656	programm
+18685	40-year-old
+18983	wise
+18985	ultranationalist
+18986	Moshe Ya'alon
+19037	stalem
+19264	loung
+19336	post-brexit
+19340	Manuel Zelaya
+19342	Honduras
+19347	Organization of American States
+19349	Nicaragua
+19426	Moldova
+19428	obsess
+19430	ya'alon
+19476	General Confederation of Labour (France)
+19526	pre-elect
+19561	disdain
+19566	pro-european
+19662	agon
+19673	maul
+19701	$112
+19866	underperform
+19868	downturn
+20075	Siberia
+20145	unif
+20161	government-back
+20336	worrisom
+20388	standstil
+20486	mutt
+20511	shepherd
+20631	gruff
+20703	Yisrael Beiteinu
+20724	apartheid
+20746	National Assembly (Venezuela)
+20755	Luis Almagro
+20843	Airbus Group
+20990	University of Florida
+21006	gator
+21144	battalion
+21344	reorgan
+21355	David Koch
+21398	acrimoni
+21555	michel
+21988	Zara (retailer)
+22071	duplex
+22245	telecom
+22254	skateboard
+22346	meld
+22594	fascin
+22621	stalwart
+22727	homegrown
+22761	bouncer
+22778	fifteenth
+22843	New England Aquarium
+22885	open-air
+22991	$2000
+23015	middle-incom
+23299	unflatt
+23442	anarrow
+23471	neptun
+23609	meme
+23631	fund-rais
+24030	conciliatori
+24115	scratchi
+24128	SNCF
+24144	1916
+24178	Yosemite National Park
+24303	plaqu
+24332	andr
+24346	Florence
+24366	dramatis
+24379	harmless
+24453	iowa
+24537	falcon
+24691	Koch Industries
+24833	opt-in
+25150	North Charleston, South Carolina
+25296	unsurpris
+25365	scout
+25533	voucher
+25706	tyler
+25812	Republic of Ireland
+25932	rand
+25939	kelsey
+25973	promo
+26241	paramount
+26364	co-wrot
+26402	miami
+26571	over-perform
+26583	autograph
+26906	loser
+26934	ex-wif
+27104	molest
+27416	misus
+27516	pragmat
+27596	UBS
+27731	islamophobia
+27754	manchest
+27797	lister
+27813	forefront
+28340	magnific
+28509	Werner von Siemens
+28680	tattoo
+28780	priciest
+28900	misgiv
+28926	jibe
+29151	ultra-rich
+29396	remors
+29532	sergio
+29545	Glasgow
+29598	kyle
+29629	surf
+29717	$396
+29965	takeaway
+29976	antisemit
+30008	tavern
+30382	handbag
+30581	neira
+30584	particl
+30861	cull
+31160	Virginia Tech
+31161	Marc Edwards (civil engineering professor)
+31464	matchup
+31479	open-end
+31523	theydont
+31588	trans-atlant
+31816	manin
+31869	incomplet
+32161	cavern
+32299	grit
+32812	stigmat
+32825	overthrew
+33011	goliath
+33199	tint
+33221	halal
+33305	sleepi
+33364	scantili
+33415	allot
+33484	Caspian Sea
+33756	pliant
+33947	adrian
+34680	bask
+34818	buzzer
+35196	indebt
+35524	shadowi
+35675	carcass
+35827	chorus
+35944	Jo Johnson
+35982	moscow-bas
+36339	foreign-own
+36489	lush
+36562	Kevin Steele
+36727	brussel
+36917	utopia
+37121	moroccan-born
+37488	J. K. Rowling
+37501	picket
+37590	nathan
+37686	Frans Timmermans
+37937	42000
+38064	ambl
+38210	staci
+38263	unreli
+38314	remodel
+38485	Ford Motor Company
+38506	electrician
+38533	talk-show
+38624	ralph
+39044	locey
+39170	champagn
+39313	steak
+39583	presser
+40024	largess
+40177	ncaa
+40211	unsuit
+40216	one-fifth
+40339	gaggl
+41122	emmanuel
+41135	Nottingham
+41784	anatolian
+41997	rake
+42363	diamet
+42364	micromet
+42392	sierra
+42502	unsanct
+42828	byproduct
+43649	watermelon
+43854	Flint River (Michigan)
+43886	molenbeek
+44636	meno
+45350	Swaziland
+47034	finest
+47402	waysid
+47436	penthous
+47884	violinist
+48113	uncompetit
+48270	Jack Black
+48279	fairer
+48741	backdoor
+48863	disposit
+48921	toreleas
+48990	alaska
+49513	$35000
+49525	maría
+49776	Biola University
+49948	mona
+50501	Gonzalo Curiel
+50789	geometr
+50802	surfer
+50807	nondescript
+51233	arraign
+51364	thathi
+52187	heorder
+52666	breweri
+52810	Norristown, Pennsylvania
+52812	constand
+52894	unasur
+53088	aggressor
+53207	colour
+53452	Iain Duncan Smith
+53614	pmqs
+53615	backbench
+53856	leaver
+53997	schofield
+54207	hawa
+54372	Carlos Slim
+54554	thinktank
+55364	Douglas Carswell
+55386	kathleen
+55914	grown-up
+55942	south-eastern
+56255	sanctimoni
+57227	o'neil
+57276	Louise Hunt
+57427	boulton
+58124	screenshot
+58266	Priti Patel
+58713	non-prosecut
+58747	gentrifi
+58774	Liliane Bettencourt
+59056	force-f
+59561	againstmr
+60298	three-leg
+60351	Ipanema
+60428	WBZ-TV
+60856	publicis
+61031	well-intent
+61353	ill-inform
+62145	hermion
+62205	Alastair Macdonald (British Army officer)
+62431	drake
+62471	Jonathan Freedland
+62887	boilerpl
+63268	hostel
+63779	Montgomery County, Pennsylvania
+63875	Ipsos MORI
+65019	petrol
+65201	vkontakt
+65340	lifeguard
+65504	petul
+65865	centof
+65866	Marks & Spencer
+67198	David Letterman
+68172	then-defens
+68328	Seumas Milne
+68619	brutalis
+69159	anastasia
+69212	Newport Beach, California
+70195	Essex
+70889	firesid
+73532	australian-styl
+74000	Niall Ferguson
+74459	high-street
+74842	gainer
+75537	6630
+76316	National Union of Students (United Kingdom)
+76404	counter-product
+76926	Nile Rodgers
+77526	latent
+77556	live-act
+77631	camilla
+78050	basel
+78187	toothpast
+78335	cube
+78352	Eric Schneiderman
+79241	points-bas
+80459	Cathy Gerring
+80872	Gloucester
+81729	triathlon
+82159	Ben Ferguson
+82481	15ft
+82595	mid-30
+84407	Pablo Picasso
+85202	Jack Thorne (writer)
+85216	pelvi
+85607	prosecco
+85847	split-second
+86012	politically-motiv
+86141	rubik
+86211	Ferguson, Missouri
+86447	100ft
+87677	38-year
+89100	Lebanese Communist Party
+89732	bombardi
+90621	Perfecto Yasay, Jr.
+91043	well-inform
+92145	Vivienne Westwood
+92724	John Longworth (businessman)
+93430	gump
+95070	Sainsbury's
+95760	juneand
+96359	Paul Taylor (fighter)
+96750	Jason Cowley
+97058	iconoclast
+97105	romero
+97535	cnnmoney
+98511	villanova
+100680	councilwoman
+101164	hiscampaign
+102692	Nicola Benedetti
+104886	Louis Vuitton
+107185	Philippe Martinez
+107673	$1bn
+109145	time-shar
+110232	Merrill Markoe
+110324	John Tiffany
+112650	sublimin
+113145	malt
+115796	belook
+117800	shownthat
+118669	industrial-era
+120148	NetJets
+120947	Mark Ruffalo
+120974	santiago
+121284	Paul Collier
+122266	waterloo
+122500	Alisher Usmanov
+125915	Managua
+125948	emporium
+128882	Drew Peterson
+128883	James Glasgow
+128885	Randolph County, Illinois
+128886	Menard Correctional Center
+130277	95000
+130494	Will Straw
+131273	Heriot-Watt University
+131930	ulloa
+133941	brahma
+135055	Dirce Camargo
+135056	Camargo Corrêa
+135065	brazillionair
+135067	cuadro
+137681	hannon
+137779	Jeff Koons
+138174	stay-at-hom
+139524	jenga
+139916	recentlythat
+140828	$436
+141963	Eastern Catholic Churches
+143066	$446
+145113	ironman
+145663	cleanli
+151133	ginni
+155720	Dayne Walling
+158257	Andrew Fisher
+165245	Taylor Hicks
+172734	10-digit
+173280	Richard S. Ross
+176795	24-30
+177503	governmentmay
+177822	Mike Rowe
+179936	chequebook
+184061	consideredth
+189705	inter-c
+191179	Jorge Paulo Lemann
+193658	tominey
+199029	six-storey
+201640	longboard
+205910	arthous
+208790	Bonnie Tyler
+209573	mandurah
+209914	astrakhan
+211468	documentsthat
+213247	Dennis O'Neil
+215007	outter
+235183	jarri
+242330	Steve Rowe
+243952	peronist
+246051	Stroud
+248258	albus
+248854	Jamie Parker
+249977	West Des Moines, Iowa
+253031	St. Ambrose University
+253098	nationalist-mind
+254174	disaffili
+262610	kremlin-friend
+269287	Elkhart, Indiana
+278157	multifamili
+279212	Bath, Somerset
+280128	elkhart
+291028	Petco
+291213	azov
+291530	SOVA Center
+297811	Pavel Durov
+302241	françois
+309539	Baoding
+309822	fordemocrat
+314554	Radio Classique
+317972	Noma Dumezweni
+320614	ramada
+322827	790000
+327491	hanna-attisha
+329757	1561
+336433	Tommy Dorsey
+337277	catconla
+338101	Salina, Kansas
+340875	pagu
+342097	804s
+342435	keita
+344511	ofsuperdeleg
+345889	Michael Jace
+345893	April Jace
+349920	cebr
+349964	uphow
+351372	Tasso Jereissati
+351409	nyomi
+354319	Enikoe Korcsmaros
+355749	Paul Thornley
+357064	magil
+358455	Petrocaribe
+358740	Jean-Marie Le Guen
+359143	much-recov
+360725	24-feet
+360726	lacass
+360727	Geneviève Lacasse
+360816	handwash
+360828	Mulberry Bush School
+360829	november21
+360830	than180
+360876	korcsmaro
+360877	eiben
+360887	unluckilyfor
+360888	anti-semitismund
+360889	outsideri
+360890	nations-lik
+360891	jellinek
+360892	Pedro Carreño
+360893	stackabl
+360894	coysh
+360895	amstel
+360896	Sarah Coysh
+360935	49530
+360936	6130
+360937	7780
+360940	pipedown
+360941	muzak-fre
+360942	Nigel Rodgers
+360943	PRS for Music
+360974	couldlos
+360975	registeringto
+360976	californiawil
+360977	than250
+360978	includingdistinguish
+360979	nominationwithdraw
+360980	currentlysubject
+361032	Poppy Miller
+361033	clemmett
+361034	shaftsburi
+361054	Ronen Bergman
+361125	Tver
+361126	bubeyeva
+361127	bubeyev
+361128	verkhovski
+361129	Vita Sidorkina
+361187	Ed Helms
+361188	Buffalo Creek (West Branch Susquehanna River)
+361250	threelawsuit
+361381	high-incomecountri
+361606	Saline County, Kansas
+361607	niehaus
+361608	Dave Niehaus
+361609	galazia
+361618	tighterwhen
+361619	4-pointlead
+361620	weread
+361621	womensurvey
+361723	Savoy Brown
+361724	jamon
+361725	'boogi
+361770	Middlesbrough Institute of Modern Art
+361771	Belle-Vue Brewery
+361772	raphaël
+361773	cruyt
+361774	dahmani
+361775	abeel
+361776	launoit
+361777	gilles-gori
+361778	Maya Hayuk
+361779	mbai
+361830	Chester, Illinois
+361831	liefer
+361832	Jeff Liefer
+361833	Mario Savio
+361844	half57
+361845	doubledown
+361846	ainternationalist
+361847	backfirebi
+361848	most-qualifi
+361849	beingtrustedon
+361850	inrough
+361963	idrissi
+361964	Idriss Azami Al Idrissi
+361965	bazarouj
+361966	Zahia Dahmani
+361967	State Security Administration
+361968	suret
+361969	l'etat
+361970	interfeder
+361971	charlier
+361972	Jean-Michel Charlier
+361973	39-million-euro
+361974	schepman
+362160	Jena Malone
+362161	delorenzo
+362162	crunchiest
+362163	Michael DeLorenzo
+362231	latercaught
+362232	hondro
+362233	boardrid
+362280	large-belli
+362281	$50mand
+362282	6500sq
+362283	$771
+362284	$452
+362285	11-digit
+362286	Miami Beach Convention Center
+362287	half-million-square-foot
+362288	private-plan
+362289	Inhotim
+362290	240-acr
+362291	jonass
+362292	aché
+362293	fonteanoth
+362294	Marcel Herrmann Telles
+362295	Carlos Alberto Sicupira
+362296	well-knownforb
+362297	Walter Faria
+362298	schincariol
+362299	brotherssom
+362300	mid-play
+362301	family-ownedand
+362302	profile1099
+362331	Andy Reid
+362332	Lindy Infante
+362352	Los Angeles Police Protective League
+362353	International Union of Police Associations
+362359	Cesar Millan
+362360	dog-bas
+362361	pre-youtub
+362362	pet-them
+362363	William Wegman (photographer)
+362364	weimeran
+362365	battina
+362366	crooki
+362367	chundo
+362368	canine-human
+362369	hotchner
+362370	cat-bas
+362371	popularcat-them
+362457	collegebasketbal
+362458	Kris Jenkins (basketball)
+362459	4contest
+362460	three-pointshot
+362461	byvic
+362462	Jay Wright (basketball)
