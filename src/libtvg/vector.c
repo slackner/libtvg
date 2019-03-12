@@ -336,36 +336,15 @@ double vector_norm(const struct vector *vector)
     return sqrt(norm);
 }
 
-double vector_mul_vector(const struct vector *vector1, /* const */ struct vector *vector2)
+double vector_mul_vector(const struct vector *vector1, const struct vector *vector2)
 {
     struct entry1 *entry1, *entry2;
-    uint64_t i, num_buckets;
     double product = 0.0;
 
-    while (vector2->bits != vector1->bits)
+    VECTOR_FOR_EACH_ENTRY2(vector1, entry1, vector2, entry2)
     {
-        if (vector2->bits < vector1->bits)
-        {
-            if (!vector_inc_bits(vector2)) return 0.0;
-            vector2->optimize = 1024;
-        }
-        else
-        {
-            if (!vector_dec_bits(vector2)) return 0.0;
-            vector2->optimize = 1024;
-        }
-    }
-
-    /* FIXME: Introduce helper macro */
-
-    num_buckets = 1ULL << vector1->bits;
-    for (i = 0; i < num_buckets; i++)
-    {
-        BUCKET1_FOR_EACH_ENTRY2(&vector1->buckets[i], entry1, &vector2->buckets[i], entry2)
-        {
-            if (!entry1 || !entry2) continue;
-            product += entry1->weight * entry2->weight;
-        }
+        if (!entry1 || !entry2) continue;
+        product += entry1->weight * entry2->weight;
     }
 
     return product;

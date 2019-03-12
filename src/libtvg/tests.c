@@ -841,6 +841,46 @@ static void test_load_graphs(void)
     free_tvg(tvg);
 }
 
+static void test_vector_mul_vector(void)
+{
+    struct vector *vector1, *vector2;
+    double product;
+    uint64_t i, j;
+    int ret;
+
+    vector1 = alloc_vector(0);
+    vector2 = alloc_vector(0);
+
+    for (i = 0; i < 1000; i++)
+    {
+        vector_add_entry(vector1, i, i);
+        vector_add_entry(vector2, i, 1000.0 - i);
+    }
+
+    while (vector_dec_bits(vector1)) {}
+    while (vector_dec_bits(vector2)) {}
+
+    for (i = 0; i < 12; i++)
+    {
+        for (j = 0; j < 12; j++)
+        {
+            product = vector_mul_vector(vector1, vector2);
+            /* expected: sum i*(1000-i) from i=0 to 999 */
+            assert(product == 166666500.0);
+
+            ret = vector_inc_bits(vector2);
+            assert(ret);
+        }
+
+        while (vector_dec_bits(vector2)) {}
+        ret = vector_inc_bits(vector1);
+        assert(ret);
+    }
+
+    free_vector(vector1);
+    free_vector(vector2);
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -864,6 +904,7 @@ int main(void)
     test_graph_mul_vector();
     test_power_iteration();
     test_load_graphs();
+    test_vector_mul_vector();
 
     fprintf(stderr, "No test failures found\n");
 }

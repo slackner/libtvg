@@ -170,8 +170,9 @@ static inline struct entry1 *__bucket1_for_each_entry_rev(struct bucket1 *bucket
 struct _bucket1_iter2
 {
     struct entry1 *entry1;
-    struct entry1 *entry2;
     struct entry1 *end_entry1;
+
+    struct entry1 *entry2;
     struct entry1 *end_entry2;
 };
 
@@ -332,8 +333,9 @@ static inline struct entry2 *__bucket2_for_each_entry_rev(struct bucket2 *bucket
 struct _bucket2_iter2
 {
     struct entry2 *entry1;
-    struct entry2 *entry2;
     struct entry2 *end_entry1;
+
+    struct entry2 *entry2;
     struct entry2 *end_entry2;
 };
 
@@ -488,8 +490,9 @@ static inline int __bucket2_prev_entry2(struct _bucket2_iter2 *iter, struct entr
 struct _bucket21_iter
 {
     struct entry2 *entry2;
-    struct entry1 *entry1;
     struct entry2 *end_entry2;
+
+    struct entry1 *entry1;
     struct entry1 *end_entry1;
 };
 
@@ -560,7 +563,7 @@ static inline struct _vector_iter __vector_for_each_entry(const struct vector *v
     iter.vector    = vector;
     iter.index     = 0;
     iter.end_index = 1ULL << vector->bits;
-    iter.end_entry = __bucket1_for_each_entry(&vector->buckets[iter.index], &iter.entry);
+    iter.end_entry = __bucket1_for_each_entry(&vector->buckets[0], &iter.entry);
 
     return iter;
 }
@@ -577,8 +580,8 @@ static inline int __vector_next_entry(struct _vector_iter *iter, struct entry1 *
             *entry = iter->entry++;
             return 1;
         }
-        iter->index++;
 
+        iter->index++;
         if (iter->index >= iter->end_index)
             break;
 
@@ -594,6 +597,122 @@ static inline int __vector_next_entry(struct _vector_iter *iter, struct entry1 *
 /* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
 #define VECTOR_FOR_EACH_ENTRY(_vector, _edge) \
     _VECTOR_FOR_EACH_ENTRY((_vector), (_edge), _UNIQUE_VARIABLE(__iter_))
+
+struct _vector_iter2
+{
+    const struct vector *vector1;
+    const struct vector *vector2;
+
+    uint64_t       index;
+    uint64_t       end_index_m1;  /* = mask */
+
+    struct entry1 *entry1;
+    struct entry1 *end_entry1;
+
+    struct entry1 *entry2;
+    struct entry1 *end_entry2;
+};
+
+static inline struct _vector_iter2 __vector_for_each_entry2(const struct vector *vector1, const struct vector *vector2)
+{
+    struct _vector_iter2 iter;
+
+    iter.vector1    = vector1;
+    iter.vector2    = vector2;
+
+    iter.index = 0;
+    if (vector1->bits > vector2->bits)
+        iter.end_index_m1 = (1ULL << vector1->bits) - 1;
+    else
+        iter.end_index_m1 = (1ULL << vector2->bits) - 1;
+
+    iter.end_entry1 = __bucket1_for_each_entry(&vector1->buckets[0], &iter.entry1);
+    iter.end_entry2 = __bucket1_for_each_entry(&vector2->buckets[0], &iter.entry2);
+    return iter;
+}
+
+static inline int __vector_next_entry2(struct _vector_iter2 *iter, struct entry1 **entry1, struct entry1 **entry2)
+{
+    if (iter->index > iter->end_index_m1)
+        return 0;
+
+    for (;;)
+    {
+        if (iter->entry1 != iter->end_entry1)
+        {
+            if ((iter->entry1->index & iter->end_index_m1) != iter->index)
+            {
+                iter->entry1++;
+                continue;
+            }
+
+            if (iter->entry2 != iter->end_entry2)
+            {
+                if ((iter->entry2->index & iter->end_index_m1) != iter->index)
+                {
+                    iter->entry2++;
+                    continue;
+                }
+
+                if (iter->entry1->index < iter->entry2->index)
+                {
+                    *entry1 = iter->entry1++;
+                    *entry2 = NULL;
+                }
+                else if (iter->entry1->index > iter->entry2->index)
+                {
+                    *entry1 = NULL;
+                    *entry2 = iter->entry2++;
+                }
+                else
+                {
+                    *entry1 = iter->entry1++;
+                    *entry2 = iter->entry2++;
+                }
+                return 1;
+            }
+            else
+            {
+                *entry1 = iter->entry1++;
+                *entry2 = NULL;
+                return 1;
+            }
+        }
+        else
+        {
+            if (iter->entry2 != iter->end_entry2)
+            {
+                if ((iter->entry2->index & iter->end_index_m1) != iter->index)
+                {
+                    iter->entry2++;
+                    continue;
+                }
+
+                *entry1 = NULL;
+                *entry2 = iter->entry2++;
+                return 1;
+            }
+        }
+
+        iter->index++;
+        if (iter->index > iter->end_index_m1)
+            break;
+
+        iter->end_entry1 = __bucket1_for_each_entry(&iter->vector1->buckets[iter->index &
+            ((1ULL << iter->vector1->bits) - 1)], &iter->entry1);
+        iter->end_entry2 = __bucket1_for_each_entry(&iter->vector2->buckets[iter->index &
+            ((1ULL << iter->vector2->bits) - 1)], &iter->entry2);
+    }
+
+    return 0;
+}
+
+#define _VECTOR_FOR_EACH_ENTRY2(_vector1, _edge1, _vector2, _edge2, _iter) \
+    for (struct _vector_iter2 (_iter) = __vector_for_each_entry2((_vector1), (_vector2)); __vector_next_entry2(&(_iter), &(_edge1), &(_edge2));)
+
+/* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
+#define VECTOR_FOR_EACH_ENTRY2(_vector1, _edge1, _vector2, _edge2) \
+    _VECTOR_FOR_EACH_ENTRY2((_vector1), (_edge1), (_vector2), (_edge2), _UNIQUE_VARIABLE(__iter_))
 
 /* graph macros */
 
@@ -787,7 +906,7 @@ void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_e
 
 void vector_mul_const(struct vector *vector, float constant);
 double vector_norm(const struct vector *vector);
-double vector_mul_vector(const struct vector *vector1, /* const */ struct vector *vector2);
+double vector_mul_vector(const struct vector *vector1, const struct vector *vector2);
 
 /* graph functions */
 
