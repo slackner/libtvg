@@ -736,6 +736,74 @@ struct vector *graph_out_weights(const struct graph *graph)
     return vector;
 }
 
+struct vector *graph_degree_anomalies(const struct graph *graph)
+{
+    struct vector *vector, *temp;
+    struct entry1 *entry;
+    struct entry2 *edge;
+
+    if (!(vector = graph_out_degrees(graph)))
+        return NULL;
+
+    if (!(temp = alloc_vector(TVG_FLAGS_NONZERO)))
+    {
+        free_vector(vector);
+        return NULL;
+    }
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(temp, edge->source, vector_get_entry(vector, edge->target)))
+        {
+            free_vector(vector);
+            free_vector(temp);
+            return NULL;
+        }
+    }
+
+    VECTOR_FOR_EACH_ENTRY(vector, entry)
+    {
+        entry->weight -= vector_get_entry(temp, entry->index) / entry->weight;
+    }
+
+    free_vector(temp);
+    return vector;
+}
+
+struct vector *graph_weight_anomalies(const struct graph *graph)
+{
+    struct vector *vector, *temp;
+    struct entry1 *entry;
+    struct entry2 *edge;
+
+    if (!(vector = graph_out_weights(graph)))
+        return NULL;
+
+    if (!(temp = alloc_vector(TVG_FLAGS_NONZERO)))
+    {
+        free_vector(vector);
+        return NULL;
+    }
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(temp, edge->source, edge->weight * vector_get_entry(vector, edge->target)))
+        {
+            free_vector(vector);
+            free_vector(temp);
+            return NULL;
+        }
+    }
+
+    VECTOR_FOR_EACH_ENTRY(vector, entry)
+    {
+        entry->weight -= vector_get_entry(temp, entry->index) / entry->weight;
+    }
+
+    free_vector(temp);
+    return vector;
+}
+
 struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out)
 {
     struct vector *vector;

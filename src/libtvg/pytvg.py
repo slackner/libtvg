@@ -191,6 +191,12 @@ lib.graph_out_degrees.restype = c_vector_p
 lib.graph_out_weights.argtypes = (c_graph_p,)
 lib.graph_out_weights.restype = c_vector_p
 
+lib.graph_degree_anomalies.argtypes = (c_graph_p,)
+lib.graph_degree_anomalies.restype = c_vector_p
+
+lib.graph_weight_anomalies.argtypes = (c_graph_p,)
+lib.graph_weight_anomalies.restype = c_vector_p
+
 lib.graph_power_iteration.argtypes = (c_graph_p, c_uint, c_double_p)
 lib.graph_power_iteration.restype = c_vector_p
 
@@ -702,6 +708,12 @@ class Graph(object):
 
     def out_weights(self):
         return Vector(obj=lib.graph_out_weights(self._obj))
+
+    def degree_anomalies(self):
+        return Vector(obj=lib.graph_degree_anomalies(self._obj))
+
+    def weight_anomalies(self):
+        return Vector(obj=lib.graph_weight_anomalies(self._obj))
 
     def power_iteration(self, num_iterations=0, ret_eigenvalue=True):
         eigenvalue = c_double() if ret_eigenvalue else None
@@ -1614,6 +1626,35 @@ if __name__ == '__main__':
             indices, weights = d.entries()
             self.assertEqual(indices.tolist(), [0, 1])
             self.assertEqual(weights.tolist(), [3.0, 3.0])
+            del g
+
+        def test_anomalies(self):
+            g = Graph(directed=False)
+
+            a = g.degree_anomalies()
+            indices, weights = a.entries()
+            self.assertEqual(indices.tolist(), [])
+            self.assertEqual(weights.tolist(), [])
+            a = g.weight_anomalies()
+            indices, weights = a.entries()
+            self.assertEqual(indices.tolist(), [])
+            self.assertEqual(weights.tolist(), [])
+
+            c = 0
+            for i in range(5):
+                for j in range(i + 1):
+                    if c % 3 != 0: g[i, j] = c
+                    c += 1
+
+            a = g.degree_anomalies()
+            indices, weights = a.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2, 3, 4])
+            self.assertEqual(weights.tolist(), [-2.5, 1.5999999046325684, -0.6666667461395264, -1.0, 0.5])
+            a = g.weight_anomalies()
+            indices, weights = a.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2, 3, 4])
+            self.assertEqual(weights.tolist(), [-34.90909194946289,-9.119998931884766, -7.0588226318359375,
+                                                -5.392856597900391, 18.39583396911621])
             del g
 
     class TVGTests(unittest.TestCase):
