@@ -588,12 +588,12 @@ static inline int __vector_next_entry(struct _vector_iter *iter, struct entry1 *
     return 0;
 }
 
-#define _VECTOR_FOR_EACH_ENTRY(_graph, _edge, _iter) \
-    for (struct _vector_iter (_iter) = __vector_for_each_entry((_graph)); __vector_next_entry(&(_iter), &(_edge));)
+#define _VECTOR_FOR_EACH_ENTRY(_vector, _edge, _iter) \
+    for (struct _vector_iter (_iter) = __vector_for_each_entry((_vector)); __vector_next_entry(&(_iter), &(_edge));)
 
 /* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
-#define VECTOR_FOR_EACH_ENTRY(_graph, _edge) \
-    _VECTOR_FOR_EACH_ENTRY((_graph), (_edge), _UNIQUE_VARIABLE(__iter_))
+#define VECTOR_FOR_EACH_ENTRY(_vector, _edge) \
+    _VECTOR_FOR_EACH_ENTRY((_vector), (_edge), _UNIQUE_VARIABLE(__iter_))
 
 /* graph macros */
 
