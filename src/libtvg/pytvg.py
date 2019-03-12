@@ -179,6 +179,18 @@ lib.graph_mul_const.argtypes = (c_graph_p, c_float)
 lib.graph_mul_vector.argtypes = (c_graph_p, c_vector_p)
 lib.graph_mul_vector.restype = c_vector_p
 
+lib.graph_in_degrees.argtypes = (c_graph_p,)
+lib.graph_in_degrees.restype = c_vector_p
+
+lib.graph_in_weights.argtypes = (c_graph_p,)
+lib.graph_in_weights.restype = c_vector_p
+
+lib.graph_out_degrees.argtypes = (c_graph_p,)
+lib.graph_out_degrees.restype = c_vector_p
+
+lib.graph_out_weights.argtypes = (c_graph_p,)
+lib.graph_out_weights.restype = c_vector_p
+
 lib.graph_power_iteration.argtypes = (c_graph_p, c_uint, c_double_p)
 lib.graph_power_iteration.restype = c_vector_p
 
@@ -678,6 +690,18 @@ class Graph(object):
     def mul_vector(self, other):
         # FIXME: Check type of 'other'.
         return Vector(obj=lib.graph_mul_vector(self._obj, other._obj))
+
+    def in_degrees(self):
+        return Vector(obj=lib.graph_in_degrees(self._obj))
+
+    def in_weights(self):
+        return Vector(obj=lib.graph_in_weights(self._obj))
+
+    def out_degrees(self):
+        return Vector(obj=lib.graph_out_degrees(self._obj))
+
+    def out_weights(self):
+        return Vector(obj=lib.graph_out_weights(self._obj))
 
     def power_iteration(self, num_iterations=0, ret_eigenvalue=True):
         eigenvalue = c_double() if ret_eigenvalue else None
@@ -1565,6 +1589,31 @@ if __name__ == '__main__':
             d, m = g.get_delta()
             self.assertEqual(d, None)
             self.assertEqual(m, None)
+            del g
+
+        def test_weights(self):
+            g = Graph(directed=True)
+            g[0, 0] = 1.0
+            g[0, 1] = 2.0
+            g[1, 0] = 3.0
+
+            d = g.in_degrees()
+            indices, weights = d.entries()
+            self.assertEqual(indices.tolist(), [0, 1])
+            self.assertEqual(weights.tolist(), [2.0, 1.0])
+            d = g.in_weights()
+            indices, weights = d.entries()
+            self.assertEqual(indices.tolist(), [0, 1])
+            self.assertEqual(weights.tolist(), [4.0, 2.0])
+
+            d = g.out_degrees()
+            indices, weights = d.entries()
+            self.assertEqual(indices.tolist(), [0, 1])
+            self.assertEqual(weights.tolist(), [2.0, 1.0])
+            d = g.out_weights()
+            indices, weights = d.entries()
+            self.assertEqual(indices.tolist(), [0, 1])
+            self.assertEqual(weights.tolist(), [3.0, 3.0])
             del g
 
     class TVGTests(unittest.TestCase):

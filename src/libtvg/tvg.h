@@ -837,6 +837,13 @@ void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges)
 
 void graph_mul_const(struct graph *graph, float constant);
 struct vector *graph_mul_vector(const struct graph *graph, /* const */ struct vector *vector);
+
+struct vector *graph_in_degrees(const struct graph *graph);
+struct vector *graph_in_weights(const struct graph *graph);
+
+struct vector *graph_out_degrees(const struct graph *graph);
+struct vector *graph_out_weights(const struct graph *graph);
+
 struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out);
 
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,

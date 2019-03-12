@@ -652,6 +652,90 @@ struct vector *graph_mul_vector(const struct graph *graph, /* const */ struct ve
     return out;
 }
 
+struct vector *graph_in_degrees(const struct graph *graph)
+{
+    struct vector *vector;
+    struct entry2 *edge;
+
+    /* FIXME: Appropriate flags? */
+    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+        return NULL;
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(vector, edge->target, 1.0))
+        {
+            free_vector(vector);
+            return NULL;
+        }
+    }
+
+    return vector;
+}
+
+struct vector *graph_in_weights(const struct graph *graph)
+{
+    struct vector *vector;
+    struct entry2 *edge;
+
+    /* FIXME: Appropriate flags? */
+    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+        return NULL;
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(vector, edge->target, edge->weight))
+        {
+            free_vector(vector);
+            return NULL;
+        }
+    }
+
+    return vector;
+}
+
+struct vector *graph_out_degrees(const struct graph *graph)
+{
+    struct vector *vector;
+    struct entry2 *edge;
+
+    /* FIXME: Appropriate flags? */
+    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+        return NULL;
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(vector, edge->source, 1.0))
+        {
+            free_vector(vector);
+            return NULL;
+        }
+    }
+
+    return vector;
+}
+
+struct vector *graph_out_weights(const struct graph *graph)
+{
+    struct vector *vector;
+    struct entry2 *edge;
+
+    /* FIXME: Appropriate flags? */
+    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+        return NULL;
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (!vector_add_entry(vector, edge->source, edge->weight))
+        {
+            free_vector(vector);
+            return NULL;
+        }
+    }
+
+    return vector;
+}
+
 struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out)
 {
     struct vector *vector;
