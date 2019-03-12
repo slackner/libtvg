@@ -758,18 +758,15 @@ class Graph(object):
 
         return result
 
-    def encode_visjs(self, node_func=None):
-        if node_func is None:
-            node_func = lambda x: {}
+    def encode_visjs(self, node_attributes=None):
+        if node_attributes is None:
+            node_attributes = lambda i: {}
 
         nodes = []
         edges = []
 
-        values, _ = self.power_iteration(ret_eigenvalue=False)
         for i in self.nodes():
-            w = values[i]
-            value = max(math.log(w) + 10.0, 1.0) if w > 0.0 else 1.0
-            nodes.append({'id': i, 'value': value, **node_func(i)})
+            nodes.append({'id': i, **node_attributes(i)})
 
         delta, mul = self.get_delta()
         if delta is None:

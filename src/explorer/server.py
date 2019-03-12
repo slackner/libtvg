@@ -71,34 +71,45 @@ class Client(WebSocket):
         data = json.dumps(kwargs, indent=4, cls=ComplexEncoder)
         self.sendMessage(data)
 
-    def node_attributes(self, i):
-        try:
-            label = dataset_labels[i]
-        except KeyError:
-            return {'label': "Node %d" % i, 'color': '#cccccc'}
-
-        m = label_regex.match(label)
-        if m is None:
-            return {'label': label, 'color': '#cccccc'}
-
-        label = m.group(1)
-        color = {
-            'L': "#bf8080",
-            'O': "#b3a6c1",
-            'A': "#80b2e5",
-            'D': "#80c7bf",
-            'T': "#cbcbcb",
-            'S': "#95cb8f",
-            'P': "#ebb14b",
-        }[m.group(2)]
-
-        return {'label': label, 'color': color}
-
     def timeline_seek(self, ts):
         if ts == self.ts:
             return
         graph = self.window.update(ts)
-        visjs = graph.encode_visjs(node_func=self.node_attributes)
+
+        # FIXME: Let user choose the node size feature.
+        # values = graph.in_degrees()
+        # values = graph.in_weights()
+        # values = graph.out_degrees()
+        # values = graph.out_weights()
+        # values = graph.degree_anomalies()
+        # values = graph.weight_anomalies()
+        values, _ = graph.power_iteration(ret_eigenvalue=False)
+
+        def node_attributes(i):
+            value = values[i]
+            value = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
+
+            try:
+                label = dataset_labels[i]
+            except KeyError:
+                label = "Node %d" % i
+
+            m = label_regex.match(label)
+            if m is not None:
+                label = m.group(1)
+                color = { 'L': "#bf8080",
+                          'O': "#b3a6c1",
+                          'A': "#80b2e5",
+                          'D': "#80c7bf",
+                          'T': "#cbcbcb",
+                          'S': "#95cb8f",
+                          'P': "#ebb14b" }[m.group(2)]
+            else:
+                color = "#cccccc"
+
+            return {'value': value, 'label': label, 'color': color}
+
+        visjs = graph.encode_visjs(node_attributes)
         self.send_message_json(**visjs)
         self.ts = ts
 
