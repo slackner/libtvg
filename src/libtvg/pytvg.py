@@ -358,19 +358,19 @@ class Vector(object):
         return lib.vector_get_entry(self._obj, index)
 
     def entries(self, ret_indices=True, ret_weights=True):
-        num_edges = 100 # FIXME: Arbitrary limit.
+        num_entries = 100 # FIXME: Arbitrary limit.
         while True:
-            max_edges = num_edges
-            indices = np.empty(shape=(max_edges,), dtype=np.uint64,  order='C') if ret_indices else None
-            weights = np.empty(shape=(max_edges,), dtype=np.float32, order='C') if ret_weights else None
-            num_edges = lib.vector_get_entries(self._obj, indices, weights, max_edges)
-            if num_edges <= max_edges:
+            max_entries = num_entries
+            indices = np.empty(shape=(max_entries,), dtype=np.uint64,  order='C') if ret_indices else None
+            weights = np.empty(shape=(max_entries,), dtype=np.float32, order='C') if ret_weights else None
+            num_entries = lib.vector_get_entries(self._obj, indices, weights, max_entries)
+            if num_entries <= max_entries:
                 break
 
         if indices is not None:
-            indices.resize((num_edges,), refcheck=False)
+            indices.resize((num_entries,), refcheck=False)
         if weights is not None:
-            weights.resize((num_edges,), refcheck=False)
+            weights.resize((num_entries,), refcheck=False)
 
         return indices, weights
 
