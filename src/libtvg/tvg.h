@@ -825,7 +825,6 @@ struct _graph_adjacent_iter
     uint64_t       source;
 };
 
-
 static inline struct _graph_adjacent_iter __graph_for_each_adjacent_edge(const struct graph *graph, uint64_t source)
 {
     struct _graph_adjacent_iter iter;
@@ -872,6 +871,115 @@ static inline int __graph_next_adjacent_edge(struct _graph_adjacent_iter *iter, 
 /* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
 #define GRAPH_FOR_EACH_ADJACENT_EDGE(_graph, _source, _edge) \
     _GRAPH_FOR_EACH_ADJACENT_EDGE((_graph), (_source), (_edge), _UNIQUE_VARIABLE(__iter_))
+
+/* graph + vector macros */
+
+struct _graph_vector_iter
+{
+    const struct graph *graph;
+    const struct vector *vector;
+
+    uint64_t       index;
+    uint64_t       mask;
+    uint64_t       end_index;
+
+    struct entry2 *entry2;
+    struct entry2 *end_entry2;
+
+    struct entry1 *entry1;
+    struct entry1 *end_entry1;
+};
+
+static inline struct _graph_vector_iter __graph_vector_for_each_edge(const struct graph *graph, const struct vector *vector)
+{
+    struct _graph_vector_iter iter;
+
+    iter.graph      = graph;
+    iter.vector     = vector;
+
+    iter.index = 0;
+    if (graph->bits_target > vector->bits)
+    {
+        iter.mask       = (1ULL << graph->bits_target) - 1;
+        iter.end_index  = 1ULL << (graph->bits_source + graph->bits_target);
+    }
+    else
+    {
+        iter.mask       = (1ULL << vector->bits) - 1;
+        iter.end_index  = 1ULL << (graph->bits_source + vector->bits);
+    }
+
+    iter.end_entry2 = __bucket2_for_each_entry(&graph->buckets[0],  &iter.entry2);
+    iter.end_entry1 = __bucket1_for_each_entry(&vector->buckets[0], &iter.entry1);
+
+    return iter;
+}
+
+static inline int __graph_vector_next_edge(struct _graph_vector_iter *iter, struct entry2 **entry2, struct entry1 **entry1)
+{
+    uint64_t target;
+
+    if (iter->index >= iter->end_index)
+        return 0;
+
+    target = iter->index >> iter->graph->bits_source;
+    for (;;)
+    {
+        if (iter->entry2 != iter->end_entry2)
+        {
+            if ((iter->entry2->target & iter->mask) != target)
+            {
+                iter->entry2++;
+                continue;
+            }
+
+            while (iter->entry1 != iter->end_entry1)
+            {
+                if (iter->entry1->index < iter->entry2->target)
+                {
+                    iter->entry1++;
+                    continue;  /* skip entry1 */
+                }
+                else if (iter->entry1->index > iter->entry2->target)
+                {
+                    *entry2 = iter->entry2++;
+                    *entry1 = NULL;
+                }
+                else
+                {
+                    *entry2 = iter->entry2++;
+                    *entry1 = iter->entry1;
+                }
+                return 1;
+            }
+
+            *entry2 = iter->entry2++;
+            *entry1 = NULL;
+            return 1;
+        }
+
+        iter->index++;
+        if (iter->index >= iter->end_index)
+            break;
+
+        target = iter->index >> iter->graph->bits_source;
+        iter->end_entry2 = __bucket2_for_each_entry(&iter->graph->buckets[iter->index &
+            ((1ULL << (iter->graph->bits_source + iter->graph->bits_target)) - 1)], &iter->entry2);
+        iter->end_entry1 = __bucket1_for_each_entry(&iter->vector->buckets[target &
+            ((1ULL << iter->vector->bits) - 1)], &iter->entry1);
+    }
+
+    return 0;
+}
+
+#define _GRAPH_VECTOR_FOR_EACH_EDGE(_graph, _entry2, _vector, _entry1, _iter) \
+    for (struct _graph_vector_iter (_iter) = __graph_vector_for_each_edge((_graph), (_vector)); \
+         __graph_vector_next_edge(&(_iter), &(_entry2), &(_entry1));)
+
+/* NOTE: This macro primarily iterates over the graph: Entries in
+ * the vector without corresponding entry in the graph are skipped! */
+#define GRAPH_VECTOR_FOR_EACH_EDGE(_graph, _entry2, _vector, _entry1) \
+    _GRAPH_VECTOR_FOR_EACH_EDGE((_graph), (_entry2), (_vector), (_entry1), _UNIQUE_VARIABLE(__iter_))
 
 /* vector functions */
 
@@ -955,7 +1063,7 @@ void graph_del_edge(struct graph *graph, uint64_t source, uint64_t target);
 void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges);
 
 void graph_mul_const(struct graph *graph, float constant);
-struct vector *graph_mul_vector(const struct graph *graph, /* const */ struct vector *vector);
+struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector);
 
 struct vector *graph_in_degrees(const struct graph *graph);
 struct vector *graph_in_weights(const struct graph *graph);

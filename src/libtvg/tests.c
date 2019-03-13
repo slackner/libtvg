@@ -755,8 +755,8 @@ static void test_graph_mul_vector(void)
 {
     struct vector *vector, *out;
     struct graph *graph;
+    uint64_t i, j, k;
     float weight;
-    uint64_t i, j;
     int ret;
 
     graph = alloc_graph(TVG_FLAGS_DIRECTED);
@@ -770,21 +770,93 @@ static void test_graph_mul_vector(void)
 
     while (graph_dec_bits_source(graph)) {}
     while (graph_dec_bits_target(graph)) {}
+    while (vector_dec_bits(vector)) {}
 
-    for (j = 0; j < 6; j++)
+    for (i = 0; i < 6; i++)
     {
-        out = graph_mul_vector(graph, vector);
-        assert(out != NULL);
-
-        for (i = 0; i < 100; i++)
+        for (j = 0; j < 12; j++)
         {
-            weight = vector_get_entry(out, i);
-            /* expected: sum (100*i+k)*(101-k) from k=1 to 100 */
-            assert(fabs(weight - 10100.0 * (50.0 * i + 17.0))/weight < 1e-6);
+            out = graph_mul_vector(graph, vector);
+            assert(out != NULL);
+            for (k = 0; k < 100; k++)
+            {
+                weight = vector_get_entry(out, k);
+                /* expected: sum (100*i+k)*(101-k) from k=1 to 100 */
+                assert(fabs(weight - 10100.0 * (50.0 * k + 17.0))/weight < 1e-6);
+            }
+            free_vector(out);
+
+            ret = vector_inc_bits(vector);
+            assert(ret);
         }
 
-        free_vector(out);
+        while (vector_dec_bits(vector)) {}
+        ret = graph_inc_bits_source(graph);
+        assert(ret);
+        ret = graph_inc_bits_target(graph);
+        assert(ret);
+    }
 
+    free_vector(vector);
+    free_graph(graph);
+}
+
+static void test_graph_vector_for_each_entry(void)
+{
+    uint64_t i, j, count;
+    struct vector *vector;
+    struct entry1 *entry;
+    struct entry2 *edge;
+    struct graph *graph;
+    uint64_t num_edges = 0;
+    int ret;
+
+    graph = alloc_graph(TVG_FLAGS_DIRECTED);
+    vector = alloc_vector(0);
+
+    for (i = 0; i < 100 * 100; i++)
+    {
+        if (random_float() < sqrt(0.75)) continue;
+        graph_add_edge(graph, i / 100, i % 100, 1.0);
+        num_edges++;
+    }
+
+    for (i = 0; i < 100; i++)
+    {
+        if (random_float() < sqrt(0.75)) continue;
+        vector_add_entry(vector, i, 1.0);
+    }
+
+    while (graph_dec_bits_source(graph)) {}
+    while (graph_dec_bits_target(graph)) {}
+    while (vector_dec_bits(vector)) {}
+
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < 12; j++)
+        {
+            count = 0;
+            GRAPH_VECTOR_FOR_EACH_EDGE(graph, edge, vector, entry)
+            {
+                assert(edge != NULL);
+                if (vector_has_entry(vector, edge->target))
+                {
+                    assert(entry != NULL);
+                    assert(entry->index == edge->target);
+                }
+                else
+                {
+                    assert(entry == NULL);
+                }
+                count++;
+            }
+            assert(count == num_edges);
+
+            ret = vector_inc_bits(vector);
+            assert(ret);
+        }
+
+        while (vector_dec_bits(vector)) {}
         ret = graph_inc_bits_source(graph);
         assert(ret);
         ret = graph_inc_bits_target(graph);
@@ -953,6 +1025,7 @@ int main(void)
     test_window_rect();
     test_window_decay();
     test_graph_mul_vector();
+    test_graph_vector_for_each_entry();
     test_power_iteration();
     test_load_graphs();
     test_vector_mul_vector();

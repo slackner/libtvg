@@ -608,44 +608,23 @@ void graph_mul_const(struct graph *graph, float constant)
     graph->ops->mul_const(graph, constant);
 }
 
-struct vector *graph_mul_vector(const struct graph *graph, /* const */ struct vector *vector)
+struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector)
 {
     struct vector *out;
-    uint64_t i, num_buckets;
     struct entry1 *entry;
     struct entry2 *edge;
-
-    while (vector->bits != graph->bits_source)
-    {
-        if (vector->bits < graph->bits_source)
-        {
-            if (!vector_inc_bits(vector)) return NULL;
-            vector->optimize = 1024;
-        }
-        else
-        {
-            if (!vector_dec_bits(vector)) return NULL;
-            vector->optimize = 1024;
-        }
-    }
 
     /* FIXME: Appropriate flags? */
     if (!(out = alloc_vector(TVG_FLAGS_NONZERO)))
         return NULL;
 
-    assert(vector->bits == graph->bits_source);
-
-    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
-    for (i = 0; i < num_buckets; i++)
+    GRAPH_VECTOR_FOR_EACH_EDGE(graph, edge, vector, entry)
     {
-        BUCKET21_FOR_EACH_ENTRY(&graph->buckets[i], edge, &vector->buckets[i >> graph->bits_source], entry)
+        if (!entry) continue;
+        if (!vector_add_entry(out, edge->source, edge->weight * entry->weight))
         {
-            if (!entry) continue;
-            if (!vector_add_entry(out, edge->source, edge->weight * entry->weight))
-            {
-                free_vector(out);
-                return NULL;
-            }
+            free_vector(out);
+            return NULL;
         }
     }
 
