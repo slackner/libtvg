@@ -881,6 +881,57 @@ static void test_vector_mul_vector(void)
     free_vector(vector2);
 }
 
+static void test_vector_for_each_entry2(void)
+{
+    struct vector *vector1, *vector2;
+    struct entry1 *entry1, *entry2;
+    uint64_t num_entries = 0;
+    uint64_t i, j, count;
+    int c1, c2, ret;
+
+    vector1 = alloc_vector(0);
+    vector2 = alloc_vector(0);
+
+    for (i = 0; i < 1000; i++)
+    {
+        if ((c1 = (random_float() < sqrt(0.5))))
+            vector_add_entry(vector1, i, 1.0);
+        if ((c2 = (random_float() < sqrt(0.5))))
+            vector_add_entry(vector2, i, 1.0);
+        num_entries += (c1 || c2);
+    }
+
+    while (vector_dec_bits(vector1)) {}
+    while (vector_dec_bits(vector2)) {}
+
+    for (i = 0; i < 12; i++)
+    {
+        for (j = 0; j < 12; j++)
+        {
+            count = 0;
+            VECTOR_FOR_EACH_ENTRY2(vector1, entry1, vector2, entry2)
+            {
+                if (entry1 && entry2) assert(entry1->index == entry2->index);
+                else if (entry1) assert(!vector_has_entry(vector2, entry1->index));
+                else if (entry2) assert(!vector_has_entry(vector1, entry2->index));
+                else assert(0);
+                count++;
+            }
+            assert(count == num_entries);
+
+            ret = vector_inc_bits(vector2);
+            assert(ret);
+        }
+
+        while (vector_dec_bits(vector2)) {}
+        ret = vector_inc_bits(vector1);
+        assert(ret);
+    }
+
+    free_vector(vector1);
+    free_vector(vector2);
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -905,6 +956,7 @@ int main(void)
     test_power_iteration();
     test_load_graphs();
     test_vector_mul_vector();
+    test_vector_for_each_entry2();
 
     fprintf(stderr, "No test failures found\n");
 }
