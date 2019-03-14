@@ -331,6 +331,20 @@ class Vector(object):
         if self._obj:
             lib.free_vector(self._obj)
 
+    def __repr__(self):
+        max_entries = 10
+        indices = np.empty(shape=(max_entries,), dtype=np.uint64,  order='C')
+        weights = np.empty(shape=(max_entries,), dtype=np.float32, order='C')
+        num_entries = lib.vector_get_entries(self._obj, indices, weights, max_entries)
+
+        out = []
+        for i in range(min(num_entries, max_entries)):
+            out.append("%d: %f" % (indices[i], weights[i]))
+        if num_entries > max_entries:
+            out.append("...")
+
+        return "Vector({%s})" % ", ".join(out)
+
     @property
     def flags(self):
         return self._obj.contents.flags
@@ -490,6 +504,20 @@ class Graph(object):
             return
         if self._obj:
             lib.free_graph(self._obj)
+
+    def __repr__(self):
+        max_edges = 10
+        indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C')
+        weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C')
+        num_edges = lib.graph_get_edges(self._obj, indices, weights, max_edges)
+
+        out = []
+        for i in range(min(num_edges, max_edges)):
+            out.append("(%d, %d): %f" % (indices[i][0], indices[i][1], weights[i]))
+        if num_edges > max_edges:
+            out.append("...")
+
+        return "Graph({%s})" % ", ".join(out)
 
     @property
     def flags(self):
@@ -1230,6 +1258,18 @@ if __name__ == '__main__':
             else:
                 self.assertTrue(False)
 
+        def test_repr(self):
+            v = Vector()
+            self.assertEqual(repr(v), "Vector({})")
+            for i in range(10):
+                v[i] = 1.0
+            expected = "Vector({0: X, 1: X, 2: X, 3: X, 4: X, 5: X, 6: X, 7: X, 8: X, 9: X})"
+            self.assertEqual(repr(v).replace("1.000000", "X"), expected)
+            v[10] = 2.0
+            expected = "Vector({0: X, 1: X, 2: X, 3: X, 4: X, 5: X, 6: X, 7: X, 8: X, 9: X, ...})"
+            self.assertEqual(repr(v).replace("1.000000", "X"), expected)
+            del v
+
     class GraphTests(unittest.TestCase):
         def test_add_edge(self):
             g = Graph(directed=True)
@@ -1652,6 +1692,18 @@ if __name__ == '__main__':
             self.assertEqual(indices.tolist(), [0, 1, 2, 3, 4])
             self.assertEqual(weights.tolist(), [-34.90909194946289,-9.119998931884766, -7.0588226318359375,
                                                 -5.392856597900391, 18.39583396911621])
+            del g
+
+        def test_repr(self):
+            g = Graph()
+            self.assertEqual(repr(g), "Graph({})")
+            for i in range(10):
+                g[1, i] = 1.0
+            expected = "Graph({(0, 1): X, (1, 1): X, (1, 2): X, (1, 3): X, (1, 4): X, (1, 5): X, (1, 6): X, (1, 7): X, (1, 8): X, (1, 9): X})"
+            self.assertEqual(repr(g).replace("1.000000", "X"), expected)
+            g[1, 10] = 2.0
+            expected = "Graph({(0, 1): X, (1, 1): X, (1, 2): X, (1, 3): X, (1, 4): X, (1, 5): X, (1, 6): X, (1, 7): X, (1, 8): X, (1, 9): X, ...})"
+            self.assertEqual(repr(g).replace("1.000000", "X"), expected)
             del g
 
     class TVGTests(unittest.TestCase):
