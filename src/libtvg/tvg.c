@@ -130,6 +130,7 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
 
         if (!graph || ts != graph->ts)
         {
+            if (graph) graph->revision = 0;
             free_graph(graph);
             if (!(graph = tvg_alloc_graph(tvg, ts)))
             {
@@ -157,6 +158,7 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
     ret = 1;
 
 error:
+    if (graph) graph->revision = 0;
     free_graph(graph);
     fclose(fp);
     free(line);

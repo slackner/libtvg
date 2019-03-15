@@ -13,7 +13,9 @@ from ctypes import POINTER
 from ctypes import CFUNCTYPE
 from ctypes import addressof
 from ctypes.util import find_library
-from collections import defaultdict
+import collections
+import functools
+import weakref
 import numpy as np
 import numpy.ctypeslib as npc
 import math
@@ -260,21 +262,25 @@ TVG_FLAGS_STREAMING = 0x00000008
 # The 'cacheable' decorator can be used on Vector and Graph objects to cache the result
 # of a function call as long as the underlying vector/graph has not changed. This is
 # ensured by storing and comparing the revision number embedded in the object header.
-def cacheable(fn):
+def cacheable(func):
+    cache = weakref.WeakKeyDictionary()
+    @functools.wraps(func)
     def wrapper(self, drop_cache=False):
-        old_revision, result = wrapper._cache
+        try:
+            old_revision, result = cache[self]
+        except KeyError:
+            old_revision, result = (None, None)
         new_revision = self._obj.contents.revision
         if old_revision != new_revision or drop_cache:
-            result = fn(self) # FIXME: Support *args, **kwargs.
-            wrapper._cache = (new_revision, result)
+            result = func(self) # FIXME: Support *args, **kwargs.
+            cache[self] = (new_revision, result)
         return result
-    wrapper._cache = (None, None)
     return wrapper
 
 class Labels(object):
     def __init__(self):
         self._id2label = {}
-        self._label2id = defaultdict(list)
+        self._label2id = collections.defaultdict(list)
 
     @staticmethod
     def load(filename, *args, **kwargs):
@@ -331,6 +337,7 @@ class Vector(object):
         if self._obj:
             lib.free_vector(self._obj)
 
+    @cacheable
     def __repr__(self):
         max_entries = 10
         indices = np.empty(shape=(max_entries,), dtype=np.uint64,  order='C')
@@ -505,6 +512,7 @@ class Graph(object):
         if self._obj:
             lib.free_graph(self._obj)
 
+    @cacheable
     def __repr__(self):
         max_edges = 10
         indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C')
@@ -1774,6 +1782,7 @@ if __name__ == '__main__':
             timestamps = []
             edges = []
             for g in tvg:
+                self.assertEqual(g.revision, 0)
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
