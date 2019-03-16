@@ -4,13 +4,17 @@ Installation
 ============
 
 As a first step, please make sure that all required dependencies are installed.
-The following commands can be used to install missing build and runtime
+The following commands can be used to install missing build, test and runtime
 dependencies on Ubuntu or Debian operating systems:
 
 ```bash
 # Build dependencies:
 sudo apt-get install build-essential
 sudo apt-get install wget
+sudo apt-get install libmongoc-dev
+
+# Test dependencies:
+sudo apt-get install python3-mockupdb
 
 # Runtime dependencies:
 sudo apt-get install python3

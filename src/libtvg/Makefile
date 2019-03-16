@@ -1,6 +1,8 @@
 LIBNAME     = libtvg.so
-LIB_LDFLAGS = -shared
-APP_LDFLAGS = -L. -I. -ltvg
+LIB_CFLAGS  = -O2 -g -Werror -Wall -fstack-protector-strong -fPIC
+LIB_LDFLAGS = -shared -lm
+APP_CFLAGS  = -O2 -g -Werror -Wall -fstack-protector-strong
+APP_LDFLAGS = -L. -I. -ltvg -lm
 
 UNAME_S = $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -10,17 +12,22 @@ ifeq ($(UNAME_S),Darwin)
 else
 	LIB_LDFLAGS += -Wl,-soname,$(LIBNAME) -Wl,--no-undefined
 	APP_LDFLAGS += -Wl,-rpath,'$$ORIGIN' -Wl,--no-undefined
+
+	# FIXME: For now, only compile MongoDB support on Linux.
+	LIB_CFLAGS  += -DHAVE_LIBMONGOC
+	LIB_LDFLAGS += -I/usr/include/libbson-1.0 \
+	               -I/usr/include/libmongoc-1.0 \
+                   -lmongoc-1.0 -lbson-1.0
 endif
 
 .PHONY: all
 all: $(LIBNAME)
 
 $(LIBNAME): $(wildcard *.c *.h)
-	gcc -O2 -g -Werror -Wall -fstack-protector-strong -fPIC \
-		$(LIB_LDFLAGS) -o $(LIBNAME) $(wildcard *.c) -lm
+	gcc $(LIB_CFLAGS) $(LIB_LDFLAGS) -o $(LIBNAME) $(wildcard *.c)
 
 tests: tests.c tvg.h internal.h $(LIBNAME)
-	gcc -O2 -g -Werror -Wall -fstack-protector-strong -o $@ $< $(APP_LDFLAGS) -lm
+	gcc $(APP_CFLAGS) -o $@ $< $(APP_LDFLAGS)
 
 .PHONY: test
 test: tests

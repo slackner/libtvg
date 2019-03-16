@@ -127,6 +127,29 @@ struct window
     struct graph *result;
 };
 
+struct mongodb_config
+{
+    char       *uri;
+    char       *database;
+    char       *col_articles;
+    char       *col_entities;
+    char       *doc_field;  /* document id */
+    char       *sen_field;  /* sentence id */
+    char       *ent_field;  /* entity id */
+    uint32_t    max_distance;
+};
+
+struct mongodb
+{
+    int         refcount;
+
+    /* private: */
+    struct mongodb_config *config;
+    void       *client;     /* mongoc_client_t */
+    void       *articles;   /* mongoc_collection_t */
+    void       *entities;   /* mongoc_collection_t */
+};
+
 struct bfs_entry
 {
     double   weight;
@@ -1111,5 +1134,11 @@ void window_set_eps(struct window *window, float eps);
 void window_clear(struct window *window);
 struct graph *window_update(struct window *window, float ts);
 struct graph *window_get_delta(struct window *window, float *mul);
+
+/* MongoDB functions */
+
+struct mongodb *alloc_mongodb(const struct mongodb_config *config);
+struct mongodb *grab_mongodb(struct mongodb *mongodb);
+void free_mongodb(struct mongodb *mongodb);
 
 #endif /* _TVG_H_ */

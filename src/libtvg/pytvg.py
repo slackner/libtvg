@@ -28,19 +28,45 @@ lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
 class c_vector(Structure):
-    _fields_ = [("refcount", c_int), ("flags", c_uint), ("revision", c_uint64), ("eps", c_float)]
+    _fields_ = [("refcount", c_int),
+                ("flags", c_uint),
+                ("revision", c_uint64),
+                ("eps", c_float)]
 
 class c_graph(Structure):
-    _fields_ = [("refcount", c_int), ("flags", c_uint), ("revision", c_uint64), ("eps", c_float), ("ts", c_float)]
+    _fields_ = [("refcount", c_int),
+                ("flags",    c_uint),
+                ("revision", c_uint64),
+                ("eps",      c_float),
+                ("ts",       c_float)]
 
 class c_tvg(Structure):
-    _fields_ = [("refcount", c_int), ("flags", c_uint)]
+    _fields_ = [("refcount", c_int),
+                ("flags",    c_uint)]
 
 class c_window(Structure):
-    _fields_ = [("refcount", c_int), ("eps", c_float), ("ts", c_float)]
+    _fields_ = [("refcount", c_int),
+                ("eps",      c_float),
+                ("ts",       c_float)]
+
+class c_mongodb_config(Structure):
+    _fields_ = [("uri",          c_char_p),
+                ("database",     c_char_p),
+                ("col_articles", c_char_p),
+                ("col_entities", c_char_p),
+                ("doc_field",    c_char_p),
+                ("sen_field",    c_char_p),
+                ("ent_field",    c_char_p),
+                ("max_distance", c_uint)]
+
+class c_mongodb(Structure):
+    _fields_ = [("refcount", c_int)]
 
 class c_bfs_entry(Structure):
-    _fields_ = [("weight", c_double), ("count", c_uint64), ("edge_from", c_uint64), ("edge_to", c_uint64)]
+    _fields_ = [("weight",    c_double),
+                ("count",     c_uint64),
+                ("edge_from", c_uint64),
+                ("edge_to",   c_uint64)]
 
 # Hacky: we need optional ndpointer parameters at some places.
 def or_null(t):
@@ -50,11 +76,13 @@ def or_null(t):
             return t.from_param(obj)
     return wrap()
 
+c_double_p       = POINTER(c_double)
 c_vector_p       = POINTER(c_vector)
 c_graph_p        = POINTER(c_graph)
 c_tvg_p          = POINTER(c_tvg)
 c_window_p       = POINTER(c_window)
-c_double_p       = POINTER(c_double)
+c_mongodb_config_p = POINTER(c_mongodb_config)
+c_mongodb_p      = POINTER(c_mongodb)
 c_bfs_entry_p    = POINTER(c_bfs_entry)
 c_bfs_callback_p = CFUNCTYPE(c_int, c_graph_p, c_bfs_entry_p, c_void_p)
 
@@ -250,6 +278,13 @@ lib.window_clear.argtypes = (c_window_p,)
 
 lib.window_update.argtypes = (c_window_p, c_float)
 lib.window_update.restype = c_graph_p
+
+# MongoDB functions
+
+lib.alloc_mongodb.argtypes = (c_mongodb_config_p,)
+lib.alloc_mongodb.restype = c_mongodb_p
+
+lib.free_mongodb.argtypes = (c_mongodb_p,)
 
 # libc functions
 
@@ -832,7 +867,6 @@ class Graph(object):
                 'nodes': nodes, 'deleted_nodes': deleted_nodes,
                 'edges': edges, 'deleted_edges': deleted_edges}
 
-
 class GraphIter(object):
     def __init__(self, graph):
         self._graph = graph
@@ -966,8 +1000,34 @@ class Window(object):
     def update(self, ts):
         return Graph(obj=lib.window_update(self._obj, ts))
 
+class MongoDB(object):
+    def __init__(self, uri, database, col_articles, col_entities,
+                 doc_field, sen_field, ent_field, max_distance, obj=None):
+        if obj is None:
+            config = c_mongodb_config()
+            config.uri          = uri.encode("utf-8")
+            config.database     = database.encode("utf-8")
+            config.col_articles = col_articles.encode("utf-8")
+            config.col_entities = col_entities.encode("utf-8")
+            config.doc_field    = doc_field.encode("utf-8")
+            config.sen_field    = sen_field.encode("utf-8")
+            config.ent_field    = ent_field.encode("utf-8")
+            config.max_distance = max_distance
+            obj = lib.alloc_mongodb(config)
+
+        self._obj = obj
+        if not obj:
+            raise MemoryError
+
+    def __del__(self):
+        if lib is None:
+            return
+        if self._obj:
+            lib.free_mongodb(self._obj)
+
 if __name__ == '__main__':
     import unittest
+    import mockupdb
 
     class LabelsTests(unittest.TestCase):
         def test_map(self):
@@ -2093,6 +2153,28 @@ if __name__ == '__main__':
 
                 self.assertEqual(len(index_to_weight), 0)
                 ts += 50.0
+
+    class MongoDBTests(unittest.TestCase):
+        def setUp(self):
+            self.s = mockupdb.MockupDB()
+            self.s.run()
+
+        def tearDown(self):
+            self.s.stop()
+
+        def test_basic(self):
+            future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
+                                 "col_entities", "doc", "sen", "ent", 5)
+
+            request = self.s.receives("isMaster")
+            request.replies({'ok': 1, 'maxWireVersion': 6})
+
+            request = self.s.receives("ping")
+            self.assertEqual(request["$db"], "database")
+            request.replies({'ok': 1})
+
+            db = future()
+            del db
 
     # Run the unit tests
     unittest.main()
