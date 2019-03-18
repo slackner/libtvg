@@ -159,6 +159,7 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
 
 error:
     if (graph) graph->revision = 0;
+    if (!ret) unlink_graph(graph);
     free_graph(graph);
     fclose(fp);
     free(line);
