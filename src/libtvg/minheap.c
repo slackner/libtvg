@@ -41,6 +41,7 @@ struct minheap *alloc_minheap(size_t size, int (*compar)(const void *, const voi
 
 void free_minheap(struct minheap *h)
 {
+    if (!h) return;
     free(h->members);
     free(h);
 }
@@ -95,7 +96,7 @@ void minheap_heapify(struct minheap *h, size_t i)
 int minheap_pop(struct minheap *h, void *element)
 {
     if (!h->num_members) return 0;
-    memcpy(element, h->members, h->size);
+    if (element) memcpy(element, h->members, h->size);
     memmove(h->members, h->members + (--h->num_members) * h->size, h->size);
     minheap_heapify(h, 0);
     return 1;
