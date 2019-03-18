@@ -192,7 +192,7 @@ void vector_optimize(struct vector *vector)
     return;
 
 error:
-    fprintf(stderr, "Failed to optimize vector, trying again later.\n");
+    fprintf(stderr, "%s: Failed to optimize vector, trying again later.\n", __func__);
     vector->optimize = 1024;
 }
 

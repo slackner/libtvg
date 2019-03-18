@@ -426,7 +426,7 @@ void graph_optimize(struct graph *graph)
     return;
 
 error:
-    fprintf(stderr, "Failed to optimize graph, trying again later.\n");
+    fprintf(stderr, "%s: Failed to optimize graph, trying again later.\n", __func__);
     graph->optimize = 1024;
 }
 
