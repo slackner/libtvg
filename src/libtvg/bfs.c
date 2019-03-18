@@ -45,7 +45,10 @@ int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callb
     new_entry.to     = source;
 
     if (!minheap_push(queue, &new_entry))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
         goto done;
+    }
 
     while (minheap_pop(queue, &entry))
     {
@@ -56,7 +59,10 @@ int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callb
         if ((ret = callback(graph, &entry, userdata)))
             goto done;
         if (!vector_set_entry(visited, source, 1))
+        {
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
             goto done;
+        }
 
         GRAPH_FOR_EACH_ADJACENT_EDGE(graph, source, edge)
         {
@@ -70,7 +76,10 @@ int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callb
             new_entry.to     = edge->target;
 
             if (!minheap_push(queue, &new_entry))
+            {
+                fprintf(stderr, "%s: Out of memory!\n", __func__);
                 goto done;
+            }
         }
     }
 
