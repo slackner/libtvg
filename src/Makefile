@@ -4,9 +4,9 @@ LDFLAGS = -L./lib -I./lib -ltvg
 UNAME_S = $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	LIBNAME  = libtvg.dylib
-	LDFLAGS += -Wl,-rpath,@executable_path/
+	LDFLAGS += -Wl,-rpath,@executable_path/lib
 else
-	LDFLAGS += -Wl,-rpath,'$$ORIGIN' -Wl,--no-undefined
+	LDFLAGS += -Wl,-rpath,'$$ORIGIN/lib' -Wl,--no-undefined
 endif
 
 SOURCES  = $(wildcard *.c)

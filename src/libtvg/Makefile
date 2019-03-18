@@ -6,7 +6,7 @@ UNAME_S = $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	LIBNAME      = libtvg.dylib
 	LIB_LDFLAGS += -install_name @rpath/$(LIBNAME)
-	APP_LDFLAGS += -Wl,-rpath,@executable_path/
+	APP_LDFLAGS += -Wl,-rpath,@executable_path
 else
 	LIB_LDFLAGS += -Wl,-soname,$(LIBNAME) -Wl,--no-undefined
 	APP_LDFLAGS += -Wl,-rpath,'$$ORIGIN' -Wl,--no-undefined
