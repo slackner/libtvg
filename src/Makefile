@@ -1,17 +1,27 @@
-LDFLAGS  = -Wl,--no-undefined -Wl,-rpath,'$$ORIGIN/lib' -L./lib -I./lib -ltvg
+LIBNAME = libtvg.so
+LDFLAGS = -L./lib -I./lib -ltvg
+
+UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	LIBNAME  = libtvg.dylib
+	LDFLAGS += -Wl,-rpath,@executable_path/
+else
+	LDFLAGS += -Wl,-rpath,'$$ORIGIN' -Wl,--no-undefined
+endif
+
 SOURCES  = $(wildcard *.c)
 PROGRAMS = $(patsubst %.c,%,$(SOURCES))
 
 .PHONY: all
-all: libtvg/libtvg.so libtvg/test $(PROGRAMS)
+all: libtvg/$(LIBNAME) libtvg/test $(PROGRAMS)
 
-libtvg/libtvg.so: FORCE
-	$(MAKE) -C libtvg libtvg.so
+libtvg/$(LIBNAME): FORCE
+	$(MAKE) -C libtvg $(LIBNAME)
 
 libtvg/test: FORCE
 	$(MAKE) -C libtvg test
 
-%: %.c libtvg/tvg.h libtvg/libtvg.so
+%: %.c libtvg/tvg.h libtvg/$(LIBNAME)
 	gcc -O2 -g -Werror -Wall -fstack-protector-strong -o $@ $< $(LDFLAGS)
 
 FORCE:

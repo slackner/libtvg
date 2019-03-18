@@ -22,7 +22,8 @@ import math
 import sys
 import os
 
-filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "libtvg.so")
+libname = "libtvg.dylib" if sys.platform == "darwin" else "libtvg.so"
+filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
