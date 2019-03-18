@@ -286,6 +286,9 @@ lib.alloc_mongodb.restype = c_mongodb_p
 
 lib.free_mongodb.argtypes = (c_mongodb_p,)
 
+lib.tvg_load_graph_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_float)
+lib.tvg_load_graph_from_mongodb.restype = c_int
+
 # libc functions
 
 libc.free.argtypes = (c_void_p,)
@@ -928,6 +931,11 @@ class TVG(object):
         if not res:
             raise IOError
         return tvg
+
+    def load_from_mongodb(self, mongodb, document, ts):
+        res = lib.tvg_load_graph_from_mongodb(self._obj, mongodb._obj, document, ts)
+        if not res:
+            raise IOError
 
     def __iter__(self):
         # FIXME: Would be better to have a function to get the first graph.
@@ -2159,10 +2167,6 @@ if __name__ == '__main__':
             self.s = mockupdb.MockupDB()
             self.s.run()
 
-        def tearDown(self):
-            self.s.stop()
-
-        def test_basic(self):
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
                                  "col_entities", "doc", "sen", "ent", 5)
 
@@ -2173,8 +2177,57 @@ if __name__ == '__main__':
             self.assertEqual(request["$db"], "database")
             request.replies({'ok': 1})
 
-            db = future()
-            del db
+            self.db = future()
+
+        def tearDown(self):
+            self.s.stop()
+
+        def load_from_occurrences(self, occurrences):
+            tvg = TVG()
+
+            future = mockupdb.go(tvg.load_from_mongodb, self.db, 1337, 42.0)
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_entities")
+            self.assertEqual(request["$db"], "database")
+            self.assertEqual(request["filter"], {'doc': 1337})
+            self.assertEqual(request["sort"], {'sen': 1})
+            request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            future()
+
+            g = tvg.lookup_near(42.0)
+            self.assertEqual(g.ts, 42.0)
+            return g
+
+        def test_selfloop(self):
+            occurrences = []
+            for i in range(10):
+                occurrences.append({'sen': i, 'ent': 1})
+                occurrences.append({'sen': i, 'ent': 1})
+            g = self.load_from_occurrences(occurrences)
+            self.assertEqual(g.num_edges, 0)
+
+        def test_max_distance(self):
+            for i in range(10):
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1 + i, 'ent': 2}]
+                g = self.load_from_occurrences(occurrences)
+                if i <= 5:
+                    self.assertEqual(g.num_edges, 1)
+                    self.assertTrue(abs(g[1, 2]/math.exp(-i) - 1.0) < 1e-7)
+                else:
+                    self.assertEqual(g.num_edges, 0)
+
+        def test_weight_sum(self):
+            for i in range(10):
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': "Q1"},
+                               {'sen': 1 + i, 'ent': 2}]
+                g = self.load_from_occurrences(occurrences)
+                if i <= 5:
+                    self.assertEqual(g.num_edges, 1)
+                    self.assertTrue(abs(g[1, 2]/(2.0 * math.exp(-i)) - 1.0) < 1e-7)
+                else:
+                    self.assertEqual(g.num_edges, 0)
 
     # Run the unit tests
     unittest.main()

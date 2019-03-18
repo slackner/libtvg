@@ -1141,4 +1141,6 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config);
 struct mongodb *grab_mongodb(struct mongodb *mongodb);
 void free_mongodb(struct mongodb *mongodb);
 
+int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t document, float ts);
+
 #endif /* _TVG_H_ */
