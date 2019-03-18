@@ -1087,7 +1087,7 @@ void free_tvg(struct tvg *tvg);
 
 struct graph *tvg_alloc_graph(struct tvg *tvg, float ts);
 
-int tvg_load_graphs(struct tvg *tvg, const char *filename);
+int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
 
 struct window *tvg_alloc_window_rect(struct tvg *tvg, float window_l, float window_r);
 struct window *tvg_alloc_window_decay(struct tvg *tvg, float window, float log_beta);

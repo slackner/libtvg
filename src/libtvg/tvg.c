@@ -83,7 +83,7 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
     return grab_graph(graph);  /* grab extra reference */
 }
 
-int tvg_load_graphs(struct tvg *tvg, const char *filename)
+int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
 {
     long long unsigned int source, target;
     float weight, ts;
@@ -99,7 +99,7 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
 
     if (!(fp = fopen(filename, "r")))
     {
-        fprintf(stderr, "tvg_load_graphs: File '%s' not found\n", filename);
+        fprintf(stderr, "%s: File '%s' not found\n", __func__, filename);
         return 0;
     }
 
@@ -118,13 +118,13 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
 
         if (sscanf(line, "%llu %llu %f %f", &source, &target, &weight, &ts) < 4)
         {
-            fprintf(stderr, "tvg_load_graphs: Line does not match expected format\n");
+            fprintf(stderr, "%s: Line does not match expected format\n", __func__);
             goto error;
         }
 
         if (graph && ts < graph->ts)
         {
-            fprintf(stderr, "tvg_load_graphs: Timestamps are not monotonically increasing\n");
+            fprintf(stderr, "%s: Timestamps are not monotonically increasing\n", __func__);
             goto error;
         }
 
@@ -134,7 +134,7 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
             free_graph(graph);
             if (!(graph = tvg_alloc_graph(tvg, ts)))
             {
-                fprintf(stderr, "tvg_load_graphs: Out of memory!\n");
+                fprintf(stderr, "%s: Out of memory!\n", __func__);
                 goto error;
             }
         }
@@ -143,14 +143,14 @@ int tvg_load_graphs(struct tvg *tvg, const char *filename)
          * also works for undirected graphs with the reverse direction stored explicitly. */
         if (!graph_set_edge(graph, source, target, weight))
         {
-            fprintf(stderr, "tvg_load_graphs: Out of memory!\n");
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
             goto error;
         }
     }
 
     if (!graph)
     {
-        fprintf(stderr, "tvg_load_graphs: File appears to be empty\n");
+        fprintf(stderr, "%s: File appears to be empty\n", __func__);
         goto error;
     }
 

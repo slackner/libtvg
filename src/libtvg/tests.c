@@ -899,7 +899,7 @@ static void test_power_iteration(void)
     free_graph(graph);
 }
 
-static void test_load_graphs(void)
+static void test_load_graphs_from_file(void)
 {
     struct tvg *tvg;
     int ret;
@@ -907,7 +907,7 @@ static void test_load_graphs(void)
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
-    ret = tvg_load_graphs(tvg, "../data/example-tvg.graph");
+    ret = tvg_load_graphs_from_file(tvg, "../data/example-tvg.graph");
     assert(ret);
 
     free_tvg(tvg);
@@ -1027,7 +1027,7 @@ int main(void)
     test_graph_mul_vector();
     test_graph_vector_for_each_entry();
     test_power_iteration();
-    test_load_graphs();
+    test_load_graphs_from_file();
     test_vector_mul_vector();
     test_vector_for_each_entry2();
 

@@ -216,8 +216,8 @@ lib.free_tvg.argtypes = (c_tvg_p,)
 lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_float)
 lib.tvg_alloc_graph.restype = c_graph_p
 
-lib.tvg_load_graphs.argtypes = (c_tvg_p, c_char_p)
-lib.tvg_load_graphs.restype = c_int
+lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
+lib.tvg_load_graphs_from_file.restype = c_int
 
 lib.tvg_alloc_window_rect.argtypes = (c_tvg_p, c_float, c_float)
 lib.tvg_alloc_window_rect.restype = c_window_p
@@ -890,7 +890,7 @@ class TVG(object):
     @staticmethod
     def load(filename, *args, **kwargs):
         tvg = TVG(*args, **kwargs)
-        res = lib.tvg_load_graphs(tvg._obj, filename.encode("utf-8"))
+        res = lib.tvg_load_graphs_from_file(tvg._obj, filename.encode("utf-8"))
         if not res:
             raise IOError
         return tvg
