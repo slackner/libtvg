@@ -4,12 +4,18 @@ Installation
 ============
 
 As a first step, please make sure that all required dependencies are installed.
-The following commands can be used to install missing build dependencies on
-Ubuntu or Debian operating systems:
+The following commands can be used to install missing build and runtime
+dependencies on Ubuntu or Debian operating systems:
 
 ```bash
+# Build dependencies:
 sudo apt-get install build-essential
 sudo apt-get install wget
+
+# Runtime dependencies:
+sudo apt-get install python3
+sudo apt-get install python3-numpy
+pip3 install SimpleWebSocketServer
 ```
 
 Afterwards, just clone this repository and run (in the root directory of this
