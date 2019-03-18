@@ -44,7 +44,7 @@ void random_bytes(uint8_t *buffer, size_t length)
 
     if (dev_urandom < 0 && (dev_urandom = open("/dev/urandom", O_RDONLY)) < 0)
     {
-        fprintf(stderr, "Failed to open /dev/urandom\n");
+        fprintf(stderr, "%s: Failed to open /dev/urandom\n", __func__);
         assert(0);
         return;
     }
