@@ -47,12 +47,14 @@ int queue_put(struct queue *q, const void *element)
 
     if (q->num_entries >= q->max_entries)
     {
-        max_entries = MAX(q->max_entries * 2, 4);
+        max_entries = MAX(q->num_entries + 1, q->max_entries * 2);
         if (!(entries = realloc(q->entries, q->entry_size * max_entries)))
             return 0;
 
-        assert(q->max_entries + q->first_entry <= max_entries);
-        memcpy(entries + q->max_entries * q->entry_size, entries, q->entry_size * q->first_entry);
+        i = MIN(q->first_entry, max_entries - q->max_entries);
+        memcpy(entries + q->max_entries * q->entry_size, entries, q->entry_size * i);
+        if (i < q->first_entry)
+            memcpy(entries, entries + i * q->entry_size, q->entry_size * (q->first_entry - i));
 
         q->max_entries = max_entries;
         q->entries = entries;
