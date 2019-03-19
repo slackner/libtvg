@@ -14,17 +14,17 @@ else
 	APP_LDFLAGS += -Wl,-rpath,'$$ORIGIN' -Wl,--no-undefined
 
 	# FIXME: For now, only compile MongoDB support on Linux.
-	LIB_CFLAGS  += -DHAVE_LIBMONGOC
-	LIB_LDFLAGS += -I/usr/include/libbson-1.0 \
+	LIB_CFLAGS  += -I/usr/include/libbson-1.0 \
 	               -I/usr/include/libmongoc-1.0 \
-                   -lmongoc-1.0 -lbson-1.0
+	               -DHAVE_LIBMONGOC
+	LIB_LDFLAGS += -lmongoc-1.0 -lbson-1.0
 endif
 
 .PHONY: all
 all: $(LIBNAME)
 
 $(LIBNAME): $(wildcard *.c *.h)
-	gcc $(LIB_CFLAGS) $(LIB_LDFLAGS) -o $(LIBNAME) $(wildcard *.c)
+	gcc $(LIB_CFLAGS) -o $(LIBNAME) $(wildcard *.c) $(LIB_LDFLAGS)
 
 tests: tests.c tvg.h internal.h $(LIBNAME)
 	gcc $(APP_CFLAGS) -o $@ $< $(APP_LDFLAGS)

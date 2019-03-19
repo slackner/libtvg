@@ -7,7 +7,7 @@
 
 #ifdef HAVE_LIBMONGOC
 
-#include <mongoc/mongoc.h>
+#include <mongoc.h>
 
 #include "tvg.h"
 #include "internal.h"
