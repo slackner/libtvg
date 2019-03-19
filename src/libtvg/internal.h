@@ -106,7 +106,7 @@ extern const struct window_ops window_rect_ops DECL_INTERNAL;
 extern const struct window_ops window_decay_ops DECL_INTERNAL;
 extern const struct window_ops window_smooth_ops DECL_INTERNAL;
 
-struct minheap *alloc_minheap(size_t size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
+struct minheap *alloc_minheap(size_t entry_size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
 void free_minheap(struct minheap *h) DECL_INTERNAL;
 int minheap_push(struct minheap *h, const void *element) DECL_INTERNAL;
 void minheap_heapify(struct minheap *h, size_t i) DECL_INTERNAL;
