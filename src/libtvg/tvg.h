@@ -1113,6 +1113,7 @@ struct tvg *alloc_tvg(uint32_t flags);
 struct tvg *grab_tvg(struct tvg *tvg);
 void free_tvg(struct tvg *tvg);
 
+int tvg_link_graph(struct tvg *tvg, struct graph *graph, float ts);
 struct graph *tvg_alloc_graph(struct tvg *tvg, float ts);
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
@@ -1146,7 +1147,8 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config);
 struct mongodb *grab_mongodb(struct mongodb *mongodb);
 void free_mongodb(struct mongodb *mongodb);
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts);
+struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags);
+
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb);
 
 #endif /* _TVG_H_ */

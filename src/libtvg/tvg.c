@@ -55,20 +55,17 @@ void free_tvg(struct tvg *tvg)
     free(tvg);
 }
 
-struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
+int tvg_link_graph(struct tvg *tvg, struct graph *graph, float ts)
 {
-    struct graph *graph, *other_graph;
-    uint32_t graph_flags;
+    struct graph *other_graph;
 
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
-                                TVG_FLAGS_DIRECTED);
+    if (graph->tvg)
+        return 0;
+    if ((tvg->flags ^ graph->flags) & TVG_FLAGS_DIRECTED)
+        return 0;
 
-    if (!(graph = alloc_graph(graph_flags)))
-        return NULL;
-
-    graph->tvg         = tvg;
-    graph->ts          = ts;
+    graph->tvg = tvg;
+    graph->ts  = ts;
 
     /* The common scenario is that new graphs are appended at the end,
      * so go through the existing graphs in reverse order. */
@@ -80,7 +77,29 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
     }
 
     list_add_after(&other_graph->entry, &graph->entry);
-    return grab_graph(graph);  /* grab extra reference */
+    grab_graph(graph);  /* grab extra reference */
+    return 1;
+}
+
+struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
+{
+    struct graph *graph;
+    uint32_t graph_flags;
+
+    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
+                                TVG_FLAGS_POSITIVE |
+                                TVG_FLAGS_DIRECTED);
+
+    if (!(graph = alloc_graph(graph_flags)))
+        return NULL;
+
+    if (!tvg_link_graph(tvg, graph, ts))
+    {
+        free_graph(graph);
+        return NULL;
+    }
+
+    return graph;
 }
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)

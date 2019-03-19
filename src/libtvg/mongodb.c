@@ -234,7 +234,7 @@ static int bson_parse_datetime(const bson_t *doc, const char *field, float *valu
     return 0;
 }
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts)
+struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags)
 {
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
@@ -251,22 +251,22 @@ int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64
 
     filter = BCON_NEW(config->entity_doc, BCON_INT64(id));
     if (!filter)
-        return 0;
+        return NULL;
 
     opts = BCON_NEW("sort", "{", config->entity_sen, BCON_INT32(1), "}");
     if (!opts)
     {
         bson_destroy(filter);
-        return 0;
+        return NULL;
     }
 
     cursor = mongoc_collection_find_with_opts(mongodb->entities, filter, opts, NULL);
     bson_destroy(filter);
     bson_destroy(opts);
     if (!cursor)
-        return 0;
+        return NULL;
 
-    if (!(graph = tvg_alloc_graph(tvg, ts)))
+    if (!(graph = alloc_graph(flags)))
     {
         fprintf(stderr, "%s: Out of memory!\n", __func__);
         goto error;
@@ -331,10 +331,13 @@ int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64
 error:
     mongoc_cursor_destroy(cursor);
     if (graph) graph->revision = 0;
-    if (!ret) unlink_graph(graph);
-    free_graph(graph);
+    if (!ret)
+    {
+        free_graph(graph);
+        graph = NULL;
+    }
     free_queue(queue);
-    return ret;
+    return graph;
 }
 
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
@@ -342,6 +345,8 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
     struct mongodb_config *config = mongodb->config;
     bson_t *opts, filter = BSON_INITIALIZER;
     mongoc_cursor_t *cursor;
+    uint32_t graph_flags;
+    struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
     uint64_t id;
@@ -361,6 +366,10 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
     if (!cursor)
         return 0;
 
+    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
+                                TVG_FLAGS_POSITIVE |
+                                TVG_FLAGS_DIRECTED);
+
     while (mongoc_cursor_next(cursor, &doc))
     {
         if (!bson_parse_integer(doc, config->article_id, &id))
@@ -374,11 +383,17 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
             continue;
         }
 
-        if (!tvg_load_graph_from_mongodb(tvg, mongodb, id, ts))
+        if (!(graph = mongodb_load_graph(mongodb, id, graph_flags)))
         {
             fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
             goto error;
         }
+        if (!tvg_link_graph(tvg, graph, ts))
+        {
+            free_graph(graph);
+            goto error;
+        }
+        free_graph(graph);
     }
 
     if (mongoc_cursor_error(cursor, &error))
@@ -417,9 +432,9 @@ void free_mongodb(struct mongodb *mongodb)
     assert(!mongodb);
 }
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts)
+struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags)
 {
-    return 0;
+    return NULL;
 }
 
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)

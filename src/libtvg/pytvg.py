@@ -243,6 +243,9 @@ lib.alloc_tvg.restype = c_tvg_p
 
 lib.free_tvg.argtypes = (c_tvg_p,)
 
+lib.tvg_link_graph.argtypes = (c_tvg_p, c_graph_p, c_float)
+lib.tvg_link_graph.restype = c_int
+
 lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_float)
 lib.tvg_alloc_graph.restype = c_graph_p
 
@@ -288,8 +291,8 @@ lib.alloc_mongodb.restype = c_mongodb_p
 
 lib.free_mongodb.argtypes = (c_mongodb_p,)
 
-lib.tvg_load_graph_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_float)
-lib.tvg_load_graph_from_mongodb.restype = c_int
+lib.mongodb_load_graph.argtypes = (c_mongodb_p, c_uint64, c_uint)
+lib.mongodb_load_graph.restype = c_graph_p
 
 lib.tvg_load_graphs_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p)
 lib.tvg_load_graphs_from_mongodb.restype = c_int
@@ -590,6 +593,19 @@ class Graph(object):
     @property
     def ts(self):
         return self._obj.contents.ts
+
+    @staticmethod
+    def load_from_file(filename, nonzero=False, positive=False, directed=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def load_from_mongodb(mongodb, id, nonzero=False, positive=False, directed=False):
+        flags = 0
+        flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
+        flags |= (TVG_FLAGS_POSITIVE if positive else 0)
+        flags |= (TVG_FLAGS_DIRECTED if directed else 0)
+        obj = lib.mongodb_load_graph(mongodb._obj, id, flags)
+        return Graph(obj=obj) if obj else None
 
     def unlink(self):
         lib.unlink_graph(self._obj)
@@ -926,6 +942,11 @@ class TVG(object):
     def flags(self):
         return self._obj.contents.flags
 
+    def link(self, graph, ts):
+        res = lib.tvg_link_graph(self._obj, graph._obj, ts)
+        if not res:
+            raise RuntimeError
+
     def Graph(self, ts):
         return Graph(obj=lib.tvg_alloc_graph(self._obj, ts))
 
@@ -943,11 +964,8 @@ class TVG(object):
         if not res:
             raise IOError
 
-    def load_from_mongodb(self, mongodb, id=None, ts=None):
-        if id is not None:
-            res = lib.tvg_load_graph_from_mongodb(self._obj, mongodb._obj, id, ts)
-        else:
-            res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
+    def load_from_mongodb(self, mongodb):
+        res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
         if not res:
             raise IOError
 
@@ -1842,6 +1860,22 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_link(self):
+            tvg = TVG()
+            g1 = Graph()
+            g2 = Graph(directed=True)
+
+            tvg.link(g1, 10.0)
+            with self.assertRaises(RuntimeError):
+                tvg.link(g1, 20.0)
+            with self.assertRaises(RuntimeError):
+                tvg.link(g2, 20.0)
+
+            g = tvg.lookup_near(10.0)
+            self.assertEqual(g.ts, 10.0)
+            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            del tvg
+
         def test_compress(self):
             source = np.random.rand(100)
 
@@ -2199,9 +2233,7 @@ if __name__ == '__main__':
             self.s.stop()
 
         def load_from_occurrences(self, occurrences):
-            tvg = TVG()
-
-            future = mockupdb.go(tvg.load_from_mongodb, self.db, 1337, 42.0)
+            future = mockupdb.go(Graph.load_from_mongodb, self.db, 1337)
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_entities")
@@ -2209,11 +2241,7 @@ if __name__ == '__main__':
             self.assertEqual(request["sort"], {'sen': 1})
             request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
 
-            future()
-
-            g = tvg.lookup_near(42.0)
-            self.assertEqual(g.ts, 42.0)
-            return g
+            return future()
 
         def test_selfloop(self):
             occurrences = []
