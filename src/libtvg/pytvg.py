@@ -53,10 +53,12 @@ class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
                 ("database",     c_char_p),
                 ("col_articles", c_char_p),
+                ("article_id",   c_char_p),
+                ("article_time", c_char_p),
                 ("col_entities", c_char_p),
-                ("doc_field",    c_char_p),
-                ("sen_field",    c_char_p),
-                ("ent_field",    c_char_p),
+                ("entity_doc",   c_char_p),
+                ("entity_sen",   c_char_p),
+                ("entity_ent",   c_char_p),
                 ("max_distance", c_uint)]
 
 class c_mongodb(Structure):
@@ -288,6 +290,9 @@ lib.free_mongodb.argtypes = (c_mongodb_p,)
 
 lib.tvg_load_graph_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_float)
 lib.tvg_load_graph_from_mongodb.restype = c_int
+
+lib.tvg_load_graphs_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p)
+lib.tvg_load_graphs_from_mongodb.restype = c_int
 
 # libc functions
 
@@ -925,15 +930,24 @@ class TVG(object):
         return Graph(obj=lib.tvg_alloc_graph(self._obj, ts))
 
     @staticmethod
-    def load(filename, *args, **kwargs):
+    def load(source, *args, **kwargs):
         tvg = TVG(*args, **kwargs)
-        res = lib.tvg_load_graphs_from_file(tvg._obj, filename.encode("utf-8"))
-        if not res:
-            raise IOError
+        if isinstance(source, MongoDB):
+            tvg.load_from_mongodb(source)
+        else:
+            tvg.load_from_file(source)
         return tvg
 
-    def load_from_mongodb(self, mongodb, document, ts):
-        res = lib.tvg_load_graph_from_mongodb(self._obj, mongodb._obj, document, ts)
+    def load_from_file(self, filename):
+        res = lib.tvg_load_graphs_from_file(self._obj, filename.encode("utf-8"))
+        if not res:
+            raise IOError
+
+    def load_from_mongodb(self, mongodb, id=None, ts=None):
+        if id is not None:
+            res = lib.tvg_load_graph_from_mongodb(self._obj, mongodb._obj, id, ts)
+        else:
+            res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
         if not res:
             raise IOError
 
@@ -1009,17 +1023,19 @@ class Window(object):
         return Graph(obj=lib.window_update(self._obj, ts))
 
 class MongoDB(object):
-    def __init__(self, uri, database, col_articles, col_entities,
-                 doc_field, sen_field, ent_field, max_distance, obj=None):
+    def __init__(self, uri, database, col_articles, article_id, article_time,
+                 col_entities, entity_doc, entity_sen, entity_ent, max_distance, obj=None):
         if obj is None:
             config = c_mongodb_config()
             config.uri          = uri.encode("utf-8")
             config.database     = database.encode("utf-8")
             config.col_articles = col_articles.encode("utf-8")
+            config.article_id   = article_id.encode("utf-8")
+            config.article_time = article_time.encode("utf-8")
             config.col_entities = col_entities.encode("utf-8")
-            config.doc_field    = doc_field.encode("utf-8")
-            config.sen_field    = sen_field.encode("utf-8")
-            config.ent_field    = ent_field.encode("utf-8")
+            config.entity_doc   = entity_doc.encode("utf-8")
+            config.entity_sen   = entity_sen.encode("utf-8")
+            config.entity_ent   = entity_ent.encode("utf-8")
             config.max_distance = max_distance
             obj = lib.alloc_mongodb(config)
 
@@ -1034,6 +1050,7 @@ class MongoDB(object):
             lib.free_mongodb(self._obj)
 
 if __name__ == '__main__':
+    import datetime
     import unittest
     import mockupdb
 
@@ -2168,13 +2185,12 @@ if __name__ == '__main__':
             self.s.run()
 
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
-                                 "col_entities", "doc", "sen", "ent", 5)
+                                 "_id", "time", "col_entities", "doc", "sen", "ent", 5)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
 
             request = self.s.receives("ping")
-            # self.assertEqual(request["$db"], "database")
             request.replies({'ok': 1})
 
             self.db = future()
@@ -2189,7 +2205,6 @@ if __name__ == '__main__':
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_entities")
-            # self.assertEqual(request["$db"], "database")
             self.assertEqual(request["filter"], {'doc': 1337})
             self.assertEqual(request["sort"], {'sen': 1})
             request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
@@ -2228,6 +2243,33 @@ if __name__ == '__main__':
                     self.assertTrue(abs(g[1, 2]/(2.0 * math.exp(-i)) - 1.0) < 1e-7)
                 else:
                     self.assertEqual(g.num_edges, 0)
+
+        def test_load(self):
+            future = mockupdb.go(TVG.load, self.db)
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {})
+            self.assertEqual(request["sort"], {'time': 1})
+            documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546300800)},
+                         {'_id': 11, 'time': datetime.datetime.utcfromtimestamp(1546387200)},
+                         {'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            for i in range(3):
+                request = self.s.receives()
+                self.assertEqual(request["find"], "col_entities")
+                self.assertEqual(request["filter"], {'doc': 10 + i})
+                self.assertEqual(request["sort"], {'sen': 1})
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 2 + i}]
+                request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            tvg = future()
+            for i, g in enumerate(tvg):
+                self.assertEqual(g.revision, 0)
+                self.assertEqual(g.ts, 1546300800 + i * 86400)
+                self.assertEqual(g[1, 2 + i], 1.0)
+            del tvg
 
     # Run the unit tests
     unittest.main()

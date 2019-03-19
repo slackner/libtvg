@@ -131,11 +131,16 @@ struct mongodb_config
 {
     char       *uri;
     char       *database;
+
     char       *col_articles;
+    char       *article_id;     /* document id */
+    char       *article_time;   /* time stamp */
+
     char       *col_entities;
-    char       *doc_field;  /* document id */
-    char       *sen_field;  /* sentence id */
-    char       *ent_field;  /* entity id */
+    char       *entity_doc;     /* document id */
+    char       *entity_sen;     /* sentence id */
+    char       *entity_ent;     /* entity id */
+
     uint32_t    max_distance;
 };
 
@@ -1141,6 +1146,7 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config);
 struct mongodb *grab_mongodb(struct mongodb *mongodb);
 void free_mongodb(struct mongodb *mongodb);
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t document, float ts);
+int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts);
+int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb);
 
 #endif /* _TVG_H_ */

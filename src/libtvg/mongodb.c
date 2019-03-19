@@ -23,10 +23,12 @@ static void free_mongodb_config(struct mongodb_config *config)
     free(config->uri);
     free(config->database);
     free(config->col_articles);
+    free(config->article_id);
+    free(config->article_time);
     free(config->col_entities);
-    free(config->doc_field);
-    free(config->sen_field);
-    free(config->ent_field);
+    free(config->entity_doc);
+    free(config->entity_sen);
+    free(config->entity_ent);
     free(config);
 }
 
@@ -37,10 +39,12 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!orig->uri)          return NULL;
     if (!orig->database)     return NULL;
     if (!orig->col_articles) return NULL;
+    if (!orig->article_id)   return NULL;
+    if (!orig->article_time) return NULL;
     if (!orig->col_entities) return NULL;
-    if (!orig->doc_field)    return NULL;
-    if (!orig->sen_field)    return NULL;
-    if (!orig->ent_field)    return NULL;
+    if (!orig->entity_doc)   return NULL;
+    if (!orig->entity_sen)   return NULL;
+    if (!orig->entity_ent)   return NULL;
 
     if (!(config = malloc(sizeof(*config))))
         return NULL;
@@ -49,10 +53,12 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->uri          = strdup(orig->uri)))          goto error;
     if (!(config->database     = strdup(orig->database)))     goto error;
     if (!(config->col_articles = strdup(orig->col_articles))) goto error;
+    if (!(config->article_id   = strdup(orig->article_id)))   goto error;
+    if (!(config->article_time = strdup(orig->article_time))) goto error;
     if (!(config->col_entities = strdup(orig->col_entities))) goto error;
-    if (!(config->doc_field    = strdup(orig->doc_field)))    goto error;
-    if (!(config->sen_field    = strdup(orig->sen_field)))    goto error;
-    if (!(config->ent_field    = strdup(orig->ent_field)))    goto error;
+    if (!(config->entity_doc   = strdup(orig->entity_doc)))   goto error;
+    if (!(config->entity_sen   = strdup(orig->entity_sen)))   goto error;
+    if (!(config->entity_ent   = strdup(orig->entity_ent)))   goto error;
     config->max_distance = orig->max_distance;
     return config;
 
@@ -212,7 +218,23 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
     return 0;
 }
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t document, float ts)
+static int bson_parse_datetime(const bson_t *doc, const char *field, float *value)
+{
+    bson_iter_t iter;
+
+    if (!bson_iter_init_find(&iter, doc, field))
+        return 0;
+
+    if (BSON_ITER_HOLDS_DATE_TIME(&iter))
+    {
+        *value = (float)bson_iter_date_time(&iter) / 1000.0;
+        return 1;
+    }
+
+    return 0;
+}
+
+int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts)
 {
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
@@ -227,11 +249,11 @@ int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64
     int ret = 0;
     size_t i;
 
-    filter = BCON_NEW(config->doc_field, BCON_INT64(document));
+    filter = BCON_NEW(config->entity_doc, BCON_INT64(id));
     if (!filter)
         return 0;
 
-    opts = BCON_NEW("sort", "{", config->sen_field, BCON_INT32(1), "}");
+    opts = BCON_NEW("sort", "{", config->entity_sen, BCON_INT32(1), "}");
     if (!opts)
     {
         bson_destroy(filter);
@@ -258,14 +280,14 @@ int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64
 
     while (mongoc_cursor_next(cursor, &doc))
     {
-        if (!bson_parse_integer(doc, config->sen_field, &new_entry.sen))
+        if (!bson_parse_integer(doc, config->entity_sen, &new_entry.sen))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->sen_field);
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->entity_sen);
             continue;
         }
-        if (!bson_parse_integer(doc, config->ent_field, &new_entry.ent))
+        if (!bson_parse_integer(doc, config->entity_ent, &new_entry.ent))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->ent_field);
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->entity_ent);
             continue;
         }
 
@@ -315,6 +337,64 @@ error:
     return ret;
 }
 
+int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
+{
+    struct mongodb_config *config = mongodb->config;
+    bson_t *opts, filter = BSON_INITIALIZER;
+    mongoc_cursor_t *cursor;
+    bson_error_t error;
+    const bson_t *doc;
+    uint64_t id;
+    float ts;
+    int ret = 0;
+
+    opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1), "}");
+    if (!opts)
+    {
+        bson_destroy(&filter);
+        return 0;
+    }
+
+    cursor = mongoc_collection_find_with_opts(mongodb->articles, &filter, opts, NULL);
+    bson_destroy(&filter);
+    bson_destroy(opts);
+    if (!cursor)
+        return 0;
+
+    while (mongoc_cursor_next(cursor, &doc))
+    {
+        if (!bson_parse_integer(doc, config->article_id, &id))
+        {
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_id);
+            continue;
+        }
+        if (!bson_parse_datetime(doc, config->article_time, &ts))
+        {
+            fprintf(stderr, "%s: %s field not found or not a date/time\n", __func__, config->article_time);
+            continue;
+        }
+
+        if (!tvg_load_graph_from_mongodb(tvg, mongodb, id, ts))
+        {
+            fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
+            goto error;
+        }
+    }
+
+    if (mongoc_cursor_error(cursor, &error))
+    {
+        fprintf(stderr, "%s: Query failed: %s\n", __func__, error.message);
+        goto error;
+    }
+
+    /* Success if we didn't encounter any error. */
+    ret = 1;
+
+error:
+    mongoc_cursor_destroy(cursor);
+    return ret;
+}
+
 #else   /* HAVE_LIBMONGOC */
 
 #include "tvg.h"
@@ -337,7 +417,12 @@ void free_mongodb(struct mongodb *mongodb)
     assert(!mongodb);
 }
 
-int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t document, float ts)
+int tvg_load_graph_from_mongodb(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, float ts)
+{
+    return 0;
+}
+
+int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 {
     return 0;
 }
