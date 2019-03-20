@@ -106,8 +106,7 @@ restart:
     list_init(&todo);
     source_cursor = LIST_ENTRY(window->sources.next, struct source, entry);
 
-    /* FIXME: Speed up by using tvg_lookup_graph_ge() or similar. */
-    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, ts + window->window_l)
     {
         assert(graph->tvg == tvg);
 
@@ -134,6 +133,7 @@ restart:
             if (source->revision != graph->revision)
             {
                 window_clear(window);
+                free_graph(graph);
                 goto restart;
             }
 
@@ -155,6 +155,7 @@ restart:
         if (!(source = malloc(sizeof(*source))))
         {
             window_clear(window);
+            free_graph(graph);
             return NULL;
         }
 

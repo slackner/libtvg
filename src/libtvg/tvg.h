@@ -1009,6 +1009,59 @@ static inline int __graph_vector_next_edge(struct _graph_vector_iter *iter, stru
 #define GRAPH_VECTOR_FOR_EACH_EDGE(_graph, _entry2, _vector, _entry1) \
     _GRAPH_VECTOR_FOR_EACH_EDGE((_graph), (_entry2), (_vector), (_entry1), _UNIQUE_VARIABLE(__iter_))
 
+/* tvg macros */
+
+/* FIXME: Avoid double declaration */
+void free_graph(struct graph *graph);
+struct graph *prev_graph(struct graph *graph);
+struct graph *next_graph(struct graph *graph);
+
+static inline int __tvg_enter_iteration(struct graph **graph)
+{
+    *graph = NULL;
+    return 1;
+}
+
+static inline void __tvg_leave_iteration(struct graph **graph)
+{
+    free_graph(*graph);
+    *graph = NULL;
+}
+
+static inline struct graph *__tvg_next_graph(struct graph *graph)
+{
+    struct graph *ret = next_graph(graph);
+    free_graph(graph);
+    return ret;
+}
+
+static inline struct graph *__tvg_prev_graph(struct graph *graph)
+{
+    struct graph *ret = prev_graph(graph);
+    free_graph(graph);
+    return ret;
+}
+
+#define _TVG_FOR_EACH_GRAPH_GE(_tvg, _graph, _ts, _once) \
+    for (int (_once) = __tvg_enter_iteration(&(_graph)); (_once)--; __tvg_leave_iteration(&(_graph))) \
+    for ((_graph) = tvg_lookup_graph_ge((_tvg), (_ts)); \
+         (_graph) != NULL; (_graph) = __tvg_next_graph((_graph)))
+
+/* NOTE: The caller must release the graph manually when using
+ * goto / return within the iteration. */
+#define TVG_FOR_EACH_GRAPH_GE(_tvg, _graph, _ts) \
+    _TVG_FOR_EACH_GRAPH_GE((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__once_))
+
+#define _TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts, _once) \
+    for (int (_once) = __tvg_enter_iteration(&(_graph)); (_once)--; __tvg_leave_iteration(&(_graph))) \
+    for ((_graph) = tvg_lookup_graph_le((_tvg), (_ts)); \
+         (_graph) != NULL; (_graph) = __tvg_prev_graph((_graph)))
+
+/* NOTE: The caller must release the graph manually when using
+ * goto / return within the iteration. */
+#define TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts) \
+    _TVG_FOR_EACH_GRAPH_LE_REV((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__once_))
+
 /* vector functions */
 
 struct vector *alloc_vector(uint32_t flags);

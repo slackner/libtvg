@@ -1004,6 +1004,53 @@ static void test_vector_for_each_entry2(void)
     free_vector(vector2);
 }
 
+static void test_tvg_for_each_graph(void)
+{
+    struct graph *graph;
+    struct tvg *tvg;
+    float ts;
+    uint32_t i;
+
+    tvg = alloc_tvg(0);
+    assert(tvg != NULL);
+
+    for (i = 0; i < 100; i++)
+    {
+        ts = random_float();
+        graph = tvg_alloc_graph(tvg, ts);
+        assert(graph != NULL);
+        free_graph(graph);
+    }
+
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, 0.5)
+    {
+        assert(graph->ts >= 0.5);
+    }
+    assert(!graph);
+
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, 0.5)
+    {
+        assert(graph->ts >= 0.5);
+        break;  /* test for possible leaks */
+    }
+    assert(!graph);
+
+    TVG_FOR_EACH_GRAPH_LE_REV(tvg, graph, 0.5)
+    {
+        assert(graph->ts <= 0.5);
+    }
+    assert(!graph);
+
+    TVG_FOR_EACH_GRAPH_LE_REV(tvg, graph, 0.5)
+    {
+        assert(graph->ts <= 0.5);
+        break;  /* test for possible leaks */
+    }
+    assert(!graph);
+
+    free_tvg(tvg);
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -1030,6 +1077,7 @@ int main(void)
     test_load_graphs_from_file();
     test_vector_mul_vector();
     test_vector_for_each_entry2();
+    test_tvg_for_each_graph();
 
     fprintf(stderr, "No test failures found\n");
 }

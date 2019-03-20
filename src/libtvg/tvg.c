@@ -217,36 +217,38 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, float ts)
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, float ts)
 {
     struct graph *graph;
-    struct graph *ret = NULL;
 
-    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    LIST_FOR_EACH_REV(graph, &tvg->graphs, struct graph, entry)
     {
         assert(graph->tvg == tvg);
-        if (graph->ts <= ts) ret = graph;
-        else break;
+        if (graph->ts <= ts) return grab_graph(graph);
     }
 
-    return grab_graph(ret);
+    return NULL;
 }
 
 struct graph *tvg_lookup_graph_near(struct tvg *tvg, float ts)
 {
+    struct graph *other_graph;
     struct graph *graph;
-    struct graph *ret = NULL;
 
-    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    if (!(graph = tvg_lookup_graph_ge(tvg, ts)))
+        return tvg_lookup_graph_le(tvg, ts);
+
+    if ((other_graph = prev_graph(graph)))
     {
-        assert(graph->tvg == tvg);
-        if (graph->ts <= ts) ret = graph;
+        if (fabs(other_graph->ts - ts) < fabs(graph->ts - ts))
+        {
+            free_graph(graph);
+            graph = other_graph;
+        }
         else
         {
-            if (!ret || ((graph->ts - ts) < (ts - ret->ts)))
-                ret = graph;
-            break;
+            free_graph(other_graph);
         }
     }
 
-    return grab_graph(ret);
+    return graph;
 }
 
 int tvg_compress(struct tvg *tvg, float step, float offset)
@@ -302,7 +304,7 @@ struct graph *tvg_extract(struct tvg *tvg, float ts, float (*weight_func)(struct
     if (!(out = alloc_graph(graph_flags)))
         return NULL;
 
-    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, -INFINITY)
     {
         assert(graph->tvg == tvg);
 
@@ -311,6 +313,7 @@ struct graph *tvg_extract(struct tvg *tvg, float ts, float (*weight_func)(struct
 
         if (!graph_add_graph(out, graph, weight))
         {
+            free_graph(graph);
             free_graph(out);
             return NULL;
         }
