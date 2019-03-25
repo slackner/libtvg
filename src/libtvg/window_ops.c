@@ -8,6 +8,11 @@
 #include "tvg.h"
 #include "internal.h"
 
+static inline double sub_uint64(uint64_t a, uint64_t b)
+{
+    return (a < b) ? -(double)(b - a) : (double)(a - b);
+}
+
 static int rect_add(struct window *window, struct graph *graph)
 {
     return graph_add_graph(window->result, graph, 1.0);
@@ -18,7 +23,7 @@ static int rect_sub(struct window *window, struct graph *graph)
     return graph_sub_graph(window->result, graph, 1.0);
 }
 
-static int rect_mov(struct window *window, float ts)
+static int rect_mov(struct window *window, uint64_t ts)
 {
     /* nothing to do */
     return 1;
@@ -33,19 +38,19 @@ const struct window_ops window_rect_ops =
 
 static int decay_add(struct window *window, struct graph *graph)
 {
-    float weight = (float)exp(window->log_beta * (window->ts - graph->ts));
+    float weight = (float)exp(window->log_beta * sub_uint64(window->ts, graph->ts));
     return graph_add_graph(window->result, graph, weight);
 }
 
 static int decay_sub(struct window *window, struct graph *graph)
 {
-    float weight = (float)exp(window->log_beta * (window->ts - graph->ts));
+    float weight = (float)exp(window->log_beta * sub_uint64(window->ts, graph->ts));
     return graph_sub_graph(window->result, graph, weight);
 }
 
-static int decay_mov(struct window *window, float ts)
+static int decay_mov(struct window *window, uint64_t ts)
 {
-    float weight = (float)exp(window->log_beta * (ts - window->ts));
+    float weight = (float)exp(window->log_beta * sub_uint64(ts, window->ts));
 
     /* If ts << window->ts the update formula is not numerically stable:
      * \delta w_new ~ \delta w_old * pow(window->beta, ts - window->ts).
@@ -67,17 +72,17 @@ const struct window_ops window_decay_ops =
 
 static int smooth_add(struct window *window, struct graph *graph)
 {
-    float weight = window->weight * (float)exp(window->log_beta * (window->ts - graph->ts));
+    float weight = window->weight * (float)exp(window->log_beta * sub_uint64(window->ts, graph->ts));
     return graph_add_graph(window->result, graph, weight);
 }
 
 static int smooth_sub(struct window *window, struct graph *graph)
 {
-    float weight = window->weight * (float)exp(window->log_beta * (window->ts - graph->ts));
+    float weight = window->weight * (float)exp(window->log_beta * sub_uint64(window->ts, graph->ts));
     return graph_sub_graph(window->result, graph, weight);
 }
 
-static int smooth_mov(struct window *window, float ts)
+static int smooth_mov(struct window *window, uint64_t ts)
 {
     return decay_mov(window, ts);
 }

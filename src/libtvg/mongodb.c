@@ -199,6 +199,14 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
         return 1;
     }
 
+    if (BSON_ITER_HOLDS_DATE_TIME(&iter))
+    {
+        int64_t v = bson_iter_date_time(&iter);
+        if (v < 0) return 0;
+        *value = (uint64_t)v;
+        return 1;
+    }
+
     if (BSON_ITER_HOLDS_UTF8(&iter))
     {
         str = bson_iter_utf8(&iter, &len);
@@ -216,22 +224,6 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
         for (; *str; str++)
             if (*str >= '0' && *str <= '9') return 0;
 
-        return 1;
-    }
-
-    return 0;
-}
-
-static int bson_parse_datetime(const bson_t *doc, const char *field, float *value)
-{
-    bson_iter_t iter;
-
-    if (!bson_iter_init_find(&iter, doc, field))
-        return 0;
-
-    if (BSON_ITER_HOLDS_DATE_TIME(&iter))
-    {
-        *value = (float)bson_iter_date_time(&iter) / 1000.0f;
         return 1;
     }
 
@@ -353,8 +345,7 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
     struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
-    uint64_t id;
-    float ts;
+    uint64_t id, ts;
     int ret = 0;
 
     opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1), "}");
@@ -381,9 +372,9 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
             fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_id);
             continue;
         }
-        if (!bson_parse_datetime(doc, config->article_time, &ts))
+        if (!bson_parse_integer(doc, config->article_time, &ts))
         {
-            fprintf(stderr, "%s: %s field not found or not a date/time\n", __func__, config->article_time);
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_time);
             continue;
         }
 

@@ -55,7 +55,7 @@ void free_tvg(struct tvg *tvg)
     free(tvg);
 }
 
-int tvg_link_graph(struct tvg *tvg, struct graph *graph, float ts)
+int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
 {
     struct graph *other_graph;
 
@@ -81,7 +81,7 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, float ts)
     return 1;
 }
 
-struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
+struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts)
 {
     struct graph *graph;
     uint32_t graph_flags;
@@ -105,12 +105,13 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, float ts)
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
 {
     long long unsigned int source, target;
-    float weight, ts;
+    long long unsigned int ts;
     struct graph *graph = NULL;
     uint64_t numlines = 0;
     uint64_t maxlines = 0;
     uint64_t ticks;
     ssize_t read;
+    float weight;
     size_t len = 0;
     char *line = NULL;
     int ret = 0;
@@ -135,7 +136,8 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
         if (line[read - 1] == '\n') line[read - 1] = 0;
         if (!line[0] || line[0] == '#' || line[0] == ';') continue;
 
-        if (sscanf(line, "%llu %llu %f %f", &source, &target, &weight, &ts) < 4)
+        /* FIXME: Check that the full line was parsed. */
+        if (sscanf(line, "%llu %llu %f %llu", &source, &target, &weight, &ts) < 4)
         {
             fprintf(stderr, "%s: Line does not match expected format\n", __func__);
             goto error;
@@ -185,23 +187,25 @@ error:
     return ret;
 }
 
-struct window *tvg_alloc_window_rect(struct tvg *tvg, float window_l, float window_r)
+struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r)
 {
     return alloc_window(tvg, &window_rect_ops, window_l, window_r, 0.0, 0.0);
 }
 
-struct window *tvg_alloc_window_decay(struct tvg *tvg, float window, float log_beta)
+struct window *tvg_alloc_window_decay(struct tvg *tvg, int64_t window, float log_beta)
 {
-    return alloc_window(tvg, &window_decay_ops, -window, 0.0, 0.0, log_beta);
+    if (window <= 0) return NULL;
+    return alloc_window(tvg, &window_decay_ops, -window, 0, 0.0, log_beta);
 }
 
-struct window *tvg_alloc_window_smooth(struct tvg *tvg, float window, float log_beta)
+struct window *tvg_alloc_window_smooth(struct tvg *tvg, int64_t window, float log_beta)
 {
     float weight = -(float)expm1(log_beta);
-    return alloc_window(tvg, &window_smooth_ops, -window, 0.0, weight, log_beta);
+    if (window <= 0) return NULL;
+    return alloc_window(tvg, &window_smooth_ops, -window, 0, weight, log_beta);
 }
 
-struct graph *tvg_lookup_graph_ge(struct tvg *tvg, float ts)
+struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts)
 {
     struct graph *graph;
 
@@ -214,7 +218,7 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, float ts)
     return NULL;
 }
 
-struct graph *tvg_lookup_graph_le(struct tvg *tvg, float ts)
+struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts)
 {
     struct graph *graph;
 
@@ -227,7 +231,7 @@ struct graph *tvg_lookup_graph_le(struct tvg *tvg, float ts)
     return NULL;
 }
 
-struct graph *tvg_lookup_graph_near(struct tvg *tvg, float ts)
+struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts)
 {
     struct graph *other_graph;
     struct graph *graph;
@@ -237,7 +241,8 @@ struct graph *tvg_lookup_graph_near(struct tvg *tvg, float ts)
 
     if ((other_graph = prev_graph(graph)))
     {
-        if (fabs(other_graph->ts - ts) < fabs(graph->ts - ts))
+        assert(graph->ts >= ts && other_graph->ts < ts);
+        if ((ts - other_graph->ts) < (graph->ts - ts))
         {
             free_graph(graph);
             graph = other_graph;
@@ -251,27 +256,28 @@ struct graph *tvg_lookup_graph_near(struct tvg *tvg, float ts)
     return graph;
 }
 
-int tvg_compress(struct tvg *tvg, float step, float offset)
+int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
 {
     struct graph *graph, *next_graph;
     struct graph *prev_graph = NULL;
+
+    if (step)
+        offset -= (offset / step) * step;
 
     LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {
         assert(graph->tvg == tvg);
 
         /* Round the timestamp to the desired step size. Afterwards,
-         * sum up graphs with the same timestamp. If step is INF,
+         * sum up graphs with the same timestamp. If step is 0,
          * reduce the full TVG to a single timestamp. */
 
-        if (!isinf(step))
-        {
-            graph->ts = offset + (float)floor((graph->ts - offset) / step) * step;
-        }
-        else
-        {
+        if (!step)
             graph->ts = offset;
-        }
+        else if (graph->ts >= offset)
+            graph->ts = offset + ((graph->ts - offset) / step) * step;
+        else
+            graph->ts = 0;
 
         if (prev_graph && graph->ts == prev_graph->ts)
         {
@@ -289,8 +295,8 @@ int tvg_compress(struct tvg *tvg, float step, float offset)
     return 1;
 }
 
-struct graph *tvg_extract(struct tvg *tvg, float ts, float (*weight_func)(struct graph *,
-                          float, void *), void *userdata)
+struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(struct graph *,
+                          uint64_t, void *), void *userdata)
 {
     uint32_t graph_flags;
     struct graph *graph;
@@ -304,7 +310,7 @@ struct graph *tvg_extract(struct tvg *tvg, float ts, float (*weight_func)(struct
     if (!(out = alloc_graph(graph_flags)))
         return NULL;
 
-    TVG_FOR_EACH_GRAPH_GE(tvg, graph, -INFINITY)
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, 0)
     {
         assert(graph->tvg == tvg);
 

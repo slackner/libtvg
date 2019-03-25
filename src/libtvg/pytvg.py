@@ -1,13 +1,10 @@
 #!/usr/bin/python3
 from ctypes import cdll
 from ctypes import cast
-from ctypes import c_int
-from ctypes import c_uint
-from ctypes import c_uint64
-from ctypes import c_float
-from ctypes import c_void_p
-from ctypes import c_double
-from ctypes import c_char_p
+from ctypes import c_int, c_int64
+from ctypes import c_uint, c_uint64
+from ctypes import c_float, c_double
+from ctypes import c_void_p, c_char_p
 from ctypes import Structure
 from ctypes import POINTER
 from ctypes import CFUNCTYPE
@@ -38,7 +35,7 @@ class c_graph(Structure):
                 ("flags",    c_uint),
                 ("revision", c_uint64),
                 ("eps",      c_float),
-                ("ts",       c_float)]
+                ("ts",       c_uint64)]
 
 class c_tvg(Structure):
     _fields_ = [("refcount", c_int),
@@ -47,7 +44,7 @@ class c_tvg(Structure):
 class c_window(Structure):
     _fields_ = [("refcount", c_int),
                 ("eps",      c_float),
-                ("ts",       c_float)]
+                ("ts",       c_uint64)]
 
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
@@ -243,34 +240,34 @@ lib.alloc_tvg.restype = c_tvg_p
 
 lib.free_tvg.argtypes = (c_tvg_p,)
 
-lib.tvg_link_graph.argtypes = (c_tvg_p, c_graph_p, c_float)
+lib.tvg_link_graph.argtypes = (c_tvg_p, c_graph_p, c_uint64)
 lib.tvg_link_graph.restype = c_int
 
-lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_float)
+lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_alloc_graph.restype = c_graph_p
 
 lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_load_graphs_from_file.restype = c_int
 
-lib.tvg_alloc_window_rect.argtypes = (c_tvg_p, c_float, c_float)
+lib.tvg_alloc_window_rect.argtypes = (c_tvg_p, c_int64, c_int64)
 lib.tvg_alloc_window_rect.restype = c_window_p
 
-lib.tvg_alloc_window_decay.argtypes = (c_tvg_p, c_float, c_float)
+lib.tvg_alloc_window_decay.argtypes = (c_tvg_p, c_int64, c_float)
 lib.tvg_alloc_window_decay.restype = c_window_p
 
-lib.tvg_alloc_window_smooth.argtypes = (c_tvg_p, c_float, c_float)
+lib.tvg_alloc_window_smooth.argtypes = (c_tvg_p, c_int64, c_float)
 lib.tvg_alloc_window_smooth.restype = c_window_p
 
-lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_float)
+lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
 
-lib.tvg_lookup_graph_le.argtypes = (c_tvg_p, c_float)
+lib.tvg_lookup_graph_le.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_le.restype = c_graph_p
 
-lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_float)
+lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_near.restype = c_graph_p
 
-lib.tvg_compress.argtypes = (c_tvg_p, c_float, c_float)
+lib.tvg_compress.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_compress.restype = c_int
 
 # window functions
@@ -281,7 +278,7 @@ lib.window_set_eps.argtypes = (c_window_p, c_float)
 
 lib.window_clear.argtypes = (c_window_p,)
 
-lib.window_update.argtypes = (c_window_p, c_float)
+lib.window_update.argtypes = (c_window_p, c_uint64)
 lib.window_update.restype = c_graph_p
 
 # MongoDB functions
@@ -970,39 +967,49 @@ class TVG(object):
             raise IOError
 
     def __iter__(self):
-        # FIXME: Would be better to have a function to get the first graph.
-        return GraphIter(self.lookup_near(-np.inf))
+        return GraphIter(self.lookup_ge())
 
     def __reversed__(self):
-        # FIXME: Would be better to have a function to get the last graph.
-        return GraphIterReversed(self.lookup_near(np.inf))
+        return GraphIterReversed(self.lookup_le())
 
     def WindowRect(self, window_l, window_r):
         return Window(obj=lib.tvg_alloc_window_rect(self._obj, window_l, window_r))
 
     def WindowDecay(self, window, beta=None, log_beta=None):
+        if np.isinf(window):
+            window = 0x7fffffffffffffff
         if log_beta is None:
             log_beta = math.log(beta)
         return Window(obj=lib.tvg_alloc_window_decay(self._obj, window, log_beta))
 
     def WindowSmooth(self, window, beta=None, log_beta=None):
+        if np.isinf(window):
+            window = 0x7fffffffffffffff
         if log_beta is None:
             log_beta = math.log(beta)
         return Window(obj=lib.tvg_alloc_window_smooth(self._obj, window, log_beta))
 
-    def lookup_ge(self, ts):
+    def lookup_ge(self, ts=0):
+        if isinstance(ts, float):
+            ts = math.ceil(ts)
         obj = lib.tvg_lookup_graph_ge(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
-    def lookup_le(self, ts):
+    def lookup_le(self, ts=0xffffffffffffffff):
+        if isinstance(ts, float):
+            ts = int(ts)
         obj = lib.tvg_lookup_graph_le(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
     def lookup_near(self, ts):
+        if isinstance(ts, float):
+            ts = int(ts + 0.5)
         obj = lib.tvg_lookup_graph_near(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
-    def compress(self, step, offset=0.0):
+    def compress(self, step, offset=0):
+        if np.isinf(step):
+            step = 0
         res = lib.tvg_compress(self._obj, step, offset)
         if not res:
             raise MemoryError
@@ -1823,39 +1830,56 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
             self.assertEqual(tvg.flags, TVG_FLAGS_POSITIVE)
 
-            g1 = tvg.Graph(100.0)
+            g1 = tvg.Graph(100)
             self.assertEqual(g1.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
-            self.assertEqual(g1.ts, 100.0)
-            g2 = tvg.Graph(200.0)
+            self.assertEqual(g1.ts, 100)
+            g2 = tvg.Graph(200)
             self.assertEqual(g2.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
-            self.assertEqual(g2.ts, 200.0)
-            g3 = tvg.Graph(300.0)
+            self.assertEqual(g2.ts, 200)
+            g3 = tvg.Graph(300)
             self.assertEqual(g3.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
-            self.assertEqual(g3.ts, 300.0)
+            self.assertEqual(g3.ts, 300)
 
-            g = tvg.lookup_le(50.0)
+            g = tvg.lookup_le(50)
             self.assertEqual(g, None)
-            g = tvg.lookup_ge(50.0)
+            g = tvg.lookup_ge(50)
             self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
 
-            g = tvg.lookup_le(150.0)
+            g = tvg.lookup_le(150)
             self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
-            g = tvg.lookup_ge(150.0)
+            g = tvg.lookup_ge(150)
             self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
 
-            g = tvg.lookup_le(250.0)
+            g = tvg.lookup_le(250)
             self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
-            g = tvg.lookup_ge(250.0)
+            g = tvg.lookup_ge(250)
             self.assertEqual(addressof(g._obj.contents), addressof(g3._obj.contents))
 
-            g = tvg.lookup_le(350.0)
+            g = tvg.lookup_le(350)
             self.assertEqual(addressof(g._obj.contents), addressof(g3._obj.contents))
-            g = tvg.lookup_ge(350.0)
+            g = tvg.lookup_ge(350)
             self.assertEqual(g, None)
 
-            g = tvg.lookup_near(149.0)
+            g = tvg.lookup_near(149)
             self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
-            g = tvg.lookup_near(151.0)
+            g = tvg.lookup_near(151)
+            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+
+            # For backwards compatibility, we still allow passing float values.
+
+            g = tvg.lookup_ge(100.0)
+            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            g = tvg.lookup_ge(100.01)
+            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+
+            g = tvg.lookup_le(200.0)
+            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            g = tvg.lookup_le(199.99)
+            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+
+            g = tvg.lookup_near(149.49)
+            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            g = tvg.lookup_near(150.51)
             self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
 
             del tvg
@@ -1865,14 +1889,14 @@ if __name__ == '__main__':
             g1 = Graph()
             g2 = Graph(directed=True)
 
-            tvg.link(g1, 10.0)
+            tvg.link(g1, 10)
             with self.assertRaises(RuntimeError):
-                tvg.link(g1, 20.0)
+                tvg.link(g1, 20)
             with self.assertRaises(RuntimeError):
-                tvg.link(g2, 20.0)
+                tvg.link(g2, 20)
 
-            g = tvg.lookup_near(10.0)
-            self.assertEqual(g.ts, 10.0)
+            g = tvg.lookup_near(10)
+            self.assertEqual(g.ts, 10)
             self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
             del tvg
 
@@ -1885,7 +1909,7 @@ if __name__ == '__main__':
                 g = tvg.Graph(t)
                 g[0, 0] = s
 
-            tvg.compress(5.0)
+            tvg.compress(step=5, offset=100)
 
             t = 0
             for g in tvg:
@@ -1906,24 +1930,24 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [   0.0,  130.0,  141.0,  164.0,  176.0,  272.0,  376.0,  465.0,  666.0,  682.0,  696.0,
-                                           770.0,  848.0, 1217.0, 1236.0, 1257.0, 1266.0, 1431.0, 1515.0, 1539.0, 1579.0, 1626.0,
-                                          1763.0, 1803.0, 1834.0, 1920.0, 1967.0, 2021.0, 2188.0, 2405.0, 2482.0, 2542.0, 2551.0,
-                                          2583.0, 2591.0, 2604.0, 2620.0, 2830.0, 2852.0, 2957.0, 3008.0])
+            self.assertEqual(timestamps, [   0,  130,  141,  164,  176,  272,  376,  465,  666,  682,  696,
+                                           770,  848, 1217, 1236, 1257, 1266, 1431, 1515, 1539, 1579, 1626,
+                                          1763, 1803, 1834, 1920, 1967, 2021, 2188, 2405, 2482, 2542, 2551,
+                                          2583, 2591, 2604, 2620, 2830, 2852, 2957, 3008])
 
             self.assertEqual(edges, [155, 45, 1250, 90, 178, 85, 367, 98, 18, 528, 158, 201, 267, 214, 613, 567, 1, 137, 532, 59, 184,
                                      40, 99, 285, 326, 140, 173, 315, 211, 120, 19, 137, 170, 42, 135, 348, 168, 132, 147, 218, 321])
 
-            g = tvg.lookup_near(141.0)
+            g = tvg.lookup_near(141)
             self.assertTrue(abs(g[6842, 249977] - 0.367879) < 1e-7)
 
-            g = tvg.lookup_near(1257.0)
+            g = tvg.lookup_near(1257)
             self.assertTrue(abs(g[1291, 3529] - 1.013476) < 1e-7)
 
-            g = tvg.lookup_near(2604.0)
+            g = tvg.lookup_near(2604)
             self.assertTrue(abs(g[121, 1154] - 3.000000) < 1e-7)
 
-            tvg.compress(step=600.0)
+            tvg.compress(step=600)
 
             timestamps = []
             edges = []
@@ -1931,7 +1955,7 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [0.0, 600.0, 1200.0, 1800.0, 2400.0, 3000.0])
+            self.assertEqual(timestamps, [0, 600, 1200, 1800, 2400, 3000])
             self.assertEqual(edges, [2226, 1172, 2446, 1448, 1632, 321])
 
             timestamps = []
@@ -1940,10 +1964,10 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [3000.0, 2400.0, 1800.0, 1200.0, 600.0, 0.0])
+            self.assertEqual(timestamps, [3000, 2400, 1800, 1200, 600, 0])
             self.assertEqual(edges, [321, 1632, 1448, 2446, 1172, 2226])
 
-            tvg.compress(step=np.inf, offset=100.0)
+            tvg.compress(step=np.inf, offset=100)
 
             timestamps = []
             edges = []
@@ -1951,7 +1975,7 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [100.0])
+            self.assertEqual(timestamps, [100])
             self.assertEqual(edges, [9097])
 
             del tvg
@@ -1960,37 +1984,42 @@ if __name__ == '__main__':
         def test_rect(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100.0)
+            g = tvg.Graph(100)
             g[0, 0] = 1.0
-            g = tvg.Graph(200.0)
+            g = tvg.Graph(200)
             g[0, 1] = 2.0
-            g = tvg.Graph(300.0)
+            g = tvg.Graph(300)
             g[0, 2] = 3.0
 
-            window = tvg.WindowRect(-50.0, 50.0)
+            with self.assertRaises(MemoryError):
+                tvg.WindowRect(0, 0)
+            with self.assertRaises(MemoryError):
+                tvg.WindowRect(1, 0)
 
-            g = window.update(100.0)
-            self.assertEqual(window.ts, 100.0)
+            window = tvg.WindowRect(-50, 50)
+
+            g = window.update(100)
+            self.assertEqual(window.ts, 100)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(200.0)
-            self.assertEqual(window.ts, 200.0)
+            g = window.update(200)
+            self.assertEqual(window.ts, 200)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 2.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(300.0)
-            self.assertEqual(window.ts, 300.0)
+            g = window.update(300)
+            self.assertEqual(window.ts, 300)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 3.0)
 
             # Clearing the window should not modify the last output graph.
             window.clear()
-            g2 = window.update(100.0)
-            self.assertEqual(window.ts, 100.0)
+            g2 = window.update(100)
+            self.assertEqual(window.ts, 100)
 
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
@@ -2006,17 +2035,17 @@ if __name__ == '__main__':
         def test_rect_streaming(self):
             tvg = TVG(positive=True, streaming=True)
 
-            g = tvg.Graph(100.0)
+            g = tvg.Graph(100)
             g[0, 0] = 1.0
-            g = tvg.Graph(200.0)
+            g = tvg.Graph(200)
             g[0, 1] = 2.0
-            g = tvg.Graph(300.0)
+            g = tvg.Graph(300)
             g[0, 2] = 3.0
 
-            window = tvg.WindowRect(-50.0, 50.0)
+            window = tvg.WindowRect(-50, 50)
 
-            g = window.update(100.0)
-            self.assertEqual(window.ts, 100.0)
+            g = window.update(100)
+            self.assertEqual(window.ts, 100)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
@@ -2024,8 +2053,8 @@ if __name__ == '__main__':
             self.assertEqual(d, None)
             self.assertEqual(m, None)
 
-            g = window.update(200.0)
-            self.assertEqual(window.ts, 200.0)
+            g = window.update(200)
+            self.assertEqual(window.ts, 200)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 2.0)
             self.assertEqual(g[0, 2], 0.0)
@@ -2036,8 +2065,8 @@ if __name__ == '__main__':
             self.assertEqual(indices.tolist(), [[0, 0], [0, 1]])
             self.assertEqual(weights.tolist(), [0.0, 2.0])
 
-            g = window.update(300.0)
-            self.assertEqual(window.ts, 300.0)
+            g = window.update(300)
+            self.assertEqual(window.ts, 300)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 3.0)
@@ -2050,8 +2079,8 @@ if __name__ == '__main__':
 
             # Clearing the window should not modify the last output graph.
             window.clear()
-            g2 = window.update(100.0)
-            self.assertEqual(window.ts, 100.0)
+            g2 = window.update(100)
+            self.assertEqual(window.ts, 100)
 
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
@@ -2072,15 +2101,20 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
             beta = 0.3
 
-            g = tvg.Graph(0.0)
+            g = tvg.Graph(0)
             g[0, 0] = 1.0
+
+            with self.assertRaises(MemoryError):
+                tvg.WindowDecay(0, beta)
+            with self.assertRaises(MemoryError):
+                tvg.WindowDecay(-1, beta)
 
             window = tvg.WindowDecay(np.inf, beta)
 
-            g = window.update(100.0)
+            g = window.update(100)
             self.assertTrue(abs(g[0, 0] - math.pow(beta, 100.0)) < 1e-7)
 
-            g = window.update(0.0)
+            g = window.update(0)
             self.assertTrue(abs(g[0, 0] - 1.0) < 1e-7)
 
             del window
@@ -2095,6 +2129,11 @@ if __name__ == '__main__':
             for t, s in enumerate(source):
                 g = tvg.Graph(t)
                 g[0, 0] = s
+
+            with self.assertRaises(MemoryError):
+                tvg.WindowSmooth(0, beta)
+            with self.assertRaises(MemoryError):
+                tvg.WindowSmooth(-1, beta)
 
             window = tvg.WindowSmooth(np.inf, beta)
             expected = 0.0
@@ -2156,11 +2195,11 @@ if __name__ == '__main__':
         def test_encode_visjs(self):
             filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/example-tvg.graph")
             tvg = TVG.load(filename, positive=True, streaming=True)
-            window = tvg.WindowDecay(600.0, 0.93)
+            window = tvg.WindowDecay(600, 0.93)
             window.eps = 1e-6
 
-            ts = tvg.lookup_near(-np.inf).ts
-            last_ts = tvg.lookup_near(np.inf).ts + 600.0
+            ts = tvg.lookup_ge().ts
+            last_ts = tvg.lookup_le().ts + 600.0
 
             client_graph = None
             client_nodes = set()
@@ -2211,7 +2250,7 @@ if __name__ == '__main__':
                     del index_to_weight[i]
 
                 self.assertEqual(len(index_to_weight), 0)
-                ts += 50.0
+                ts += 50
 
     class MongoDBTests(unittest.TestCase):
         def setUp(self):
@@ -2295,7 +2334,7 @@ if __name__ == '__main__':
             tvg = future()
             for i, g in enumerate(tvg):
                 self.assertEqual(g.revision, 0)
-                self.assertEqual(g.ts, 1546300800 + i * 86400)
+                self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g[1, 2 + i], 1.0)
             del tvg
 

@@ -116,13 +116,13 @@ class Client(WebSocket):
     def event_connected(self):
         print(self.address, 'connected')
 
-        self.window = dataset_tvg.WindowDecay(600.0, 0.93)
+        self.window = dataset_tvg.WindowDecay(600, 0.93)
         self.window.eps = 1e-6
         self.ts = None
 
         # Set timeline min/max. The client can then seek to any position.
-        min_ts = dataset_tvg.lookup_near(-np.inf).ts
-        max_ts = dataset_tvg.lookup_near(np.inf).ts
+        min_ts = dataset_tvg.lookup_ge().ts
+        max_ts = dataset_tvg.lookup_le().ts
         self.send_message_json(cmd='timeline_set_options', min=min_ts, max=max_ts)
 
     def event_message(self, data):

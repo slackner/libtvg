@@ -80,7 +80,7 @@
       timeline.addCustomTime(new Date(), 't1');
       timeline.on('timechanged', function (properties) {
         if (properties.id == 't1') {
-          sendMessageJson({cmd: 'timeline_seek', time: properties.time.getTime()/1000});
+          sendMessageJson({cmd: 'timeline_seek', time: properties.time.getTime()});
         }
       });
     }
@@ -114,15 +114,15 @@
       {
         case "timeline_set_options":
           var options = {
-            min: new Date(msg.min * 1000),
-            max: new Date(msg.max * 1000),
+            min: new Date(msg.min),
+            max: new Date(msg.max),
           };
           timeline.setOptions(options);
 
           // Seek to the center of the given interval.
-          current = new Date((msg.min + msg.max) * 500);
+          current = new Date((msg.min + msg.max) / 2);
           timeline.setCustomTime(current, 't1');
-          sendMessageJson({cmd: 'timeline_seek', time: current.getTime()/1000});
+          sendMessageJson({cmd: 'timeline_seek', time: current.getTime()});
           break;
 
         case "network_set":

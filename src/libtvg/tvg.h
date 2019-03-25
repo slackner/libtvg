@@ -75,7 +75,7 @@ struct graph
     uint32_t    flags;
     uint64_t    revision;
     float       eps;
-    float       ts;
+    uint64_t    ts;
 
     /* private: */
     struct tvg *tvg;         /* NULL for disconnected graphs */
@@ -114,13 +114,13 @@ struct window
 {
     int         refcount;
     float       eps;
-    float       ts;
+    uint64_t    ts;
 
     /* private: */
     struct tvg *tvg;
     const struct window_ops *ops;
-    float       window_l;
-    float       window_r;
+    int64_t     window_l;
+    int64_t     window_r;
     float       weight;
     float       log_beta;
     struct list sources;
@@ -1166,23 +1166,23 @@ struct tvg *alloc_tvg(uint32_t flags);
 struct tvg *grab_tvg(struct tvg *tvg);
 void free_tvg(struct tvg *tvg);
 
-int tvg_link_graph(struct tvg *tvg, struct graph *graph, float ts);
-struct graph *tvg_alloc_graph(struct tvg *tvg, float ts);
+int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
+struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
 
-struct window *tvg_alloc_window_rect(struct tvg *tvg, float window_l, float window_r);
-struct window *tvg_alloc_window_decay(struct tvg *tvg, float window, float log_beta);
-struct window *tvg_alloc_window_smooth(struct tvg *tvg, float window, float log_beta);
+struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r);
+struct window *tvg_alloc_window_decay(struct tvg *tvg, int64_t window, float log_beta);
+struct window *tvg_alloc_window_smooth(struct tvg *tvg, int64_t window, float log_beta);
 
-struct graph *tvg_lookup_graph_ge(struct tvg *tvg, float ts);
-struct graph *tvg_lookup_graph_le(struct tvg *tvg, float ts);
-struct graph *tvg_lookup_graph_near(struct tvg *tvg, float ts);
+struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
+struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
+struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts);
 
-int tvg_compress(struct tvg *tvg, float step, float offset);
+int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset);
 
-struct graph *tvg_extract(struct tvg *tvg, float ts, float (*weight_func)(struct graph *,
-                          float, void *), void *userdata);
+struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(struct graph *,
+                          uint64_t, void *), void *userdata);
 
 /* window functions */
 
@@ -1191,7 +1191,7 @@ struct window *grab_window(struct window *window);
 void free_window(struct window *window);
 void window_set_eps(struct window *window, float eps);
 void window_clear(struct window *window);
-struct graph *window_update(struct window *window, float ts);
+struct graph *window_update(struct window *window, uint64_t ts);
 struct graph *window_get_delta(struct window *window, float *mul);
 
 /* MongoDB functions */

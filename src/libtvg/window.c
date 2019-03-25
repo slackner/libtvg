@@ -8,16 +8,18 @@
 #include "tvg.h"
 #include "internal.h"
 
-struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, float window_l, float window_r, float weight, float log_beta)
+struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64_t window_l, int64_t window_r, float weight, float log_beta)
 {
     struct window *window;
 
+    if (window_l >= window_r)
+        return NULL;
     if (!(window = malloc(sizeof(*window))))
         return NULL;
 
     window->refcount    = 1;
     window->eps         = 0.0;
-    window->ts          = 0.0;
+    window->ts          = 0;
     window->tvg         = grab_tvg(tvg);
     window->ops         = ops;
     window->window_l    = window_l;
@@ -67,11 +69,13 @@ void window_clear(struct window *window)
     window->result = NULL;
 }
 
-struct graph *window_update(struct window *window, float ts)
+struct graph *window_update(struct window *window, uint64_t ts)
 {
     struct source *source_cursor, *source;
     struct tvg *tvg = window->tvg;
     uint32_t graph_flags;
+    uint64_t ts_window_l;
+    uint64_t ts_window_r;
     struct graph *graph;
     struct list todo;
     int update;
@@ -106,13 +110,24 @@ restart:
     list_init(&todo);
     source_cursor = LIST_ENTRY(window->sources.next, struct source, entry);
 
-    TVG_FOR_EACH_GRAPH_GE(tvg, graph, ts + window->window_l)
+    if (ts >= (uint64_t)(-MIN(window->window_l + 1, 0)))
+        ts_window_l = ts + (uint64_t)window->window_l + 1;
+    else
+        ts_window_l = 0;
+
+    if (ts <= (uint64_t)(-MAX(window->window_r, 0) - 1))
+        ts_window_r = ts + (uint64_t)window->window_r;
+    else
+        ts_window_r = ~0ULL;
+
+    assert(ts_window_l <= ts_window_r);
+
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, ts_window_l)
     {
         assert(graph->tvg == tvg);
 
-        if (graph->ts <= ts + window->window_l)
-            continue;
-        if (graph->ts >  ts + window->window_r)
+        assert(graph->ts >= ts_window_l);
+        if (graph->ts > ts_window_r)
             break;
 
         /* The current graph is included in our sliding window. Check if it

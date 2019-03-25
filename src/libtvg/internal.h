@@ -65,7 +65,7 @@ struct window_ops
 {
     int       (*add)(struct window *, struct graph *);
     int       (*sub)(struct window *, struct graph *);
-    int       (*mov)(struct window *, float ts);
+    int       (*mov)(struct window *, uint64_t ts);
 };
 
 void progress(const char *format, ...) __attribute__((format (printf,1,2))) DECL_INTERNAL;
@@ -99,8 +99,8 @@ extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
 extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
 extern const struct graph_ops graph_positive_ops DECL_INTERNAL;
 
-struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, float window_l,
-                            float window_r, float weight, float log_beta) DECL_INTERNAL;
+struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64_t window_l,
+                            int64_t window_r, float weight, float log_beta) DECL_INTERNAL;
 
 extern const struct window_ops window_rect_ops DECL_INTERNAL;
 extern const struct window_ops window_decay_ops DECL_INTERNAL;
