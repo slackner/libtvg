@@ -48,7 +48,7 @@ void free_window(struct window *window)
 
 void window_set_eps(struct window *window, float eps)
 {
-    window->eps = fabs(eps);
+    window->eps = (float)fabs(eps);
     window_clear(window);
 }
 

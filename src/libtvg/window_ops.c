@@ -33,19 +33,19 @@ const struct window_ops window_rect_ops =
 
 static int decay_add(struct window *window, struct graph *graph)
 {
-    float weight = exp(window->log_beta * (window->ts - graph->ts));
+    float weight = (float)exp(window->log_beta * (window->ts - graph->ts));
     return graph_add_graph(window->result, graph, weight);
 }
 
 static int decay_sub(struct window *window, struct graph *graph)
 {
-    float weight = exp(window->log_beta * (window->ts - graph->ts));
+    float weight = (float)exp(window->log_beta * (window->ts - graph->ts));
     return graph_sub_graph(window->result, graph, weight);
 }
 
 static int decay_mov(struct window *window, float ts)
 {
-    float weight = exp(window->log_beta * (ts - window->ts));
+    float weight = (float)exp(window->log_beta * (ts - window->ts));
 
     /* If ts << window->ts the update formula is not numerically stable:
      * \delta w_new ~ \delta w_old * pow(window->beta, ts - window->ts).
@@ -67,13 +67,13 @@ const struct window_ops window_decay_ops =
 
 static int smooth_add(struct window *window, struct graph *graph)
 {
-    float weight = window->weight * exp(window->log_beta * (window->ts - graph->ts));
+    float weight = window->weight * (float)exp(window->log_beta * (window->ts - graph->ts));
     return graph_add_graph(window->result, graph, weight);
 }
 
 static int smooth_sub(struct window *window, struct graph *graph)
 {
-    float weight = window->weight * exp(window->log_beta * (window->ts - graph->ts));
+    float weight = window->weight * (float)exp(window->log_beta * (window->ts - graph->ts));
     return graph_sub_graph(window->result, graph, weight);
 }
 

@@ -10,7 +10,7 @@
 
 static inline struct bucket1 *_vector_get_bucket(struct vector *vector, uint64_t index)
 {
-    uint32_t i = index & ((1ULL << vector->bits) - 1);
+    uint32_t i = (uint32_t)(index & ((1ULL << vector->bits) - 1));
     return &vector->buckets[i];
 }
 
@@ -159,7 +159,7 @@ static void nonzero_mul_const(struct vector *vector, float constant)
             *out++ = *entry;
         }
 
-        bucket->num_entries = (out - &bucket->entries[0]);
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
         assert(bucket->num_entries <= bucket->max_entries);
     }
 
@@ -236,7 +236,7 @@ static void positive_mul_const(struct vector *vector, float constant)
             *out++ = *entry;
         }
 
-        bucket->num_entries = (out - &bucket->entries[0]);
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
         assert(bucket->num_entries <= bucket->max_entries);
     }
 

@@ -23,7 +23,7 @@ void random_bytes(uint8_t *buffer, size_t length)
 {
     while (length)
     {
-        int res = syscall(SYS_getrandom, buffer, length, 0);
+        ssize_t res = syscall(SYS_getrandom, buffer, length, 0);
         if (res < 0)
         {
             assert(errno == EINTR);
@@ -32,7 +32,7 @@ void random_bytes(uint8_t *buffer, size_t length)
 
         assert(res <= length);
         buffer += res;
-        length -= res;
+        length -= (size_t)res;
     }
 }
 
@@ -51,7 +51,7 @@ void random_bytes(uint8_t *buffer, size_t length)
 
     while (length)
     {
-        int res = read(dev_urandom, buffer, length);
+        ssize_t res = read(dev_urandom, buffer, length);
         if (res < 0)
         {
             assert(errno == EINTR);
@@ -60,7 +60,7 @@ void random_bytes(uint8_t *buffer, size_t length)
 
         assert(res <= length);
         buffer += res;
-        length -= res;
+        length -= (size_t)res;
     }
 }
 

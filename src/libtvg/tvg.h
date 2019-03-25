@@ -17,10 +17,10 @@
 
 #include "list.h"
 
-#define TVG_FLAGS_NONZERO   0x00000001  /* weights are always nonzero */
-#define TVG_FLAGS_POSITIVE  0x00000002  /* weights are always positive */
-#define TVG_FLAGS_DIRECTED  0x00000004  /* edges are directed */
-#define TVG_FLAGS_STREAMING 0x00000008  /* streaming mode */
+#define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
+#define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
+#define TVG_FLAGS_DIRECTED  0x00000004U  /* edges are directed */
+#define TVG_FLAGS_STREAMING 0x00000008U  /* streaming mode */
 
 struct entry1
 {

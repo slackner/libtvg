@@ -50,7 +50,7 @@ static int bucket1_reserve(struct bucket1 *bucket, uint64_t new_entries)
 
     if (!bucket->entries)
     {
-        max_entries = MAX(new_entries, 2);
+        max_entries = MAX(new_entries, 2ULL);
         if (!(entries = malloc(sizeof(*entries) * max_entries)))
             return 0;
 
@@ -174,7 +174,7 @@ struct entry1 *bucket1_get_entry(struct bucket1 *bucket, uint64_t index, int all
     if (!bucket1_reserve(bucket, 1)) return NULL;
 
     entry = &bucket->entries[insert];
-    memmove(&entry[1], entry, (char *)&bucket->entries[bucket->num_entries] - (char *)entry);
+    memmove(&entry[1], entry, (size_t)((char *)&bucket->entries[bucket->num_entries] - (char *)entry));
     bucket->num_entries++;
 
     entry->index  = index;
@@ -189,6 +189,6 @@ void bucket1_del_entry(struct bucket1 *bucket, struct entry1 *entry)
         if (entry < &bucket->entries[bucket->hint]) bucket->hint--;
         else bucket->hint = ~0ULL;
     }
-    memmove(entry, &entry[1], (char *)&bucket->entries[bucket->num_entries] - (char *)&entry[1]);
+    memmove(entry, &entry[1], (size_t)((char *)&bucket->entries[bucket->num_entries] - (char *)&entry[1]));
     bucket->num_entries--;
 }

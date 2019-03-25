@@ -13,9 +13,9 @@
 static inline struct bucket2 *_graph_get_bucket(struct graph *graph, uint64_t source, uint64_t target)
 {
     uint32_t i;
-    i  = target & ((1ULL << graph->bits_target) - 1);
+    i  = (uint32_t)(target & ((1ULL << graph->bits_target) - 1));
     i  = (i << graph->bits_source);
-    i |= source & ((1ULL << graph->bits_source) - 1);
+    i |= (uint32_t)(source & ((1ULL << graph->bits_source) - 1));
     return &graph->buckets[i];
 }
 
@@ -229,7 +229,7 @@ static int nonzero_add(struct graph *graph, uint64_t source, uint64_t target, fl
         graph_optimize(graph);
 
     if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, allocate ? weight : 0.0);
+        delta->ops->set(delta, source, target, allocate ? weight : 0.0f);
 
     return 1;
 }
@@ -265,7 +265,7 @@ static void nonzero_mul_const(struct graph *graph, float constant)
             *out++ = *edge;
         }
 
-        bucket->num_entries = (out - &bucket->entries[0]);
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
         assert(bucket->num_entries <= bucket->max_entries);
     }
 
@@ -343,7 +343,7 @@ static int positive_add(struct graph *graph, uint64_t source, uint64_t target, f
         graph_optimize(graph);
 
     if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, allocate ? weight : 0.0);
+        delta->ops->set(delta, source, target, allocate ? weight : 0.0f);
 
     return 1;
 }
@@ -379,7 +379,7 @@ static void positive_mul_const(struct graph *graph, float constant)
             *out++ = *edge;
         }
 
-        bucket->num_entries = (out - &bucket->entries[0]);
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
         assert(bucket->num_entries <= bucket->max_entries);
     }
 

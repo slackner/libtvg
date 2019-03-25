@@ -421,7 +421,7 @@ void graph_optimize(struct graph *graph)
     }
 
     graph->optimize = MIN(num_buckets * 256 - num_edges, num_edges - num_buckets * 16);
-    graph->optimize = MAX(graph->optimize, 256);
+    graph->optimize = MAX(graph->optimize, 256ULL);
     if (!(graph->flags & TVG_FLAGS_DIRECTED)) graph->optimize /= 2;
     return;
 
@@ -432,7 +432,7 @@ error:
 
 void graph_set_eps(struct graph *graph, float eps)
 {
-    graph->eps = fabs(eps);
+    graph->eps = (float)fabs(eps);
     graph->ops->mul_const(graph, 1.0);
 }
 
@@ -452,9 +452,9 @@ int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target)
 {
     uint32_t i;
     /* keep in sync with _graph_get_bucket! */
-    i  = target & ((1ULL << graph->bits_target) - 1);
+    i  = (uint32_t)(target & ((1ULL << graph->bits_target) - 1));
     i  = (i << graph->bits_source);
-    i |= source & ((1ULL << graph->bits_source) - 1);
+    i |= (uint32_t)(source & ((1ULL << graph->bits_source) - 1));
     return bucket2_get_entry(&graph->buckets[i], source, target, 0) != NULL;
 }
 
@@ -817,7 +817,7 @@ struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_ite
         free_vector(vector);
         vector = temp;
 
-        vector_mul_const(vector, 1.0 / vector_norm(vector));
+        vector_mul_const(vector, (float)(1.0 / vector_norm(vector)));
     }
 
     if (eigenvalue_out)

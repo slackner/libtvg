@@ -197,7 +197,7 @@ struct window *tvg_alloc_window_decay(struct tvg *tvg, float window, float log_b
 
 struct window *tvg_alloc_window_smooth(struct tvg *tvg, float window, float log_beta)
 {
-    float weight = -expm1(log_beta);
+    float weight = -(float)expm1(log_beta);
     return alloc_window(tvg, &window_smooth_ops, -window, 0.0, weight, log_beta);
 }
 
@@ -266,7 +266,7 @@ int tvg_compress(struct tvg *tvg, float step, float offset)
 
         if (!isinf(step))
         {
-            graph->ts = offset + floor((graph->ts - offset) / step) * step;
+            graph->ts = offset + (float)floor((graph->ts - offset) / step) * step;
         }
         else
         {

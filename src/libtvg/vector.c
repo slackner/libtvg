@@ -188,7 +188,7 @@ void vector_optimize(struct vector *vector)
     }
 
     vector->optimize = MIN(num_buckets * 256 - num_entries, num_entries - num_buckets * 16);
-    vector->optimize = MAX(vector->optimize, 256);
+    vector->optimize = MAX(vector->optimize, 256ULL);
     return;
 
 error:
@@ -198,7 +198,7 @@ error:
 
 void vector_set_eps(struct vector *vector, float eps)
 {
-    vector->eps = fabs(eps);
+    vector->eps = (float)fabs(eps);
     vector->ops->mul_const(vector, 1.0);
 }
 
@@ -217,7 +217,7 @@ int vector_empty(struct vector *vector)
 int vector_has_entry(struct vector *vector, uint64_t index)
 {
     /* keep in sync with _vector_get_bucket! */
-    uint32_t i = index & ((1ULL << vector->bits) - 1);
+    uint32_t i = (uint32_t)(index & ((1ULL << vector->bits) - 1));
     return bucket1_get_entry(&vector->buckets[i], index, 0) != NULL;
 }
 

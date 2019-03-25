@@ -185,13 +185,17 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
 
     if (BSON_ITER_HOLDS_INT32(&iter))
     {
-        *value = bson_iter_int32(&iter);
+        int32_t v = bson_iter_int32(&iter);
+        if (v < 0) return 0;
+        *value = (uint64_t)v;
         return 1;
     }
 
     if (BSON_ITER_HOLDS_INT64(&iter))
     {
-        *value = bson_iter_int64(&iter);
+        int64_t v = bson_iter_int64(&iter);
+        if (v < 0) return 0;
+        *value = (uint64_t)v;
         return 1;
     }
 
@@ -227,7 +231,7 @@ static int bson_parse_datetime(const bson_t *doc, const char *field, float *valu
 
     if (BSON_ITER_HOLDS_DATE_TIME(&iter))
     {
-        *value = (float)bson_iter_date_time(&iter) / 1000.0;
+        *value = (float)bson_iter_date_time(&iter) / 1000.0f;
         return 1;
     }
 
@@ -249,7 +253,7 @@ struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t 
     int ret = 0;
     size_t i;
 
-    filter = BCON_NEW(config->entity_doc, BCON_INT64(id));
+    filter = BCON_NEW(config->entity_doc, BCON_INT64((int64_t)id));
     if (!filter)
         return NULL;
 
@@ -304,7 +308,7 @@ struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t 
             if (entry->sen > new_entry.sen)
                 continue;  /* unexpected, entries are not sorted! */
 
-            weight = exp((int64_t)(entry->sen - new_entry.sen));
+            weight = (float)exp(-(double)(new_entry.sen - entry->sen));
             if (!graph_add_edge(graph, entry->ent, new_entry.ent, weight))
             {
                 fprintf(stderr, "%s: Out of memory!\n", __func__);
