@@ -23,13 +23,13 @@ struct list
 
 /* retrieve the next element in a linked list */
 #define LIST_NEXT(cursor, list, type, field) ({ \
-    typeof(((type *)0)) __ret = LIST_ENTRY((cursor)->field.next, type, field); \
+    typeof(((type *)0)) __ret = LIST_ENTRY((cursor) ? (cursor)->field.next : (list)->next, type, field); \
     if (&__ret->field == (list)) __ret = NULL; \
     __ret; })
 
 /* retrieve the previous element in a linked list */
 #define LIST_PREV(cursor, list, type, field) ({ \
-    typeof(((type *)0)) __ret = LIST_ENTRY((cursor)->field.prev, type, field); \
+    typeof(((type *)0)) __ret = LIST_ENTRY((cursor) ? (cursor)->field.prev : (list)->prev, type, field); \
     if (&__ret->field == (list)) __ret = NULL; \
     __ret; })
 

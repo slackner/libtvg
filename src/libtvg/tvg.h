@@ -22,6 +22,9 @@
 #define TVG_FLAGS_DIRECTED  0x00000004U  /* edges are directed */
 #define TVG_FLAGS_STREAMING 0x00000008U  /* streaming mode */
 
+#define TVG_FLAGS_LOAD_NEXT 0x00010000U
+#define TVG_FLAGS_LOAD_PREV 0x00020000U
+
 struct entry1
 {
     uint64_t index;
@@ -76,6 +79,7 @@ struct graph
     uint64_t    revision;
     float       eps;
     uint64_t    ts;
+    uint64_t    id;
 
     /* private: */
     struct tvg *tvg;         /* NULL for disconnected graphs */
@@ -98,6 +102,8 @@ struct tvg
 
     /* private: */
     struct list graphs;
+    struct mongodb *mongodb;
+    uint64_t    batch_size;
 };
 
 struct source
@@ -1104,14 +1110,14 @@ struct graph *grab_graph(struct graph *graph);
 void free_graph(struct graph *graph);
 void unlink_graph(struct graph *graph);
 
+void graph_debug(struct graph *graph);
+
 struct graph *prev_graph(struct graph *graph);
 struct graph *next_graph(struct graph *graph);
 
 int graph_enable_delta(struct graph *graph);
 void graph_disable_delta(struct graph *graph);
 struct graph *graph_get_delta(struct graph *graph, float *mul);
-
-void graph_debug(struct graph *graph);
 
 int graph_inc_bits_target(struct graph *graph);
 int graph_dec_bits_target(struct graph *graph);
@@ -1166,10 +1172,15 @@ struct tvg *alloc_tvg(uint32_t flags);
 struct tvg *grab_tvg(struct tvg *tvg);
 void free_tvg(struct tvg *tvg);
 
+void tvg_debug(struct tvg *tvg);
+
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
 struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
+
+int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb, uint64_t batch_size);
+void tvg_disable_mongodb_sync(struct tvg *tvg);
 
 struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r);
 struct window *tvg_alloc_window_decay(struct tvg *tvg, int64_t window, float log_beta);

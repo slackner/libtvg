@@ -55,6 +55,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->revision    = 0;
     graph->eps         = 0.0;
     graph->ts          = 0.0;
+    graph->id          = ~0ULL;
     graph->tvg         = NULL;
     list_init(&graph->entry);
     graph->ops         = ops;
@@ -97,13 +98,41 @@ void free_graph(struct graph *graph)
 
 void unlink_graph(struct graph *graph)
 {
+    struct graph *other_graph;
     struct tvg *tvg;
 
     if (!graph || !(tvg = graph->tvg))
         return;
 
+    if (graph->flags & TVG_FLAGS_LOAD_NEXT)
+    {
+        other_graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
+        if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_NEXT;
+    }
+    if (graph->flags & TVG_FLAGS_LOAD_PREV)
+    {
+        other_graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
+        if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_PREV;
+    }
+
     list_remove(&graph->entry);
     graph->tvg = NULL;
+}
+
+void graph_debug(struct graph *graph)
+{
+    struct entry2 *edge;
+
+    fprintf(stderr, "Graph %p (ts %llu, id %llu, revision %llu)\n", graph,
+            (long long unsigned int)graph->ts,
+            (long long unsigned int)graph->id,
+            (long long unsigned int)graph->revision);
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        fprintf(stderr, "A[%llu, %llu] = %f\n", (long long unsigned int)edge->source,
+                                                (long long unsigned int)edge->target, edge->weight);
+    }
 }
 
 struct graph *prev_graph(struct graph *graph)
@@ -112,6 +141,12 @@ struct graph *prev_graph(struct graph *graph)
 
     if (!graph || !(tvg = graph->tvg))
         return NULL;
+
+    /* Ensure that the user has one additional reference. */
+    assert(graph->refcount >= 2);
+
+    if (graph->flags & TVG_FLAGS_LOAD_PREV)
+        tvg_load_prev_graph(tvg, graph);
 
     graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
     if (graph) assert(graph->tvg == tvg);
@@ -124,6 +159,12 @@ struct graph *next_graph(struct graph *graph)
 
     if (!graph || !(tvg = graph->tvg))
         return NULL;
+
+    /* Ensure that the user has one additional reference. */
+    assert(graph->refcount >= 2);
+
+    if (graph->flags & TVG_FLAGS_LOAD_NEXT)
+        tvg_load_next_graph(tvg, graph);
 
     graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
     if (graph) assert(graph->tvg == tvg);
@@ -158,19 +199,6 @@ struct graph *graph_get_delta(struct graph *graph, float *mul)
 
     *mul = graph->delta_mul;
     return grab_graph(graph->delta);
-}
-
-void graph_debug(struct graph *graph)
-{
-    struct entry2 *edge;
-
-    fprintf(stderr, "Graph %p (revision %llu)\n", graph, (long long unsigned int)graph->revision);
-
-    GRAPH_FOR_EACH_EDGE(graph, edge)
-    {
-        fprintf(stderr, "A[%llu, %llu] = %f\n", (long long unsigned int)edge->source,
-                                                (long long unsigned int)edge->target, edge->weight);
-    }
 }
 
 int graph_inc_bits_target(struct graph *graph)

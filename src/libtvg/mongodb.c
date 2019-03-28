@@ -348,7 +348,8 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
     uint64_t id, ts;
     int ret = 0;
 
-    opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1), "}");
+    opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1),
+                                 config->article_id,   BCON_INT32(1), "}");
     if (!opts)
     {
         bson_destroy(&filter);
@@ -383,11 +384,14 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
             fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
             goto error;
         }
+
+        graph->id = id;
         if (!tvg_link_graph(tvg, graph, ts))
         {
             free_graph(graph);
             goto error;
         }
+
         free_graph(graph);
     }
 
@@ -403,6 +407,298 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 error:
     mongoc_cursor_destroy(cursor);
     return ret;
+}
+
+static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_graph,
+                                        bson_t *filter, int direction, int jump)
+{
+    struct mongodb *mongodb = tvg->mongodb;
+    struct mongodb_config *config = mongodb->config;
+    mongoc_cursor_t *cursor;
+    uint32_t graph_flags;
+    struct graph *graph;
+    bson_error_t error;
+    const bson_t *doc;
+    uint64_t id, ts;
+    uint64_t count;
+    bson_t *opts;
+    int first;
+    int res;
+
+    assert(direction == 1 || direction == -1);
+
+    if (!other_graph)
+        other_graph = LIST_ENTRY(&tvg->graphs, struct graph, entry);
+
+    opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(direction),
+                                 config->article_id,   BCON_INT32(direction), "}",
+                    "limit", BCON_INT64(tvg->batch_size));
+    if (!opts)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    cursor = mongoc_collection_find_with_opts(mongodb->articles, filter, opts, NULL);
+    bson_destroy(opts);
+    if (!cursor)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
+                                TVG_FLAGS_POSITIVE |
+                                TVG_FLAGS_DIRECTED);
+
+    for (count = 0; mongoc_cursor_next(cursor, &doc); count++)
+    {
+        if (!bson_parse_integer(doc, config->article_id, &id))
+        {
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_id);
+            continue;
+        }
+        if (!bson_parse_integer(doc, config->article_time, &ts))
+        {
+            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_time);
+            continue;
+        }
+
+        res = 1;
+        if (direction > 0)
+        {
+            first = 1;
+            while (&other_graph->entry != &tvg->graphs)
+            {
+                if ((res = compare_graph_ts_id(other_graph, ts, id)) >= 0) break;
+                if (!jump)
+                {
+                    if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+                    other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+                }
+                other_graph = LIST_ENTRY(other_graph->entry.next, struct graph, entry);
+                first = 0;
+            }
+        }
+        else
+        {
+            first = 1;
+            while (&other_graph->entry != &tvg->graphs)
+            {
+                if ((res = compare_graph_ts_id(other_graph, ts, id)) <= 0) break;
+                if (!jump)
+                {
+                    if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+                    other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+                }
+                other_graph = LIST_ENTRY(other_graph->entry.prev, struct graph, entry);
+                first = 0;
+            }
+        }
+
+        if (!res)
+        {
+            assert(&other_graph->entry != &tvg->graphs);
+            if (!jump && !first)
+            {
+                if (direction > 0)
+                    other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+                else
+                    other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+            }
+            jump = 0;
+            continue;
+        }
+
+        if (!(graph = mongodb_load_graph(mongodb, id, graph_flags)))
+        {
+            fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
+            goto error;
+        }
+
+        /* Keep in sync with tvg_link_graph! */
+        assert(!graph->tvg);
+        graph->ts  = ts;
+        graph->id  = id;
+        graph->tvg = tvg;
+
+        if (direction > 0)
+        {
+            if (jump) graph->flags |= TVG_FLAGS_LOAD_PREV;
+            graph->flags |= TVG_FLAGS_LOAD_NEXT;  /* will be cleared later */
+            if (&other_graph->entry != &tvg->graphs)
+                assert(compare_graph_ts_id(other_graph, ts, id) > 0);
+            list_add_before(&other_graph->entry, &graph->entry);
+        }
+        else
+        {
+            if (jump) graph->flags |= TVG_FLAGS_LOAD_NEXT;
+            graph->flags |= TVG_FLAGS_LOAD_PREV;  /* will be cleared later */
+            if (&other_graph->entry != &tvg->graphs)
+                assert(compare_graph_ts_id(other_graph, ts, id) < 0);
+            list_add_after(&other_graph->entry, &graph->entry);
+        }
+
+        other_graph = graph;
+        jump = 0;
+    }
+
+    if (mongoc_cursor_error(cursor, &error))
+    {
+        fprintf(stderr, "%s: Query failed: %s\n", __func__, error.message);
+        goto error;
+    }
+
+    if (count < tvg->batch_size)  /* end of data stream */
+    {
+        if (direction > 0)
+        {
+            first = 1;
+            while (&other_graph->entry != &tvg->graphs)
+            {
+                if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+                other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+                other_graph = LIST_ENTRY(other_graph->entry.next, struct graph, entry);
+                first = 0;
+            }
+        }
+        else
+        {
+            first = 1;
+            while (&other_graph->entry != &tvg->graphs)
+            {
+                if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+                other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+                other_graph = LIST_ENTRY(other_graph->entry.prev, struct graph, entry);
+                first = 0;
+            }
+        }
+    }
+
+error:
+    mongoc_cursor_destroy(cursor);
+}
+
+void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
+{
+    struct mongodb_config *config;
+    bson_t *filter;
+
+    assert(&graph->entry != &tvg->graphs);
+    if (!tvg->mongodb || (int64_t)graph->ts < 0)
+    {
+        graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+        return;
+    }
+
+    config = tvg->mongodb->config;
+    if ((int64_t)graph->id < 0)
+    {
+        filter = BCON_NEW(config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}");
+    }
+    else
+    {
+        filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
+                                      "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
+                                           config->article_id,   "{", "$gt", BCON_INT64((int64_t)graph->id), "}", "}", "]");
+    }
+
+    if (!filter)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    tvg_load_batch_from_mongodb(tvg, graph, filter, 1, 0);
+    bson_destroy(filter);
+}
+
+void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
+{
+    struct mongodb_config *config;
+    bson_t *filter;
+
+    assert(&graph->entry != &tvg->graphs);
+    if (!tvg->mongodb || (int64_t)graph->ts < 0)
+    {
+        graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+        return;
+    }
+
+    config = tvg->mongodb->config;
+    if ((int64_t)graph->id < 0)
+    {
+        filter = BCON_NEW(config->article_time, "{", "$lte", BCON_DATE_TIME((int64_t)graph->ts), "}");
+    }
+    else
+    {
+        filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$lt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
+                                      "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
+                                           config->article_id,   "{", "$lt", BCON_INT64((int64_t)graph->id), "}", "}", "]");
+    }
+
+    if (!filter)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    tvg_load_batch_from_mongodb(tvg, graph, filter, -1, 0);
+    bson_destroy(filter);
+}
+
+void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts)
+{
+    struct mongodb_config *config;
+    bson_t *filter;
+
+    assert(!graph || graph->ts >= ts);
+    if (!tvg->mongodb || (int64_t)ts < 0)
+    {
+        if (graph) graph->flags &= ~TVG_FLAGS_LOAD_PREV;
+        return;
+    }
+
+    config = tvg->mongodb->config;
+    filter = BCON_NEW(config->article_time, "{", "$gte", BCON_DATE_TIME((int64_t)ts), "}");
+
+    if (!filter)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    tvg_load_batch_from_mongodb(tvg, graph, filter, 1, (ts > 0));
+    bson_destroy(filter);
+}
+
+void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts)
+{
+    struct mongodb_config *config;
+    bson_t empty_filter = BSON_INITIALIZER;
+    bson_t *filter = &empty_filter;
+
+    assert(!graph || graph->ts <= ts);
+    if (!tvg->mongodb)
+    {
+        if (graph) graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+        return;
+    }
+
+    config = tvg->mongodb->config;
+    if ((int64_t)(ts + 1) > 0)
+    {
+        filter = BCON_NEW(config->article_time, "{", "$lte", BCON_DATE_TIME((int64_t)ts), "}");
+    }
+
+    if (!filter)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    tvg_load_batch_from_mongodb(tvg, graph, filter, -1, ((int64_t)(ts + 1) > 0));
+    if (filter != &empty_filter) bson_destroy(filter);
 }
 
 #else   /* HAVE_LIBMONGOC */
@@ -435,6 +731,22 @@ struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t 
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 {
     return 0;
+}
+
+void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
+{
+}
+
+void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
+{
+}
+
+void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts)
+{
+}
+
+void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts)
+{
 }
 
 #endif  /* HAVE_LIBMONGOC */

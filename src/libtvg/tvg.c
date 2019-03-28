@@ -27,6 +27,8 @@ struct tvg *alloc_tvg(uint32_t flags)
     tvg->refcount = 1;
     tvg->flags    = flags;
     list_init(&tvg->graphs);
+    tvg->mongodb  = NULL;
+    tvg->batch_size = 0;
 
     return tvg;
 }
@@ -55,17 +57,33 @@ void free_tvg(struct tvg *tvg)
     free(tvg);
 }
 
+void tvg_debug(struct tvg *tvg)
+{
+    struct graph *graph;
+
+    fprintf(stderr, "TVG %p\n", tvg);
+
+    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    {
+        fprintf(stderr, "-> Graph %p (ts %llu, id %llu, revision %llu) %s%s\n", graph,
+                (long long unsigned int)graph->ts,
+                (long long unsigned int)graph->id,
+                (long long unsigned int)graph->revision,
+                (graph->flags & TVG_FLAGS_LOAD_PREV) ? "load_prev " : "",
+                (graph->flags & TVG_FLAGS_LOAD_NEXT) ? "load_next " : "");
+    }
+}
+
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
 {
     struct graph *other_graph;
+    uint64_t id = graph->id;
+    int res;
 
     if (graph->tvg)
         return 0;
     if ((tvg->flags ^ graph->flags) & TVG_FLAGS_DIRECTED)
         return 0;
-
-    graph->tvg = tvg;
-    graph->ts  = ts;
 
     /* The common scenario is that new graphs are appended at the end,
      * so go through the existing graphs in reverse order. */
@@ -73,9 +91,16 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
     LIST_FOR_EACH_REV(other_graph, &tvg->graphs, struct graph, entry)
     {
         assert(other_graph->tvg == tvg);
-        if (other_graph->ts <= ts) break;
+        if ((res = compare_graph_ts_id(other_graph, ts, id)) < 0) break;
+        if (!res && id != ~0ULL) return 0;  /* MongoDB graphs can only be added once */
     }
 
+    /* FIXME: Inherit flags of neighboring graphs. */
+    if (tvg->mongodb)
+        graph->flags |= TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV;
+
+    graph->ts  = ts;
+    graph->tvg = tvg;
     list_add_after(&other_graph->entry, &graph->entry);
     grab_graph(graph);  /* grab extra reference */
     return 1;
@@ -187,6 +212,40 @@ error:
     return ret;
 }
 
+int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb, uint64_t batch_size)
+{
+    struct graph *graph;
+
+    if (!mongodb)
+        return 0;
+    if (!batch_size || batch_size > 4096)
+        batch_size = 4096;
+
+    free_mongodb(tvg->mongodb);
+    tvg->mongodb = grab_mongodb(mongodb);
+    tvg->batch_size = batch_size;
+
+    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    {
+        graph->flags |= TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV;
+    }
+
+    return 1;
+}
+
+void tvg_disable_mongodb_sync(struct tvg *tvg)
+{
+    struct graph *graph;
+
+    free_mongodb(tvg->mongodb);
+    tvg->mongodb = NULL;
+
+    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    {
+        graph->flags &= ~(TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV);
+    }
+}
+
 struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r)
 {
     return alloc_window(tvg, &window_rect_ops, window_l, window_r, 0.0, 0.0);
@@ -205,14 +264,48 @@ struct window *tvg_alloc_window_smooth(struct tvg *tvg, int64_t window, float lo
     return alloc_window(tvg, &window_smooth_ops, -window, 0, weight, log_beta);
 }
 
+static inline struct graph *grab_prev_graph(struct tvg *tvg, struct graph *graph)
+{
+    struct graph *prev_graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
+    return grab_graph(prev_graph);
+}
+
+static inline struct graph *grab_next_graph(struct tvg *tvg, struct graph *graph)
+{
+    struct graph *next_graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
+    return grab_graph(next_graph);
+}
+
 struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts)
 {
+    struct graph *prev_graph;
     struct graph *graph;
 
     LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
     {
         assert(graph->tvg == tvg);
-        if (graph->ts >= ts) return grab_graph(graph);
+        if (graph->ts >= ts)
+        {
+            if (graph->flags & TVG_FLAGS_LOAD_PREV)
+            {
+                prev_graph = grab_prev_graph(tvg, graph);
+                tvg_load_graphs_ge(tvg, graph, ts);
+                graph = grab_next_graph(tvg, prev_graph);
+                free_graph(prev_graph);
+                assert(graph != NULL);
+                return graph;
+            }
+            return grab_graph(graph);
+        }
+    }
+
+    if (tvg->mongodb)
+    {
+        prev_graph = grab_prev_graph(tvg, NULL);
+        tvg_load_graphs_ge(tvg, NULL, ts);
+        graph = grab_next_graph(tvg, prev_graph);
+        free_graph(prev_graph);
+        return graph;
     }
 
     return NULL;
@@ -220,12 +313,34 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts)
 
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts)
 {
+    struct graph *next_graph;
     struct graph *graph;
 
     LIST_FOR_EACH_REV(graph, &tvg->graphs, struct graph, entry)
     {
         assert(graph->tvg == tvg);
-        if (graph->ts <= ts) return grab_graph(graph);
+        if (graph->ts <= ts)
+        {
+            if (graph->flags & TVG_FLAGS_LOAD_NEXT)
+            {
+                next_graph = grab_next_graph(tvg, graph);
+                tvg_load_graphs_le(tvg, graph, ts);
+                graph = grab_prev_graph(tvg, next_graph);
+                free_graph(next_graph);
+                assert(graph != NULL);
+                return graph;
+            }
+            return grab_graph(graph);
+        }
+    }
+
+    if (tvg->mongodb)
+    {
+        next_graph = grab_next_graph(tvg, NULL);
+        tvg_load_graphs_le(tvg, NULL, ts);
+        graph = grab_prev_graph(tvg, next_graph);
+        free_graph(next_graph);
+        return graph;
     }
 
     return NULL;
@@ -260,6 +375,9 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
 {
     struct graph *graph, *next_graph;
     struct graph *prev_graph = NULL;
+
+    if (tvg->mongodb)
+        return 0;
 
     if (step)
         offset -= (offset / step) * step;

@@ -68,6 +68,13 @@ struct window_ops
     int       (*mov)(struct window *, uint64_t ts);
 };
 
+static inline int compare_graph_ts_id(struct graph *graph, uint64_t ts, uint64_t id)
+{
+    int res;
+    if ((res = COMPARE(graph->ts, ts))) return res;
+    return COMPARE(graph->id, id);
+}
+
 void progress(const char *format, ...) __attribute__((format (printf,1,2))) DECL_INTERNAL;
 uint64_t clock_monotonic(void) DECL_INTERNAL;
 uint64_t count_lines(FILE *fp) DECL_INTERNAL;
@@ -117,5 +124,10 @@ void free_queue(struct queue *q) DECL_INTERNAL;
 int queue_put(struct queue *q, const void *element) DECL_INTERNAL;
 int queue_get(struct queue *q, void *element) DECL_INTERNAL;
 const void *queue_ptr(struct queue *q, size_t index) DECL_INTERNAL;
+
+void tvg_load_next_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;
+void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;
+void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_INTERNAL;
+void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_INTERNAL;
 
 #endif /* _INTERNAL_H_ */

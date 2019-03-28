@@ -35,7 +35,8 @@ class c_graph(Structure):
                 ("flags",    c_uint),
                 ("revision", c_uint64),
                 ("eps",      c_float),
-                ("ts",       c_uint64)]
+                ("ts",       c_uint64),
+                ("id",       c_uint64)]
 
 class c_tvg(Structure):
     _fields_ = [("refcount", c_int),
@@ -249,6 +250,11 @@ lib.tvg_alloc_graph.restype = c_graph_p
 lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_load_graphs_from_file.restype = c_int
 
+lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64)
+lib.tvg_enable_mongodb_sync.restype = c_int
+
+lib.tvg_disable_mongodb_sync.argtypes = (c_tvg_p,)
+
 lib.tvg_alloc_window_rect.argtypes = (c_tvg_p, c_int64, c_int64)
 lib.tvg_alloc_window_rect.restype = c_window_p
 
@@ -302,6 +308,9 @@ TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
 TVG_FLAGS_DIRECTED  = 0x00000004
 TVG_FLAGS_STREAMING = 0x00000008
+
+TVG_FLAGS_LOAD_NEXT = 0x00010000
+TVG_FLAGS_LOAD_PREV = 0x00020000
 
 # The 'cacheable' decorator can be used on Vector and Graph objects to cache the result
 # of a function call as long as the underlying vector/graph has not changed. This is
@@ -590,6 +599,10 @@ class Graph(object):
     @property
     def ts(self):
         return self._obj.contents.ts
+
+    @property
+    def id(self):
+        return self._obj.contents.id
 
     @staticmethod
     def load_from_file(filename, nonzero=False, positive=False, directed=False):
@@ -965,6 +978,14 @@ class TVG(object):
         res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
         if not res:
             raise IOError
+
+    def enable_mongodb_sync(self, mongodb, batch_size=0):
+        res = lib.tvg_enable_mongodb_sync(self._obj, mongodb._obj, batch_size)
+        if not res:
+            raise IOError
+
+    def disable_mongodb_sync(self):
+        lib.tvg_disable_mongodb_sync(self._obj)
 
     def __iter__(self):
         return GraphIter(self.lookup_ge())
@@ -2282,6 +2303,11 @@ if __name__ == '__main__':
 
             return future()
 
+        def test_invalid(self):
+            with self.assertRaises(MemoryError):
+                MongoDB("http://localhost", "database", "col_articles",
+                        "_id", "time", "col_entities", "doc", "sen", "ent", 5)
+
         def test_selfloop(self):
             occurrences = []
             for i in range(10):
@@ -2292,7 +2318,10 @@ if __name__ == '__main__':
 
         def test_max_distance(self):
             for i in range(10):
-                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1 + i, 'ent': 2}]
+                occurrences = [{'sen': 1,     'ent': 1},
+                               {'sen': 1 + i, 'ent': 2},
+                               {              'ent': 1}, # no sen
+                               {'sen': 1              }] # no ent
                 g = self.load_from_occurrences(occurrences)
                 if i <= 5:
                     self.assertEqual(g.num_edges, 1)
@@ -2302,8 +2331,11 @@ if __name__ == '__main__':
 
         def test_weight_sum(self):
             for i in range(10):
-                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': "Q1"},
-                               {'sen': 1 + i, 'ent': 2}]
+                occurrences = [{'sen': 1,     'ent': 1    },
+                               {'sen': 1,     'ent': "Q1" },
+                               {'sen': 1 + i, 'ent': 2    },
+                               {              'ent': 1    }, # no sen
+                               {'sen': 1                  }] # no ent
                 g = self.load_from_occurrences(occurrences)
                 if i <= 5:
                     self.assertEqual(g.num_edges, 1)
@@ -2317,10 +2349,12 @@ if __name__ == '__main__':
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
             self.assertEqual(request["filter"], {})
-            self.assertEqual(request["sort"], {'time': 1})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
             documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546300800)},
                          {'_id': 11, 'time': datetime.datetime.utcfromtimestamp(1546387200)},
-                         {'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)}]
+                         {'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)},
+                         {           'time': datetime.datetime.utcfromtimestamp(1546560000)}, # no id
+                         {'_id': 14                                                        }] # no time
             request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
 
             for i in range(3):
@@ -2336,6 +2370,151 @@ if __name__ == '__main__':
                 self.assertEqual(g.revision, 0)
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g[1, 2 + i], 1.0)
+            del tvg
+
+        def test_sync(self):
+            tvg = TVG()
+            tvg.enable_mongodb_sync(self.db, batch_size=2)
+
+            future = mockupdb.go(tvg.lookup_ge, 0)
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {'time': {'$gte': datetime.datetime.utcfromtimestamp(0)}})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
+            self.assertEqual(request["limit"], 2)
+            documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546300800)},
+                         {'_id': 11, 'time': datetime.datetime.utcfromtimestamp(1546387200)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            for i in range(2):
+                request = self.s.receives()
+                self.assertEqual(request["find"], "col_entities")
+                self.assertEqual(request["filter"], {'doc': 10 + i})
+                self.assertEqual(request["sort"], {'sen': 1})
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 2 + i}]
+                request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            g = future()
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.ts, 1546300800000)
+            self.assertEqual(g[1, 2], 1.0)
+
+            g = g.next
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.ts, 1546387200000)
+            self.assertEqual(g[1, 3], 1.0)
+
+            future = mockupdb.go(getattr, g, 'next')
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {"$or": [{"time": {"$gt": datetime.datetime.utcfromtimestamp(1546387200)}},
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546387200), "_id": {"$gt": 11}}]})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
+            self.assertEqual(request["limit"], 2)
+            documents = [{'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)},
+                         {'_id': 13, 'time': datetime.datetime.utcfromtimestamp(1546560000)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            for i in range(2):
+                request = self.s.receives()
+                self.assertEqual(request["find"], "col_entities")
+                self.assertEqual(request["filter"], {'doc': 12 + i})
+                self.assertEqual(request["sort"], {'sen': 1})
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 4 + i}]
+                request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            g = future()
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.ts, 1546473600000)
+            self.assertEqual(g[1, 4], 1.0)
+
+            g = g.next
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.ts, 1546560000000)
+            self.assertEqual(g[1, 5], 1.0)
+
+            future = mockupdb.go(tvg.lookup_le, 1546732800000)
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {'time': {'$lte': datetime.datetime.utcfromtimestamp(1546732800)}})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', -1), ('_id', -1)]))
+            self.assertEqual(request["limit"], 2)
+            documents = [{'_id': 15, 'time': datetime.datetime.utcfromtimestamp(1546732800)},
+                         {'_id': 14, 'time': datetime.datetime.utcfromtimestamp(1546646400)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            for i in range(2):
+                request = self.s.receives()
+                self.assertEqual(request["find"], "col_entities")
+                self.assertEqual(request["filter"], {'doc': 15 - i})
+                self.assertEqual(request["sort"], {'sen': 1})
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 7 - i}]
+                request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            g = future()
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.ts, 1546732800000)
+            self.assertEqual(g[1, 7], 1.0)
+
+            g = g.prev
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV)
+            self.assertEqual(g.ts, 1546646400000)
+            self.assertEqual(g[1, 6], 1.0)
+
+            future = mockupdb.go(getattr, g, 'prev')
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {"$or": [{"time": {"$lt": datetime.datetime.utcfromtimestamp(1546646400)}},
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546646400), "_id": {"$lt": 14}}]})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', -1), ('_id', -1)]))
+            self.assertEqual(request["limit"], 2)
+            documents = [{'_id': 13, 'time': datetime.datetime.utcfromtimestamp(1546560000)},
+                         {'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            g = future()
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.ts, 1546560000000)
+            self.assertEqual(g[1, 5], 1.0)
+
+            g = tvg.lookup_ge(1546732800000)
+            self.assertEqual(g.revision, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.ts, 1546732800000)
+            self.assertEqual(g[1, 7], 1.0)
+
+            future = mockupdb.go(getattr, g, 'next')
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {"$or": [{"time": {"$gt": datetime.datetime.utcfromtimestamp(1546732800)}},
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546732800), "_id": {"$gt": 15}}]})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
+            self.assertEqual(request["limit"], 2)
+            documents = []
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            g = future()
+            self.assertEqual(g, None)
+
+            for i, g in enumerate(tvg):
+                self.assertEqual(g.revision, 0)
+                self.assertEqual(g.flags, 0)
+                self.assertEqual(g.ts, 1546300800000 + i * 86400000)
+                self.assertEqual(g[1, 2 + i], 1.0)
+
+            tvg.disable_mongodb_sync()
             del tvg
 
     # Run the unit tests
