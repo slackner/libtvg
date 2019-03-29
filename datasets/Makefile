@@ -3,6 +3,7 @@ SUBDIRS = $(dir $(wildcard */Makefile))
 .PHONY: all
 all: $(SUBDIRS)
 
-.PHONY: $(SUBDIRS)
-$(SUBDIRS):
+$(SUBDIRS): FORCE
 	$(MAKE) -C "$@"
+
+FORCE:

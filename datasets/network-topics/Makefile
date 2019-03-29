@@ -1,4 +1,3 @@
-
 .PHONY: all
 all: result-norm.graph result.labels
 

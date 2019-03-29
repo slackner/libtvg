@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e -x
+
+for CC in gcc clang; do
+	make clean
+	make CC="$CC" test
+
+	make clean
+	make CC="$CC" NOMONGODB=1 test
+
+	make clean
+	make CC="$CC" NOMONGODB=1 CFLAGS="-m32" test
+done

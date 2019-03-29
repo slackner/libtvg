@@ -1,4 +1,5 @@
 libtvg.so
 libtvg.dylib
 tests
+coverage
 __pycache__

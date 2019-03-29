@@ -15,6 +15,7 @@ sudo apt-get install libmongoc-dev
 
 # Test dependencies:
 sudo apt-get install python3-mockupdb
+sudo apt-get install clang llvm lcov
 
 # Runtime dependencies:
 sudo apt-get install python3
