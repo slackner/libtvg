@@ -1066,6 +1066,50 @@ static void test_tvg_for_each_graph(void)
     free_tvg(tvg);
 }
 
+static int _bfs_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    static const struct bfs_entry expected[] =
+    {
+        {0.0, 0, ~0ULL, 0},
+        {1.0, 1,     0, 1},
+        {2.0, 2,     1, 2},
+        {3.0, 3,     2, 3},
+        {3.5, 3,     2, 4},
+    };
+    size_t *state = userdata;
+    assert(*state < sizeof(expected)/sizeof(expected[0]));
+    assert(!memcmp(&expected[*state], entry, sizeof(*entry)));
+    (*state)++;
+    return 0;
+}
+
+static void test_graph_bfs(void)
+{
+    struct graph *graph;
+    size_t state;
+    int ret;
+
+    graph = alloc_graph(TVG_FLAGS_DIRECTED);
+
+    graph_set_edge(graph, 0, 1, 1.0);
+    graph_set_edge(graph, 1, 2, 1.0);
+    graph_set_edge(graph, 2, 3, 1.0);
+    graph_set_edge(graph, 3, 4, 1.5);
+    graph_set_edge(graph, 2, 4, 1.5);
+
+    state = 0;
+    ret = graph_bfs(graph, 0, 0, _bfs_callback, &state);
+    assert(ret == 1);
+    assert(state == 5);
+
+    state = 0;
+    ret = graph_bfs(graph, 0, 1, _bfs_callback, &state);
+    assert(ret == 1);
+    assert(state == 5);
+
+    free_graph(graph);
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -1093,6 +1137,7 @@ int main(void)
     test_vector_mul_vector();
     test_vector_for_each_entry2();
     test_tvg_for_each_graph();
+    test_graph_bfs();
 
     fprintf(stderr, "No test failures found\n");
 }

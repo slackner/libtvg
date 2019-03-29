@@ -21,7 +21,7 @@ static int _sort_bfs_entry_by_count(const void *a, const void *b, void *userdata
 }
 
 int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callback)(struct graph *graph,
-              struct bfs_entry *entry, void *userdata), void *userdata)
+              const struct bfs_entry *entry, void *userdata), void *userdata)
 {
     struct bfs_entry entry, new_entry;
     struct vector *visited;

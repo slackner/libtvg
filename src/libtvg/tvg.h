@@ -164,7 +164,7 @@ struct mongodb
 struct bfs_entry
 {
     double   weight;
-    uint32_t count;
+    uint64_t count;
     uint64_t from;
     uint64_t to;
 };
@@ -1164,7 +1164,7 @@ struct vector *graph_weight_anomalies(const struct graph *graph);
 struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out);
 
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
-              struct bfs_entry *, void *), void *userdata);
+              const struct bfs_entry *, void *), void *userdata);
 
 /* tvg functions */
 
