@@ -1111,6 +1111,7 @@ void free_graph(struct graph *graph);
 void unlink_graph(struct graph *graph);
 
 void graph_debug(struct graph *graph);
+uint64_t graph_memory_usage(struct graph *graph);
 
 struct graph *prev_graph(struct graph *graph);
 struct graph *next_graph(struct graph *graph);

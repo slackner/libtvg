@@ -146,6 +146,9 @@ lib.free_graph.argtypes = (c_graph_p,)
 
 lib.unlink_graph.argtypes = (c_graph_p,)
 
+lib.graph_memory_usage.argtypes = (c_graph_p,)
+lib.graph_memory_usage.restype = c_uint64
+
 lib.prev_graph.argtypes = (c_graph_p,)
 lib.prev_graph.restype = c_graph_p
 
@@ -619,6 +622,11 @@ class Graph(object):
 
     def unlink(self):
         lib.unlink_graph(self._obj)
+
+    @property
+    @cacheable
+    def memory_usage(self):
+        return lib.graph_memory_usage(self._obj)
 
     @property
     def next(self):
@@ -1416,6 +1424,7 @@ if __name__ == '__main__':
             self.assertTrue(g.empty())
             self.assertTrue(g.empty(drop_cache=True))
             revisions = [g.revision]
+            mem = g.memory_usage
 
             for i in range(100):
                 s, t = i//10, i%10
@@ -1423,6 +1432,7 @@ if __name__ == '__main__':
 
             self.assertFalse(g.empty())
             self.assertNotIn(g.revision, revisions)
+            self.assertGreater(g.memory_usage, mem)
             revisions.append(g.revision)
 
             for i in range(100):

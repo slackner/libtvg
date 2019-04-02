@@ -135,6 +135,27 @@ void graph_debug(struct graph *graph)
     }
 }
 
+uint64_t graph_memory_usage(struct graph *graph)
+{
+    uint64_t i, num_buckets;
+    struct bucket2 *bucket;
+    uint64_t size = sizeof(*graph);
+
+    /* In the following, we underestimate the memory usage a bit, since
+     * we do not take into account the heap structure itself. */
+
+    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+    size += sizeof(*bucket) * num_buckets;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        bucket = &graph->buckets[i];
+        size += sizeof(bucket->entries) * bucket->max_entries;
+    }
+
+    return size;
+}
+
 struct graph *prev_graph(struct graph *graph)
 {
     struct tvg *tvg;
