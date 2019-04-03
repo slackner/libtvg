@@ -414,11 +414,14 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
 {
     struct mongodb *mongodb = tvg->mongodb;
     struct mongodb_config *config = mongodb->config;
+    struct graph *next_graph;
     mongoc_cursor_t *cursor;
+    uint64_t cache_reserve = 0;
     uint32_t graph_flags;
     struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
+    struct list todo;
     uint64_t id, ts;
     uint64_t count;
     bson_t *opts;
@@ -451,6 +454,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
                                 TVG_FLAGS_POSITIVE |
                                 TVG_FLAGS_DIRECTED);
 
+    list_init(&todo);
     for (count = 0; mongoc_cursor_next(cursor, &doc); count++)
     {
         if (!bson_parse_integer(doc, config->article_id, &id))
@@ -506,6 +510,13 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
                 else
                     other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
             }
+
+            assert(other_graph->cache != 0);
+            list_remove(&other_graph->cache_entry);
+            list_add_head(&todo, &other_graph->cache_entry);
+            tvg->cache_used -= other_graph->cache;
+            cache_reserve += other_graph->cache;
+
             jump = 0;
             continue;
         }
@@ -538,6 +549,10 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
                 assert(compare_graph_ts_id(other_graph, ts, id) < 0);
             list_add_after(&other_graph->entry, &graph->entry);
         }
+
+        graph->cache = graph_memory_usage(graph);
+        list_add_head(&todo, &graph->cache_entry);
+        cache_reserve += graph->cache;
 
         other_graph = graph;
         jump = 0;
@@ -576,6 +591,25 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
     }
 
 error:
+    LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->cache, struct graph, cache_entry)
+    {
+        assert(graph->tvg == tvg);
+        assert(graph->cache != 0);
+        if (tvg->cache_used + cache_reserve <= tvg->cache_size) break;
+        if (graph->refcount > 1) continue;  /* cannot free space */
+        unlink_graph(graph);
+        free_graph(graph);
+    }
+
+    LIST_FOR_EACH_SAFE(graph, next_graph, &todo, struct graph, cache_entry)
+    {
+        assert(graph->tvg == tvg);
+        assert(graph->cache != 0);
+        list_remove(&graph->cache_entry);
+        list_add_tail(&tvg->cache, &graph->cache_entry);
+        tvg->cache_used += graph->cache;
+    }
+
     mongoc_cursor_destroy(cursor);
 }
 

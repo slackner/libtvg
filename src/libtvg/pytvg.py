@@ -253,7 +253,7 @@ lib.tvg_alloc_graph.restype = c_graph_p
 lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_load_graphs_from_file.restype = c_int
 
-lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64)
+lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint64)
 lib.tvg_enable_mongodb_sync.restype = c_int
 
 lib.tvg_disable_mongodb_sync.argtypes = (c_tvg_p,)
@@ -987,8 +987,8 @@ class TVG(object):
         if not res:
             raise IOError
 
-    def enable_mongodb_sync(self, mongodb, batch_size=0):
-        res = lib.tvg_enable_mongodb_sync(self._obj, mongodb._obj, batch_size)
+    def enable_mongodb_sync(self, mongodb, batch_size=0, cache_size=0):
+        res = lib.tvg_enable_mongodb_sync(self._obj, mongodb._obj, batch_size, cache_size)
         if not res:
             raise IOError
 
@@ -2384,7 +2384,7 @@ if __name__ == '__main__':
 
         def test_sync(self):
             tvg = TVG()
-            tvg.enable_mongodb_sync(self.db, batch_size=2)
+            tvg.enable_mongodb_sync(self.db, batch_size=2, cache_size=0x8000) # 32 kB cache
 
             future = mockupdb.go(tvg.lookup_ge, 0)
 

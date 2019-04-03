@@ -24,11 +24,14 @@ struct tvg *alloc_tvg(uint32_t flags)
     if (!(tvg = malloc(sizeof(*tvg))))
         return NULL;
 
-    tvg->refcount = 1;
-    tvg->flags    = flags;
+    tvg->refcount   = 1;
+    tvg->flags      = flags;
     list_init(&tvg->graphs);
-    tvg->mongodb  = NULL;
+    tvg->mongodb    = NULL;
     tvg->batch_size = 0;
+    list_init(&tvg->cache);
+    tvg->cache_used = 0;
+    tvg->cache_size = 0;
 
     return tvg;
 }
@@ -54,6 +57,8 @@ void free_tvg(struct tvg *tvg)
         free_graph(graph);
     }
 
+    assert(list_empty(&tvg->cache));
+    assert(!tvg->cache_used);
     free(tvg);
 }
 
@@ -212,7 +217,8 @@ error:
     return ret;
 }
 
-int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb, uint64_t batch_size)
+int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
+                            uint64_t batch_size, uint64_t cache_size)
 {
     struct graph *graph;
 
@@ -224,6 +230,7 @@ int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb, uint64_t b
     free_mongodb(tvg->mongodb);
     tvg->mongodb = grab_mongodb(mongodb);
     tvg->batch_size = batch_size;
+    tvg->cache_size = cache_size;
 
     LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
     {
@@ -293,9 +300,14 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts)
                 graph = grab_next_graph(tvg, prev_graph);
                 free_graph(prev_graph);
                 assert(graph != NULL);
-                return graph;
             }
-            return grab_graph(graph);
+            else
+            {
+                grab_graph(graph);
+            }
+
+            graph_refresh_cache(graph);
+            return graph;
         }
     }
 
@@ -305,7 +317,11 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts)
         tvg_load_graphs_ge(tvg, NULL, ts);
         graph = grab_next_graph(tvg, prev_graph);
         free_graph(prev_graph);
-        return graph;
+        if (graph)
+        {
+            graph_refresh_cache(graph);
+            return graph;
+        }
     }
 
     return NULL;
@@ -328,9 +344,14 @@ struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts)
                 graph = grab_prev_graph(tvg, next_graph);
                 free_graph(next_graph);
                 assert(graph != NULL);
-                return graph;
             }
-            return grab_graph(graph);
+            else
+            {
+                grab_graph(graph);
+            }
+
+            graph_refresh_cache(graph);
+            return graph;
         }
     }
 
@@ -340,7 +361,11 @@ struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts)
         tvg_load_graphs_le(tvg, NULL, ts);
         graph = grab_prev_graph(tvg, next_graph);
         free_graph(next_graph);
-        return graph;
+        if (graph)
+        {
+            graph_refresh_cache(graph);
+            return graph;
+        }
     }
 
     return NULL;

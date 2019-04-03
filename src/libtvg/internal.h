@@ -130,4 +130,6 @@ void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;
 void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_INTERNAL;
 void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_INTERNAL;
 
+void graph_refresh_cache(struct graph *graph) DECL_INTERNAL;
+
 #endif /* _INTERNAL_H_ */

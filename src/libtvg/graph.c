@@ -58,6 +58,8 @@ struct graph *alloc_graph(uint32_t flags)
     graph->id          = ~0ULL;
     graph->tvg         = NULL;
     list_init(&graph->entry);
+    graph->cache       = 0;
+    list_init(&graph->cache_entry);
     graph->ops         = ops;
     graph->bits_source = bits_source;
     graph->bits_target = bits_target;
@@ -91,6 +93,8 @@ void free_graph(struct graph *graph)
      * be associated with a time-varying-graph object. Triggering this
      * assertion means that 'free_graph' was called too often. */
     assert(!graph->tvg);
+    assert(!graph->cache);
+
     free_graph(graph->delta);
     free(graph->buckets);
     free(graph);
@@ -104,6 +108,9 @@ void unlink_graph(struct graph *graph)
     if (!graph || !(tvg = graph->tvg))
         return;
 
+    if (graph->id != ~0ULL)  /* we have to reload later */
+        graph->flags |= (TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV);
+
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
     {
         other_graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
@@ -115,8 +122,23 @@ void unlink_graph(struct graph *graph)
         if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_PREV;
     }
 
+    if (graph->cache)
+    {
+        list_remove(&graph->cache_entry);
+        tvg->cache_used -= graph->cache;
+        graph->cache = 0;
+    }
+
     list_remove(&graph->entry);
     graph->tvg = NULL;
+}
+
+void graph_refresh_cache(struct graph *graph)
+{
+    if (!graph->cache) return;
+    assert(graph->tvg != NULL);
+    list_remove(&graph->cache_entry);
+    list_add_tail(&graph->tvg->cache, &graph->cache_entry);
 }
 
 void graph_debug(struct graph *graph)
@@ -170,7 +192,11 @@ struct graph *prev_graph(struct graph *graph)
         tvg_load_prev_graph(tvg, graph);
 
     graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
-    if (graph) assert(graph->tvg == tvg);
+    if (!graph)
+        return NULL;
+
+    assert(graph->tvg == tvg);
+    graph_refresh_cache(graph);
     return grab_graph(graph);
 }
 
@@ -188,7 +214,11 @@ struct graph *next_graph(struct graph *graph)
         tvg_load_next_graph(tvg, graph);
 
     graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
-    if (graph) assert(graph->tvg == tvg);
+    if (!graph)
+        return NULL;
+
+    assert(graph->tvg == tvg);
+    graph_refresh_cache(graph);
     return grab_graph(graph);
 }
 

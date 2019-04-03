@@ -85,6 +85,9 @@ struct graph
     struct tvg *tvg;         /* NULL for disconnected graphs */
     struct list entry;
 
+    uint64_t    cache;       /* 0 if not cached, otherwise size of graph */
+    struct list cache_entry;
+
     const struct graph_ops *ops;
     uint32_t    bits_source; /* 0...31 */
     uint32_t    bits_target; /* 0...31 */
@@ -104,6 +107,10 @@ struct tvg
     struct list graphs;
     struct mongodb *mongodb;
     uint64_t    batch_size;
+
+    struct list cache;
+    uint64_t    cache_used;
+    uint64_t    cache_size;
 };
 
 struct source
@@ -1180,7 +1187,8 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
 
-int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb, uint64_t batch_size);
+int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
+                            uint64_t batch_size, uint64_t cache_size);
 void tvg_disable_mongodb_sync(struct tvg *tvg);
 
 struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r);
