@@ -88,5 +88,11 @@ src/explorer/server.py --labels=datasets/network-topics/result.labels \
                        datasets/network-topics/result-sum.graph
 ```
 
-In both cases, open src/data/explorer/www/index.html in a web-browser of your
+It is also possible to provide the URI of a MongoDB server, e.g.:
+
+```bash
+src/explorer/server.py mongodb://thabit:27021
+```
+
+In each case, open src/data/explorer/www/index.html in a web-browser of your
 choice to interact with the server.

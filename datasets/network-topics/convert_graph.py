@@ -34,7 +34,7 @@ with open("news_edgelist.tsv") as f:
         outlet  = values[6]
         dist    = int(values[7])
 
-        ts      = int(date.strftime("%s"))
+        ts      = int(date.strftime("%s")) * 1000 # sec -> msec
         ts_str  = values[4]
 
         date = date.timetuple()

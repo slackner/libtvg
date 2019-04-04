@@ -116,7 +116,7 @@ class Client(WebSocket):
     def event_connected(self):
         print(self.address, 'connected')
 
-        self.window = dataset_tvg.WindowDecay(600, 0.93)
+        self.window = dataset_tvg.WindowDecay(600000, log_beta=np.log(0.93) / 1000.0)
         self.window.eps = 1e-6
         self.ts = None
 
@@ -140,12 +140,34 @@ class Client(WebSocket):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TVG Explorer")
-    parser.add_argument('--labels', help="Path to labels")
-    parser.add_argument('filename', help="Path to a dataset")
+
+    parser.add_argument("--database",     default="AmbiverseNewsAnnotated",       help="Name of the database")
+    parser.add_argument("--col_articles", default="c02_RawArticles",              help="Name of the articles collection")
+    parser.add_argument("--article_id",   default="_id",                          help="Name of the article ID key")
+    parser.add_argument("--article_time", default="pub",                          help="Name of the article time key")
+    parser.add_argument("--col_entities", default="c11_selectedDocumentEntities", help="Name of the entities collection")
+    parser.add_argument("--entity_doc",   default="docID",                        help="Name of the entity doc key")
+    parser.add_argument("--entity_sen",   default="senDocID",                     help="Name of the entity sen key")
+    parser.add_argument("--entity_ent",   default="norm",                         help="Name of the entity ent key")
+    parser.add_argument("--max_distance", default=5, type=int,                    help="Maximum distance of mentions")
+
+    parser.add_argument("--labels", help="Path to labels")
+    parser.add_argument("filename", help="Path/URI to a dataset")
     args = parser.parse_args()
 
-    dataset_tvg    = pytvg.TVG.load(args.filename, positive=True, streaming=True)
-    dataset_labels = pytvg.Labels.load(args.labels) if args.labels else {}
+    if args.filename.startswith("mongodb://") or args.filename.startswith("mongodb+srv://"):
+        mongodb = pytvg.MongoDB(args.filename, args.database, args.col_articles,
+                                args.article_id, args.article_time, args.col_entities,
+                                args.entity_doc, args.entity_sen, args.entity_ent,
+                                args.max_distance)
+
+        dataset_tvg = pytvg.TVG(positive=True, streaming=True)
+        dataset_tvg.enable_mongodb_sync(mongodb, batch_size=64, cache_size=0x10000000) # 256 MB
+        dataset_labels = {}
+
+    else:
+        dataset_tvg    = pytvg.TVG.load(args.filename, positive=True, streaming=True)
+        dataset_labels = pytvg.Labels.load(args.labels) if args.labels else {}
 
     server = SimpleWebSocketServer('', 8000, Client)
     server.serveforever()
