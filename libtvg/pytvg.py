@@ -1961,24 +1961,24 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [   0,  130,  141,  164,  176,  272,  376,  465,  666,  682,  696,
-                                           770,  848, 1217, 1236, 1257, 1266, 1431, 1515, 1539, 1579, 1626,
-                                          1763, 1803, 1834, 1920, 1967, 2021, 2188, 2405, 2482, 2542, 2551,
-                                          2583, 2591, 2604, 2620, 2830, 2852, 2957, 3008])
+            self.assertEqual(timestamps, [      0,  130000,  141000,  164000,  176000,  272000,  376000,  465000,  666000,  682000,  696000,
+                                           770000,  848000, 1217000, 1236000, 1257000, 1266000, 1431000, 1515000, 1539000, 1579000, 1626000,
+                                          1763000, 1803000, 1834000, 1920000, 1967000, 2021000, 2188000, 2405000, 2482000, 2542000, 2551000,
+                                          2583000, 2591000, 2604000, 2620000, 2830000, 2852000, 2957000, 3008000])
 
             self.assertEqual(edges, [155, 45, 1250, 90, 178, 85, 367, 98, 18, 528, 158, 201, 267, 214, 613, 567, 1, 137, 532, 59, 184,
                                      40, 99, 285, 326, 140, 173, 315, 211, 120, 19, 137, 170, 42, 135, 348, 168, 132, 147, 218, 321])
 
-            g = tvg.lookup_near(141)
+            g = tvg.lookup_near(141000)
             self.assertTrue(abs(g[6842, 249977] - 0.367879) < 1e-7)
 
-            g = tvg.lookup_near(1257)
+            g = tvg.lookup_near(1257000)
             self.assertTrue(abs(g[1291, 3529] - 1.013476) < 1e-7)
 
-            g = tvg.lookup_near(2604)
+            g = tvg.lookup_near(2604000)
             self.assertTrue(abs(g[121, 1154] - 3.000000) < 1e-7)
 
-            tvg.compress(step=600)
+            tvg.compress(step=600000)
 
             timestamps = []
             edges = []
@@ -1986,7 +1986,7 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [0, 600, 1200, 1800, 2400, 3000])
+            self.assertEqual(timestamps, [0, 600000, 1200000, 1800000, 2400000, 3000000])
             self.assertEqual(edges, [2226, 1172, 2446, 1448, 1632, 321])
 
             timestamps = []
@@ -1995,10 +1995,10 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [3000, 2400, 1800, 1200, 600, 0])
+            self.assertEqual(timestamps, [3000000, 2400000, 1800000, 1200000, 600000, 0])
             self.assertEqual(edges, [321, 1632, 1448, 2446, 1172, 2226])
 
-            tvg.compress(step=np.inf, offset=100)
+            tvg.compress(step=np.inf, offset=100000)
 
             timestamps = []
             edges = []
@@ -2006,7 +2006,7 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [100])
+            self.assertEqual(timestamps, [100000])
             self.assertEqual(edges, [9097])
 
             del tvg
@@ -2226,11 +2226,11 @@ if __name__ == '__main__':
         def test_encode_visjs(self):
             filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
             tvg = TVG.load(filename, positive=True, streaming=True)
-            window = tvg.WindowDecay(600, 0.93)
+            window = tvg.WindowDecay(600000, log_beta=np.log(0.93)/1000)
             window.eps = 1e-6
 
             ts = tvg.lookup_ge().ts
-            last_ts = tvg.lookup_le().ts + 600.0
+            last_ts = tvg.lookup_le().ts + 600000.0
 
             client_graph = None
             client_nodes = set()
@@ -2281,7 +2281,7 @@ if __name__ == '__main__':
                     del index_to_weight[i]
 
                 self.assertEqual(len(index_to_weight), 0)
-                ts += 50
+                ts += 50000
 
     class MongoDBTests(unittest.TestCase):
         def setUp(self):
