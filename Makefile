@@ -1,12 +1,11 @@
 SUBDIRS = $(dir $(wildcard */Makefile))
 
-
 .PHONY: all
 all: $(SUBDIRS)
 
 .PHONY: test
-test:
-	$(MAKE) -C "src" test
+test: FORCE
+	$(MAKE) -C libtvg test
 
 .PHONY: clean
 clean:
@@ -14,7 +13,8 @@ clean:
 		$(MAKE) -C "$$dir" clean; \
 	done
 
-datasets: src
+datasets: libtvg explorer
+explorer: libtvg
 
 $(SUBDIRS): FORCE
 	$(MAKE) -C "$@"

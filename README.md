@@ -49,7 +49,7 @@ make test
 To run tests for the Python 3 bindings, execute:
 
 ```bash
-./src/libtvg/pytvg.py
+./libtvg/pytvg.py
 ```
 
 Time Varying Graph File Format
@@ -77,22 +77,22 @@ Usage Example
 To start a server with the example dataset, run the following command:
 
 ```bash
-src/explorer/server.py --labels=src/data/example-tvg.labels \
-                       src/data/example-tvg.graph
+./explorer/server.py --labels=datasets/example/example-tvg.labels \
+                     datasets/example/example-tvg.graph
 ```
 
 To run the server with the full dataset, run:
 
 ```bash
-src/explorer/server.py --labels=datasets/network-topics/result.labels \
-                       datasets/network-topics/result-sum.graph
+./explorer/server.py --labels=datasets/network-topics/result.labels \
+                     datasets/network-topics/result-sum.graph
 ```
 
 It is also possible to provide the URI of a MongoDB server, e.g.:
 
 ```bash
-src/explorer/server.py mongodb://thabit:27021
+./explorer/server.py mongodb://thabit:27021
 ```
 
-In each case, open src/data/explorer/www/index.html in a web-browser of your
+In each case, open explorer/html/index.html in a web-browser of your
 choice to interact with the server.

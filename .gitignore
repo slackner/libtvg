@@ -1,0 +1,8 @@
+*.so
+*.dSYM
+*.dylib
+libtvg/tests
+libtvg/coverage
+__pycache__
+node_modules
+backlog

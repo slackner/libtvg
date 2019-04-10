@@ -921,7 +921,7 @@ static void test_load_graphs_from_file(void)
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
-    ret = tvg_load_graphs_from_file(tvg, "../data/example-tvg.graph");
+    ret = tvg_load_graphs_from_file(tvg, "../datasets/example/example-tvg.graph");
     assert(ret);
 
     free_tvg(tvg);

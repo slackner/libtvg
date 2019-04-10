@@ -1,0 +1,43 @@
+#mynetwork {
+  width: 100%;
+  height: 50%;
+  border: 1px solid lightgray;
+}
+
+#mytimeline {
+  width: 100%;
+}
+
+#designMenu {
+  position: "absolute";
+  right: 0px;
+  width: 100%;
+}
+
+#nodeSize {
+  width: 100%;
+}
+
+.nodeColor {
+  width: 50px;
+  border-radius: .25rem;
+}
+
+left {
+  position: absolute;
+  width: 70%;
+  height: 100%;
+  padding: 20px;
+}
+
+right {
+  position: absolute;
+  left: 70%;
+  width: 30%;
+  height: 100%;
+  padding: 20px;
+}
+
+.row {
+  margin-top: 0.4rem;
+}

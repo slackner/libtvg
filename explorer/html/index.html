@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TVG Explorer</title>
+    <link rel="icon" type="image/png" href="../images/favicon.ico" sizes="32x32">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular.min.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
+    <link rel="stylesheet" href="../styles/design.css" type="text/css" media="screen">
+
+    <script type="text/javascript" src="../scripts/vis.min.js"></script>
+    <link rel="stylesheet" href="../styles/vis.min.css" type="text/css" media="screen">
+
+    <script type="text/javascript" src="../scripts/graph.js"></script>
+  </head>
+  <body>
+    <left>
+      <div id="mynetwork"></div>
+      <div id="mytimeline"></div>
+    </left>
+
+    <right>
+      <div id="designMenu" class="card">
+        <div class="card-body">
+          <span id="serverConnection" class="fas fa-power-off"></span>
+          <span class="h5 card-title">Timeline Varying Graph</span>
+        <hr>
+
+        <!-- FIXME: write explanation -->
+        <p class="card-text">Tool to visualize...</p>
+
+        <hr>
+
+        <div>
+          <b>Node Size</b>
+        </div>
+
+        <div class="btn-group">
+          <button id="nodeWeight" class="btn btn-info" type="button">
+              Select Node Size
+          </button>
+          <button class="btn btn-info dropdown-toggle pull-right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick="toggleExpand()">
+          </button>
+          <div class="dropdown-menu" aria-labelledby="nodeWeight">
+            <b class="dropdown-item" name="in_degrees" onclick="getDropdownContent(event)">in_degrees</b>
+            <b class="dropdown-item" name="in_weights" onclick="getDropdownContent(event)">in_weights</b>
+            <b class="dropdown-item" name="out_degrees" onclick="getDropdownContent(event)">out_degrees</b>
+            <b class="dropdown-item" name="out_weights" onclick="getDropdownContent(event)">out_weights</b>
+            <b class="dropdown-item" name="degree_anomalies" onclick="getDropdownContent(event)">degree_anomalies</b>
+            <b class="dropdown-item" name="weight_anomalies" onclick="getDropdownContent(event)">weight_anomalies</b>
+            <a class="dropdown-item" name="power_iteration" onclick="getDropdownContent(event)">power_iteration</a>
+          </div>
+        </div>
+
+        <hr>
+
+        <div>
+          <b>Node Colorize</b>
+        </div>
+
+        <div id="colorizeList"></div>
+        </div>
+      </div>
+    </right>
+  </body>
+</html>

@@ -9,12 +9,26 @@ import json
 import sys
 import re
 import os
+import copy
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../libtvg"))
 import pytvg
 
 label_regex = re.compile("^(.*) \(([LOADTSP])\)$")
 clients = []
+default_context = {
+    'colorMap': {
+        'L': '#bf8080', # Location
+        'O': '#b3a6c1', # Organisation
+        'A': '#80b2e5', # Actor
+        'D': '#80c7bf', # Date
+        'T': '#cbcbcb', # Term - everything except LOAD
+        'S': '#95cb8f', # Sentence - might not be present
+        'P': '#ebb14b', # Page - might not be present
+    },
+    'defaultColor': '#bf8080',
+    'nodeWeight': 'power_iteration',
+}
 
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -71,19 +85,34 @@ class Client(WebSocket):
         data = json.dumps(kwargs, indent=4, cls=ComplexEncoder)
         self.sendMessage(data)
 
-    def timeline_seek(self, ts):
-        if ts == self.ts:
-            return
+    def timeline_seek(self, ts): # ts = x-value on timeline
+        context = self.context
         graph = self.window.update(ts)
 
-        # FIXME: Let user choose the node size feature.
-        # values = graph.in_degrees()
-        # values = graph.in_weights()
-        # values = graph.out_degrees()
-        # values = graph.out_weights()
-        # values = graph.degree_anomalies()
-        # values = graph.weight_anomalies()
-        values, _ = graph.power_iteration(ret_eigenvalue=False)
+        if context['nodeWeight'] == 'in_degrees':
+            values = graph.in_degrees()
+
+        elif context['nodeWeight'] == 'in_weights':
+            values = graph.in_weights()
+
+        elif context['nodeWeight'] == 'out_degrees':
+            values = graph.out_degrees()
+
+        elif context['nodeWeight'] == 'out_weights':
+            values = graph.out_weights()
+
+        elif context['nodeWeight'] == 'degree_anomalies':
+            values = graph.degree_anomalies()
+
+        elif context['nodeWeight'] == 'weight_anomalies':
+            values = graph.weight_anomalies()
+
+        elif context['nodeWeight'] == 'power_iteration':
+            values, _ = graph.power_iteration(ret_eigenvalue=False)
+
+        else:
+            print('Unimplemented node weight "%s"!' % context['nodeWeight'])
+            raise NotImplementedError
 
         def node_attributes(i):
             value = values[i]
@@ -97,15 +126,9 @@ class Client(WebSocket):
             m = label_regex.match(label)
             if m is not None:
                 label = m.group(1)
-                color = { 'L': "#bf8080",
-                          'O': "#b3a6c1",
-                          'A': "#80b2e5",
-                          'D': "#80c7bf",
-                          'T': "#cbcbcb",
-                          'S': "#95cb8f",
-                          'P': "#ebb14b" }[m.group(2)]
+                color = context['colorMap'][m.group(2)]
             else:
-                color = "#cccccc"
+                color = context['defaultColor']
 
             return {'value': value, 'label': label, 'color': color}
 
@@ -119,20 +142,38 @@ class Client(WebSocket):
         self.window = dataset_tvg.WindowDecay(600000, log_beta=np.log(0.93) / 1000.0)
         self.window.eps = 1e-6
         self.ts = None
+        self.context = copy.deepcopy(default_context)
 
         # Set timeline min/max. The client can then seek to any position.
         min_ts = dataset_tvg.lookup_ge().ts
         max_ts = dataset_tvg.lookup_le().ts
         self.send_message_json(cmd='timeline_set_options', min=min_ts, max=max_ts)
 
+        self.send_message_json(cmd='set_context', context=self.context)
+
     def event_message(self, data):
         msg = json.loads(data)
+        context = self.context
 
         if msg['cmd'] == 'timeline_seek':
             self.timeline_seek(msg['time'])
             return
 
-        print("Unimplemented command '%s'!" % msg['cmd'])
+        elif msg['cmd'] == 'recolor_graph_nodes':
+            if 'flag' in msg:
+                context['colorMap'][msg['flag']] = msg['color']
+            else:
+                context['defaultColor'] = msg['color']
+
+            self.timeline_seek(self.ts)
+            return
+
+        elif msg['cmd'] == 'change_node_weight':
+            context['nodeWeight'] = msg['value']
+            self.timeline_seek(self.ts)
+            return
+
+        print('Unimplemented command "%s"!' % msg['cmd'])
         raise NotImplementedError
 
     def event_close(self):

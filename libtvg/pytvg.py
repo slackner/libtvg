@@ -1155,7 +1155,7 @@ if __name__ == '__main__':
             del l
 
         def test_load(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/example-tvg.labels")
+            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.labels")
             l = Labels.load(filename)
 
             self.assertEqual(len(l), 2491)
@@ -1951,7 +1951,7 @@ if __name__ == '__main__':
             del tvg
 
         def test_load(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/example-tvg.graph")
+            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
             tvg = TVG.load(filename)
 
             timestamps = []
@@ -2224,7 +2224,7 @@ if __name__ == '__main__':
             del tvg
 
         def test_encode_visjs(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/example-tvg.graph")
+            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
             tvg = TVG.load(filename, positive=True, streaming=True)
             window = tvg.WindowDecay(600, 0.93)
             window.eps = 1e-6
