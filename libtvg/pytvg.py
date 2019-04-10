@@ -12,6 +12,7 @@ from ctypes import addressof
 from ctypes.util import find_library
 import collections
 import functools
+import itertools
 import weakref
 import numpy as np
 import numpy.ctypeslib as npc
@@ -25,25 +26,29 @@ lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
 class c_vector(Structure):
-    _fields_ = [("refcount", c_int),
-                ("flags", c_uint),
+    _fields_ = [("refcount", c_uint64),
+                ("flags",    c_uint),
                 ("revision", c_uint64),
-                ("eps", c_float)]
+                ("eps",      c_float)]
 
 class c_graph(Structure):
-    _fields_ = [("refcount", c_int),
+    _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint),
                 ("revision", c_uint64),
                 ("eps",      c_float),
                 ("ts",       c_uint64),
                 ("id",       c_uint64)]
 
+class c_node(Structure):
+    _fields_ = [("refcount", c_uint64),
+                ("index",    c_uint64)]
+
 class c_tvg(Structure):
-    _fields_ = [("refcount", c_int),
+    _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint)]
 
 class c_window(Structure):
-    _fields_ = [("refcount", c_int),
+    _fields_ = [("refcount", c_uint64),
                 ("eps",      c_float),
                 ("ts",       c_uint64)]
 
@@ -57,10 +62,11 @@ class c_mongodb_config(Structure):
                 ("entity_doc",   c_char_p),
                 ("entity_sen",   c_char_p),
                 ("entity_ent",   c_char_p),
+                ("load_nodes",   c_int),
                 ("max_distance", c_uint)]
 
 class c_mongodb(Structure):
-    _fields_ = [("refcount", c_int)]
+    _fields_ = [("refcount", c_uint64)]
 
 class c_bfs_entry(Structure):
     _fields_ = [("weight",    c_double),
@@ -79,6 +85,7 @@ def or_null(t):
 c_double_p       = POINTER(c_double)
 c_vector_p       = POINTER(c_vector)
 c_graph_p        = POINTER(c_graph)
+c_node_p         = POINTER(c_node)
 c_tvg_p          = POINTER(c_tvg)
 c_window_p       = POINTER(c_window)
 c_mongodb_config_p = POINTER(c_mongodb_config)
@@ -237,6 +244,24 @@ lib.graph_power_iteration.restype = c_vector_p
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
+# node functions
+
+lib.alloc_node.argtypes = ()
+lib.alloc_node.restype = c_node_p
+
+lib.free_node.argtypes = (c_node_p,)
+
+lib.unlink_node.argtypes = (c_node_p,)
+
+lib.node_set_attribute.argtypes = (c_node_p, c_char_p, c_char_p)
+lib.node_set_attribute.restype = c_int
+
+lib.node_get_attribute.argtypes = (c_node_p, c_char_p)
+lib.node_get_attribute.restype = c_char_p
+
+lib.node_get_attributes.argtypes = (c_node_p,)
+lib.node_get_attributes.restype = POINTER(c_char_p)
+
 # tvg functions
 
 lib.alloc_tvg.argtypes = (c_uint,)
@@ -250,8 +275,23 @@ lib.tvg_link_graph.restype = c_int
 lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_alloc_graph.restype = c_graph_p
 
+lib.tvg_set_primary_key.argtypes = (c_tvg_p, c_char_p)
+lib.tvg_set_primary_key.restype = c_int
+
+lib.tvg_link_node.argtypes = (c_tvg_p, c_node_p, c_uint64)
+lib.tvg_link_node.restype = c_int
+
+lib.tvg_get_node_by_index.argtypes = (c_tvg_p, c_uint64)
+lib.tvg_get_node_by_index.restype = c_node_p
+
+lib.tvg_get_node_by_primary_key.argtypes = (c_tvg_p, c_node_p)
+lib.tvg_get_node_by_primary_key.restype = c_node_p
+
 lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_load_graphs_from_file.restype = c_int
+
+lib.tvg_load_nodes_from_file.argtypes = (c_tvg_p, c_char_p)
+lib.tvg_load_nodes_from_file.restype = c_int
 
 lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint64)
 lib.tvg_enable_mongodb_sync.restype = c_int
@@ -297,7 +337,7 @@ lib.alloc_mongodb.restype = c_mongodb_p
 
 lib.free_mongodb.argtypes = (c_mongodb_p,)
 
-lib.mongodb_load_graph.argtypes = (c_mongodb_p, c_uint64, c_uint)
+lib.mongodb_load_graph.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint)
 lib.mongodb_load_graph.restype = c_graph_p
 
 lib.tvg_load_graphs_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p)
@@ -333,48 +373,29 @@ def cacheable(func):
         return result
     return wrapper
 
-class Labels(object):
-    def __init__(self):
-        self._id2label = {}
-        self._label2id = collections.defaultdict(list)
+# The 'libtvgobject' decorator should be used for classes corresponding to objects in
+# the libtvg library. It ensures that there is at most one Python object corresponding
+# to each libtvg object.
+def libtvgobject(klass):
+    cache = weakref.WeakValueDictionary()
+    @functools.wraps(klass, assigned=('__name__', '__module__'), updated=())
+    class wrapper(klass):
+        __doc__ = klass.__doc__
+        def __new__(cls, *args, obj=None, **kwargs):
+            if obj:
+                try:
+                    return cache[addressof(obj.contents)]
+                except KeyError:
+                    pass
+            result = klass(*args, obj=obj, **kwargs)
+            result.__class__ = cls
+            cache[addressof(result._obj.contents)] = result
+            return result
+        def __init__(self, *args, **kwargs):
+            pass
+    return wrapper
 
-    @staticmethod
-    def load(filename, *args, **kwargs):
-        labels = Labels(*args, **kwargs)
-        with open(filename) as fp:
-            for line in fp:
-                line = line.rstrip()
-                if line == "": continue
-                if line.startswith("#"): continue
-                if line.startswith(";"): continue
-                values = line.split("\t", 1)
-                labels[int(values[0])] = values[1]
-        return labels
-
-    def __getitem__(self, index):
-        return self._id2label[index]
-
-    def __setitem__(self, index, label):
-        if index in self._id2label:
-            del self[index]
-
-        self._id2label[index] = label
-        self._label2id[label].append(index)
-
-    def __delitem__(self, index):
-        try:
-            label = self._id2label[index]
-        except KeyError:
-            return
-        self._label2id[label].remove(index)
-        del self._id2label[index]
-
-    def __len__(self):
-        return len(self._id2label)
-
-    def lookup(self, label):
-        return self._label2id[label]
-
+@libtvgobject
 class Vector(object):
     def __init__(self, nonzero=False, positive=False, obj=None):
         if obj is None:
@@ -549,6 +570,7 @@ class Vector(object):
         # FIXME: Check type of 'other'.
         return lib.vector_mul_vector(self._obj, other._obj)
 
+@libtvgobject
 class Graph(object):
     def __init__(self, nonzero=False, positive=False, directed=False, obj=None):
         if obj is None:
@@ -617,7 +639,7 @@ class Graph(object):
         flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
         flags |= (TVG_FLAGS_POSITIVE if positive else 0)
         flags |= (TVG_FLAGS_DIRECTED if directed else 0)
-        obj = lib.mongodb_load_graph(mongodb._obj, id, flags)
+        obj = lib.mongodb_load_graph(None, mongodb._obj, id, flags)
         return Graph(obj=obj) if obj else None
 
     def unlink(self):
@@ -936,6 +958,63 @@ class GraphIterReversed(object):
         self._graph = result.prev
         return result
 
+@libtvgobject
+class Node(object):
+    def __init__(self, obj=None, **kwargs):
+        if obj is None:
+            obj = lib.alloc_node()
+
+        self._obj = obj
+        if not obj:
+            raise MemoryError
+
+        for k, v in kwargs.items():
+            self[k] = v
+
+    def __del__(self):
+        if lib is None:
+            return
+        if self._obj:
+            lib.free_node(self._obj)
+
+    @property
+    def index(self):
+        return self._obj.contents.index
+
+    @property
+    def text(self):
+        return self["text"]
+
+    def unlink(self):
+        lib.unlink_node(self._obj)
+
+    def __setitem__(self, key, value):
+        res = lib.node_set_attribute(self._obj, key.encode("utf-8"), value.encode("utf-8"))
+        if not res:
+            raise KeyError
+
+    def __getitem__(self, key):
+        value = lib.node_get_attribute(self._obj, key.encode("utf-8"))
+        if not value:
+            raise KeyError
+        return value.decode("utf-8")
+
+    def as_dict(self):
+        ptr = lib.node_get_attributes(self._obj)
+        if not ptr:
+            raise MemoryError
+
+        data = {}
+        for i in itertools.count(step=2):
+            if not ptr[i]: break
+            key = ptr[i].decode("utf-8")
+            value = ptr[i + 1].decode("utf-8")
+            data[key] = value
+
+        libc.free(ptr)
+        return data
+
+@libtvgobject
 class TVG(object):
     def __init__(self, nonzero=False, positive=False, directed=False, streaming=False, obj=None):
         if obj is None:
@@ -960,7 +1039,7 @@ class TVG(object):
     def flags(self):
         return self._obj.contents.flags
 
-    def link(self, graph, ts):
+    def link_graph(self, graph, ts):
         res = lib.tvg_link_graph(self._obj, graph._obj, ts)
         if not res:
             raise RuntimeError
@@ -968,21 +1047,62 @@ class TVG(object):
     def Graph(self, ts):
         return Graph(obj=lib.tvg_alloc_graph(self._obj, ts))
 
+    def set_primary_key(self, key):
+        if isinstance(key, list):
+            key = ";".join(key)
+        res = lib.tvg_set_primary_key(self._obj, key.encode("utf-8"))
+        if not res:
+            raise RuntimeError
+
+    def link_node(self, node, index=0xffffffffffffffff):
+        res = lib.tvg_link_node(self._obj, node._obj, index)
+        if not res:
+            raise RuntimeError
+
+    def Node(self, **kwargs):
+        node = Node(**kwargs)
+        self.link_node(node)
+        return node
+
+    def node_by_index(self, index):
+        obj = lib.tvg_get_node_by_index(self._obj, index)
+        if not obj:
+            raise KeyError
+        return Node(obj=obj)
+
+    def node_by_primary_key(self, **kwargs):
+        primary_key = Node(**kwargs)
+        obj = lib.tvg_get_node_by_primary_key(self._obj, primary_key._obj)
+        del primary_key
+        if not obj:
+            raise KeyError
+        return Node(obj=obj)
+
+    def node_by_text(self, text):
+        return self.node_by_primary_key(text=text)
+
     @staticmethod
-    def load(source, *args, **kwargs):
+    def load(source, nodes=None, *args, **kwargs):
         tvg = TVG(*args, **kwargs)
         if isinstance(source, MongoDB):
-            tvg.load_from_mongodb(source)
+            tvg.load_graphs_from_mongodb(source)
         else:
-            tvg.load_from_file(source)
+            tvg.load_graphs_from_file(source)
+        if nodes:
+            tvg.load_nodes_from_file(nodes)
         return tvg
 
-    def load_from_file(self, filename):
+    def load_graphs_from_file(self, filename):
         res = lib.tvg_load_graphs_from_file(self._obj, filename.encode("utf-8"))
         if not res:
             raise IOError
 
-    def load_from_mongodb(self, mongodb):
+    def load_nodes_from_file(self, filename):
+        res = lib.tvg_load_nodes_from_file(self._obj, filename.encode("utf-8"))
+        if not res:
+            raise IOError
+
+    def load_graphs_from_mongodb(self, mongodb):
         res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
         if not res:
             raise IOError
@@ -1043,6 +1163,7 @@ class TVG(object):
         if not res:
             raise MemoryError
 
+@libtvgobject
 class Window(object):
     def __init__(self, obj=None):
         if obj is None:
@@ -1076,9 +1197,11 @@ class Window(object):
     def update(self, ts):
         return Graph(obj=lib.window_update(self._obj, ts))
 
+@libtvgobject
 class MongoDB(object):
     def __init__(self, uri, database, col_articles, article_id, article_time,
-                 col_entities, entity_doc, entity_sen, entity_ent, max_distance, obj=None):
+                 col_entities, entity_doc, entity_sen, entity_ent, load_nodes,
+                 max_distance, obj=None):
         if obj is None:
             config = c_mongodb_config()
             config.uri          = uri.encode("utf-8")
@@ -1090,6 +1213,7 @@ class MongoDB(object):
             config.entity_doc   = entity_doc.encode("utf-8")
             config.entity_sen   = entity_sen.encode("utf-8")
             config.entity_ent   = entity_ent.encode("utf-8")
+            config.load_nodes   = load_nodes
             config.max_distance = max_distance
             obj = lib.alloc_mongodb(config)
 
@@ -1107,72 +1231,6 @@ if __name__ == '__main__':
     import datetime
     import unittest
     import mockupdb
-
-    class LabelsTests(unittest.TestCase):
-        def test_map(self):
-            l = Labels()
-
-            l[0] = "A"
-            l[1] = "B"
-            l[2] = "C"
-            l[3] = "A"
-            l[4] = "C"
-
-            self.assertEqual(len(l), 5)
-            self.assertEqual(l[0], "A")
-            self.assertEqual(l[1], "B")
-            self.assertEqual(l[2], "C")
-            self.assertEqual(l[3], "A")
-            self.assertEqual(l[4], "C")
-            with self.assertRaises(KeyError):
-                dummy = l[5]
-            indices = l.lookup("A")
-            self.assertEqual(indices, [0, 3])
-            indices = l.lookup("B")
-            self.assertEqual(indices, [1])
-            indices = l.lookup("C")
-            self.assertEqual(indices, [2, 4])
-            indices = l.lookup("D")
-            self.assertEqual(indices, [])
-
-            l[0] = "D"
-
-            self.assertEqual(len(l), 5)
-            self.assertEqual(l[0], "D")
-            indices = l.lookup("A")
-            self.assertEqual(indices, [3])
-            indices = l.lookup("D")
-            self.assertEqual(indices, [0])
-
-            del l[0]
-
-            self.assertEqual(len(l), 4)
-            with self.assertRaises(KeyError):
-                dummy = l[0]
-            indices = l.lookup("D")
-            self.assertEqual(indices, [])
-
-            del l
-
-        def test_load(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.labels")
-            l = Labels.load(filename)
-
-            self.assertEqual(len(l), 2491)
-
-            self.assertEqual(l[1], "polic")
-            self.assertEqual(l[362462], "Jay Wright (basketball)")
-            with self.assertRaises(KeyError):
-                dummy = l[5]
-
-            indices = l.lookup("polic")
-            self.assertEqual(indices, [1])
-            indices = l.lookup("Jay Wright (basketball)")
-            self.assertEqual(indices, [362462])
-            indices = l.lookup("should-not-exist")
-            self.assertEqual(indices, [])
-
-            del l
 
     class VectorTests(unittest.TestCase):
         def test_add_entry(self):
@@ -1874,44 +1932,44 @@ if __name__ == '__main__':
             g = tvg.lookup_le(50)
             self.assertEqual(g, None)
             g = tvg.lookup_ge(50)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
 
             g = tvg.lookup_le(150)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
             g = tvg.lookup_ge(150)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
 
             g = tvg.lookup_le(250)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
             g = tvg.lookup_ge(250)
-            self.assertEqual(addressof(g._obj.contents), addressof(g3._obj.contents))
+            self.assertEqual(g, g3)
 
             g = tvg.lookup_le(350)
-            self.assertEqual(addressof(g._obj.contents), addressof(g3._obj.contents))
+            self.assertEqual(g, g3)
             g = tvg.lookup_ge(350)
             self.assertEqual(g, None)
 
             g = tvg.lookup_near(149)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
             g = tvg.lookup_near(151)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
 
             # For backwards compatibility, we still allow passing float values.
 
             g = tvg.lookup_ge(100.0)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
             g = tvg.lookup_ge(100.01)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
 
             g = tvg.lookup_le(200.0)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
             g = tvg.lookup_le(199.99)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
 
             g = tvg.lookup_near(149.49)
-            self.assertEqual(addressof(g._obj.contents), addressof(g1._obj.contents))
+            self.assertEqual(g, g1)
             g = tvg.lookup_near(150.51)
-            self.assertEqual(addressof(g._obj.contents), addressof(g2._obj.contents))
+            self.assertEqual(g, g2)
 
             del tvg
 
@@ -1920,11 +1978,11 @@ if __name__ == '__main__':
             g1 = Graph()
             g2 = Graph(directed=True)
 
-            tvg.link(g1, 10)
+            tvg.link_graph(g1, 10)
             with self.assertRaises(RuntimeError):
-                tvg.link(g1, 20)
+                tvg.link_graph(g1, 20)
             with self.assertRaises(RuntimeError):
-                tvg.link(g2, 20)
+                tvg.link_graph(g2, 20)
 
             g = tvg.lookup_near(10)
             self.assertEqual(g.ts, 10)
@@ -1951,8 +2009,25 @@ if __name__ == '__main__':
             del tvg
 
         def test_load(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
-            tvg = TVG.load(filename)
+            filename_graphs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
+            filename_nodes = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.nodes")
+            tvg = TVG.load(filename_graphs, nodes=filename_nodes)
+            tvg.set_primary_key(["a", "b", "c"])
+            tvg.set_primary_key(["text"])
+
+            l = tvg.node_by_index(1)
+            self.assertEqual(l.text, "polic")
+            l = tvg.node_by_index(362462)
+            self.assertEqual(l.text, "Jay Wright (basketball)")
+            with self.assertRaises(KeyError):
+                tvg.node_by_index(5)
+
+            l = tvg.node_by_text("polic")
+            self.assertEqual(l.index, 1)
+            l = tvg.node_by_text("Jay Wright (basketball)")
+            self.assertEqual(l.index, 362462)
+            with self.assertRaises(KeyError):
+                tvg.node_by_text("should-not-exist")
 
             timestamps = []
             edges = []
@@ -2008,6 +2083,99 @@ if __name__ == '__main__':
 
             self.assertEqual(timestamps, [100000])
             self.assertEqual(edges, [9097])
+
+            del tvg
+
+        def test_nodes(self):
+            tvg = TVG()
+            tvg.set_primary_key("text")
+
+            l = tvg.Node(text="A")
+            self.assertEqual(l.index, 0)
+            self.assertEqual(l.text, "A")
+            l = tvg.Node(text="B")
+            self.assertEqual(l.index, 1)
+            self.assertEqual(l.text, "B")
+            l = tvg.Node(text="C")
+            self.assertEqual(l.index, 2)
+            self.assertEqual(l.text, "C")
+            l = tvg.Node(text="D")
+            self.assertEqual(l.index, 3)
+            self.assertEqual(l.text, "D")
+
+            with self.assertRaises(RuntimeError):
+                tvg.Node(text="A")
+
+            l = tvg.node_by_index(1)
+            self.assertEqual(l.index, 1)
+            self.assertEqual(l.text, "B")
+
+            with self.assertRaises(KeyError):
+                tvg.node_by_index(4)
+
+            l = tvg.node_by_text("C")
+            self.assertEqual(l.index, 2)
+            self.assertEqual(l.text, "C")
+
+            with self.assertRaises(KeyError):
+                tvg.node_by_text("E")
+
+            l.unlink()
+
+            with self.assertRaises(KeyError):
+                tvg.node_by_index(2)
+
+            with self.assertRaises(KeyError):
+                tvg.node_by_text("C")
+
+            l = Node(text="Z")
+            tvg.link_node(l, 4)
+            self.assertEqual(l.index, 4)
+            self.assertEqual(l.text, "Z")
+
+            l = tvg.node_by_index(4)
+            self.assertEqual(l.index, 4)
+            self.assertEqual(l.text, "Z")
+
+            l = tvg.node_by_text("Z")
+            self.assertEqual(l.index, 4)
+            self.assertEqual(l.text, "Z")
+
+            l = Node(text="Z")
+            self.assertEqual(l.index, 0xffffffffffffffff)
+            with self.assertRaises(RuntimeError):
+                tvg.link_node(l)
+            self.assertEqual(l.index, 4)
+
+            del tvg
+
+        def test_node_attrs(self):
+            tvg = TVG()
+            tvg.set_primary_key("text")
+
+            l = tvg.Node(text="sample text")
+            self.assertEqual(l.as_dict(), {'text': "sample text"})
+
+            with self.assertRaises(KeyError):
+                l["text"] = "other text"
+
+            l["attr1"] = "sample attr1"
+            l["attr2"] = "sample attr2"
+            l["attr3"] = "sample attr3"
+            self.assertEqual(l.as_dict(), {'text': "sample text",
+                                           'attr1': "sample attr1",
+                                           'attr2': "sample attr2",
+                                           'attr3': "sample attr3"})
+
+            l["attr1"] = "other attr1"
+            self.assertEqual(l.as_dict(), {'text': "sample text",
+                                           'attr1': "other attr1",
+                                           'attr2': "sample attr2",
+                                           'attr3': "sample attr3"})
+
+            tvg.set_primary_key(["text", "attr1"])
+            with self.assertRaises(KeyError):
+                l["attr1"] = "sample attr1"
 
             del tvg
 
@@ -2289,7 +2457,7 @@ if __name__ == '__main__':
             self.s.run()
 
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
-                                 "_id", "time", "col_entities", "doc", "sen", "ent", 5)
+                                 "_id", "time", "col_entities", "doc", "sen", "ent", False, 5)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
@@ -2316,7 +2484,7 @@ if __name__ == '__main__':
         def test_invalid(self):
             with self.assertRaises(MemoryError):
                 MongoDB("http://localhost", "database", "col_articles",
-                        "_id", "time", "col_entities", "doc", "sen", "ent", 5)
+                        "_id", "time", "col_entities", "doc", "sen", "ent", False, 5)
 
         def test_selfloop(self):
             occurrences = []

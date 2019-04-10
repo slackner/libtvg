@@ -43,7 +43,7 @@ struct vector_ops;
 
 struct vector
 {
-    int         refcount;
+    uint64_t    refcount;
     uint32_t    flags;
     uint64_t    revision;
     float       eps;
@@ -74,7 +74,7 @@ struct graph_ops;
 
 struct graph
 {
-    int         refcount;
+    uint64_t    refcount;
     uint32_t    flags;
     uint64_t    revision;
     float       eps;
@@ -98,15 +98,40 @@ struct graph
     float       delta_mul;
 };
 
+struct attribute
+{
+    struct list entry;
+    const char *key;
+    const char *value;
+    char        buffer[1];
+};
+
+struct node
+{
+    uint64_t    refcount;
+    uint64_t    index;
+
+    /* private: */
+    struct tvg *tvg;         /* NULL for disconnected nodes */
+    struct list entry_ind;
+    struct list entry_key;
+    struct list attributes;
+};
+
 struct tvg
 {
-    int         refcount;
+    uint64_t    refcount;
     uint32_t    flags;
 
     /* private: */
     struct list graphs;
     struct mongodb *mongodb;
     uint64_t    batch_size;
+
+    struct list nodes_ind[7919]; /* node by index */
+    struct list nodes_key[7919]; /* node by primary key */
+    struct list primary_key;
+    uint64_t    next_node;
 
     struct list cache;
     uint64_t    cache_used;
@@ -125,7 +150,7 @@ struct window_ops;
 
 struct window
 {
-    int         refcount;
+    uint64_t    refcount;
     float       eps;
     uint64_t    ts;
 
@@ -154,12 +179,13 @@ struct mongodb_config
     char       *entity_sen;     /* sentence id */
     char       *entity_ent;     /* entity id */
 
+    int         load_nodes;
     uint32_t    max_distance;
 };
 
 struct mongodb
 {
-    int         refcount;
+    uint64_t    refcount;
 
     /* private: */
     struct mongodb_config *config;
@@ -1075,6 +1101,138 @@ static inline struct graph *__tvg_prev_graph(struct graph *graph)
 #define TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts) \
     _TVG_FOR_EACH_GRAPH_LE_REV((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__once_))
 
+/* node macros */
+
+struct _node_primary_attr_iter
+{
+    struct attribute *primary;
+    struct attribute *end_primary;
+
+    struct attribute *attr;
+    struct attribute *end_attr;
+};
+
+static inline struct _node_primary_attr_iter __node_for_each_primary_attribute(struct tvg *tvg, struct node *node)
+{
+    struct _node_primary_attr_iter iter;
+
+    iter.primary     = LIST_ENTRY(tvg->primary_key.next, struct attribute, entry);
+    iter.end_primary = LIST_ENTRY(&tvg->primary_key, struct attribute, entry);
+
+    iter.attr     = LIST_ENTRY(node->attributes.next, struct attribute, entry);
+    iter.end_attr = LIST_ENTRY(&node->attributes, struct attribute, entry);
+
+    return iter;
+}
+
+static inline int __node_next_primary_attribute(struct _node_primary_attr_iter *iter, struct attribute **attr)
+{
+    int res;
+
+    if (iter->primary == iter->end_primary)
+        return 0;
+
+    *attr = NULL;
+
+    for (; iter->attr != iter->end_attr;
+         iter->attr = LIST_ENTRY(iter->attr->entry.next, struct attribute, entry))
+    {
+        res = strcmp(iter->primary->key, iter->attr->key);
+        if (res < 0) break;
+        if (!res)
+        {
+            *attr = iter->attr;
+            iter->attr = LIST_ENTRY(iter->attr->entry.next, struct attribute, entry);
+            break;
+        }
+    }
+
+    iter->primary = LIST_ENTRY(iter->primary->entry.next, struct attribute, entry);
+    return 1;
+}
+
+#define _NODE_FOR_EACH_PRIMARY_ATTRIBUTE(_tvg, _node, _attr, _iter) \
+    for (struct _node_primary_attr_iter (_iter) = __node_for_each_primary_attribute((_tvg), (_node)); \
+         __node_next_primary_attribute(&(_iter), &(_attr));)
+
+#define NODE_FOR_EACH_PRIMARY_ATTRIBUTE(_tvg, _node, _attr) \
+    _NODE_FOR_EACH_PRIMARY_ATTRIBUTE((_tvg), (_node), (_attr), _UNIQUE_VARIABLE(__iter_))
+
+struct _node_primary_attr_iter2
+{
+    struct attribute *primary;
+    struct attribute *end_primary;
+
+    struct attribute *attr1;
+    struct attribute *end_attr1;
+
+    struct attribute *attr2;
+    struct attribute *end_attr2;
+};
+
+static inline struct _node_primary_attr_iter2 __node_for_each_primary_attribute2(struct tvg *tvg, struct node *node1, struct node *node2)
+{
+    struct _node_primary_attr_iter2 iter;
+
+    iter.primary     = LIST_ENTRY(tvg->primary_key.next, struct attribute, entry);
+    iter.end_primary = LIST_ENTRY(&tvg->primary_key, struct attribute, entry);
+
+    iter.attr1     = LIST_ENTRY(node1->attributes.next, struct attribute, entry);
+    iter.end_attr1 = LIST_ENTRY(&node1->attributes, struct attribute, entry);
+
+    iter.attr2     = LIST_ENTRY(node2->attributes.next, struct attribute, entry);
+    iter.end_attr2 = LIST_ENTRY(&node2->attributes, struct attribute, entry);
+
+    return iter;
+}
+
+static inline int __node_next_primary_attribute2(struct _node_primary_attr_iter2 *iter, struct attribute **attr1, struct attribute **attr2)
+{
+    int res;
+
+    if (iter->primary == iter->end_primary)
+        return 0;
+
+    *attr1 = NULL;
+    *attr2 = NULL;
+
+    for (; iter->attr1 != iter->end_attr1;
+         iter->attr1 = LIST_ENTRY(iter->attr1->entry.next, struct attribute, entry))
+    {
+        res = strcmp(iter->primary->key, iter->attr1->key);
+        if (res < 0) break;
+        if (!res)
+        {
+            *attr1 = iter->attr1;
+            iter->attr1 = LIST_ENTRY(iter->attr1->entry.next, struct attribute, entry);
+            break;
+        }
+    }
+
+    for (; iter->attr2 != iter->end_attr2;
+         iter->attr2 = LIST_ENTRY(iter->attr2->entry.next, struct attribute, entry))
+    {
+        res = strcmp(iter->primary->key, iter->attr2->key);
+        if (res < 0) break;
+        if (!res)
+        {
+            *attr2 = iter->attr2;
+            iter->attr2 = LIST_ENTRY(iter->attr2->entry.next, struct attribute, entry);
+            break;
+        }
+    }
+
+    iter->primary = LIST_ENTRY(iter->primary->entry.next, struct attribute, entry);
+    return 1;
+}
+
+#define _NODE_FOR_EACH_PRIMARY_ATTRIBUTE2(_tvg, _node1, _attr1, _node2, _attr2, _iter) \
+    for (struct _node_primary_attr_iter2 (_iter) = __node_for_each_primary_attribute2((_tvg), (_node1), (_node2)); \
+         __node_next_primary_attribute2(&(_iter), &(_attr1), &(_attr2));)
+
+#define NODE_FOR_EACH_PRIMARY_ATTRIBUTE2(_tvg, _node1, _attr1, _node2, _attr2) \
+    _NODE_FOR_EACH_PRIMARY_ATTRIBUTE2((_tvg), (_node1), (_attr1), (_node2), (_attr2), _UNIQUE_VARIABLE(__iter_))
+
 /* vector functions */
 
 struct vector *alloc_vector(uint32_t flags);
@@ -1174,6 +1332,17 @@ struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_ite
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
               const struct bfs_entry *, void *), void *userdata);
 
+/* node functions */
+
+struct node *alloc_node(void);
+struct node *grab_node(struct node *node);
+void free_node(struct node *node);
+void unlink_node(struct node *node);
+
+int node_set_attribute(struct node *node, const char *key, const char *value);
+const char *node_get_attribute(struct node *node, const char *key);
+char **node_get_attributes(struct node *node);
+
 /* tvg functions */
 
 struct tvg *alloc_tvg(uint32_t flags);
@@ -1185,7 +1354,13 @@ void tvg_debug(struct tvg *tvg);
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
 struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
+int tvg_set_primary_key(struct tvg *tvg, const char *key);
+int tvg_link_node(struct tvg *tvg, struct node *node, uint64_t index);
+struct node *tvg_get_node_by_index(struct tvg *tvg, uint64_t index);
+struct node *tvg_get_node_by_primary_key(struct tvg *tvg, struct node *primary_key);
+
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
+int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename);
 
 int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
                             uint64_t batch_size, uint64_t cache_size);
@@ -1220,8 +1395,7 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config);
 struct mongodb *grab_mongodb(struct mongodb *mongodb);
 void free_mongodb(struct mongodb *mongodb);
 
-struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags);
-
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags);
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb);
 
 #endif /* _TVG_H_ */

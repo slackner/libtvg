@@ -30,6 +30,6 @@ with open("news_nodelist.tsv") as f:
 
 labels.sort(key=lambda x: x[0])
 
-with open("result.labels", "w") as g:
+with open("result.nodes", "w") as g:
     for id1, label in labels:
         g.write("%d\t%s\n" % (id1, label))

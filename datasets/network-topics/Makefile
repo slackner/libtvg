@@ -1,5 +1,5 @@
 .PHONY: all
-all: result-norm.graph result.labels
+all: result-norm.graph result.nodes
 
 networkTopics_data.zip:
 	wget "https://dbs.ifi.uni-heidelberg.de/download/networkTopics_data.zip"
@@ -11,5 +11,5 @@ news_edgelist.tsv: networkTopics_data.zip
 result-norm.graph: news_edgelist.tsv convert_graph.py
 	./convert_graph.py
 
-result.labels: news_edgelist.tsv convert_labels.py
-	./convert_labels.py
+result.nodes: news_edgelist.tsv convert_nodes.py
+	./convert_nodes.py

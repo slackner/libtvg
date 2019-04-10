@@ -7,24 +7,20 @@ import argparse
 import math
 import json
 import sys
-import re
 import os
 import copy
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../libtvg"))
 import pytvg
 
-label_regex = re.compile("^(.*) \(([LOADTSP])\)$")
 clients = []
 default_context = {
     'colorMap': {
-        'L': '#bf8080', # Location
-        'O': '#b3a6c1', # Organisation
-        'A': '#80b2e5', # Actor
-        'D': '#80c7bf', # Date
-        'T': '#cbcbcb', # Term - everything except LOAD
-        'S': '#95cb8f', # Sentence - might not be present
-        'P': '#ebb14b', # Page - might not be present
+        'LOC': '#bf8080', # Location
+        'ORG': '#b3a6c1', # Organisation
+        'ACT': '#80b2e5', # Actor
+        'DAT': '#80c7bf', # Date
+        'TER': '#cbcbcb', # Term - everything except LOAD
     },
     'defaultColor': '#bf8080',
     'nodeWeight': 'power_iteration',
@@ -120,15 +116,23 @@ class Client(WebSocket):
             value = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
 
             try:
-                label = dataset_labels[i]
+                node = dataset_tvg.node_by_index(i)
             except KeyError:
-                label = "Node %d" % i
+                node = {}
 
-            m = label_regex.match(label)
-            if m is not None:
-                label = m.group(1)
-                color = context['colorMap'][m.group(2)]
-            else:
+            label = "Node %d" % i
+            for key in ['label', 'norm', 'text']:
+                try:
+                    label = node[key]
+                except KeyError:
+                    pass
+                else:
+                    break
+
+            try:
+                ne = node['NE']
+                color = context['colorMap'][ne]
+            except KeyError:
                 color = context['defaultColor']
 
             return {'value': value, 'label': label, 'color': color}
@@ -191,26 +195,26 @@ if __name__ == "__main__":
     parser.add_argument("--col_entities", default="c11_selectedDocumentEntities", help="Name of the entities collection")
     parser.add_argument("--entity_doc",   default="docID",                        help="Name of the entity doc key")
     parser.add_argument("--entity_sen",   default="senDocID",                     help="Name of the entity sen key")
-    parser.add_argument("--entity_ent",   default="norm",                         help="Name of the entity ent key")
+    parser.add_argument("--entity_ent",   default="NE;norm;label;covText",        help="Name of the entity ent key")
     parser.add_argument("--max_distance", default=5, type=int,                    help="Maximum distance of mentions")
+    parser.add_argument("--primary_key",  default="NE;norm",                      help="Nodes primary key")
 
-    parser.add_argument("--labels", help="Path to labels")
-    parser.add_argument("filename", help="Path/URI to a dataset")
+    parser.add_argument("--nodes",  help="Path to nodes")
+    parser.add_argument("source",   help="Path/URI to a dataset")
     args = parser.parse_args()
 
-    if args.filename.startswith("mongodb://") or args.filename.startswith("mongodb+srv://"):
-        mongodb = pytvg.MongoDB(args.filename, args.database, args.col_articles,
+    if args.source.startswith("mongodb://") or args.source.startswith("mongodb+srv://"):
+        mongodb = pytvg.MongoDB(args.source, args.database, args.col_articles,
                                 args.article_id, args.article_time, args.col_entities,
                                 args.entity_doc, args.entity_sen, args.entity_ent,
-                                args.max_distance)
+                                load_nodes=True, max_distance=args.max_distance)
 
         dataset_tvg = pytvg.TVG(positive=True, streaming=True)
+        dataset_tvg.set_primary_key(args.primary_key)
         dataset_tvg.enable_mongodb_sync(mongodb, batch_size=64, cache_size=0x10000000) # 256 MB
-        dataset_labels = {}
 
     else:
-        dataset_tvg    = pytvg.TVG.load(args.filename, positive=True, streaming=True)
-        dataset_labels = pytvg.Labels.load(args.labels) if args.labels else {}
+        dataset_tvg    = pytvg.TVG.load(args.source, nodes=args.nodes, positive=True, streaming=True)
 
     server = SimpleWebSocketServer('', 8000, Client)
     server.serveforever()

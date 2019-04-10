@@ -15,31 +15,31 @@ const settings = {
     color: [
         {
             title: 'location',
-            flag: 'L',
+            flag: 'LOC',
             class: 'mr-3 far fa-compass',
             color: '#00ffff',
         },
         {
             title: 'organisation',
-            flag: 'O',
+            flag: 'ORG',
             class: 'mr-3 fas fa-globe',
             color: '#0040ff',
         },
         {
             title: 'actor',
-            flag: 'A',
+            flag: 'ACT',
             class: 'mr-3 far fa-user-circle',
             color: '#8000ff',
         },
         {
             title: 'date',
-            flag: 'D',
+            flag: 'DAT',
             class: 'mr-3 far fa-clock',
             color: '#ff0080',
         },
         {
             title: 'term',
-            flag: 'T',
+            flag: 'TER',
             class: 'mr-3 fas fa-exclamation-circle',
             color: '#80ff00',
         },

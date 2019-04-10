@@ -14,6 +14,7 @@ C_ASSERT(sizeof(long long unsigned int) == sizeof(uint64_t));
 struct tvg *alloc_tvg(uint32_t flags)
 {
     struct tvg *tvg;
+    uint32_t i;
 
     if (flags & ~(TVG_FLAGS_NONZERO |
                   TVG_FLAGS_POSITIVE |
@@ -29,6 +30,12 @@ struct tvg *alloc_tvg(uint32_t flags)
     list_init(&tvg->graphs);
     tvg->mongodb    = NULL;
     tvg->batch_size = 0;
+    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
+        list_init(&tvg->nodes_ind[i]);
+    for (i = 0; i < ARRAY_SIZE(tvg->nodes_key); i++)
+        list_init(&tvg->nodes_key[i]);
+    list_init(&tvg->primary_key);
+    tvg->next_node  = 0;
     list_init(&tvg->cache);
     tvg->cache_used = 0;
     tvg->cache_size = 0;
@@ -44,8 +51,10 @@ struct tvg *grab_tvg(struct tvg *tvg)
 
 void free_tvg(struct tvg *tvg)
 {
-    struct graph *next_graph;
-    struct graph *graph;
+    struct attribute *attr, *next_attr;
+    struct graph *graph, *next_graph;
+    struct node *node, *next_node;
+    uint32_t i;
 
     if (!tvg) return;
     if (--tvg->refcount) return;
@@ -55,6 +64,25 @@ void free_tvg(struct tvg *tvg)
         assert(graph->tvg == tvg);
         unlink_graph(graph);
         free_graph(graph);
+    }
+
+    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
+    {
+        LIST_FOR_EACH_SAFE(node, next_node, &tvg->nodes_ind[i], struct node, entry_ind)
+        {
+            assert(node->tvg == tvg);
+            unlink_node(node);
+            free_node(node);
+        }
+    }
+
+    for (i = 0; i < ARRAY_SIZE(tvg->nodes_key); i++)
+        assert(list_empty(&tvg->nodes_key[i]));
+
+    LIST_FOR_EACH_SAFE(attr, next_attr, &tvg->primary_key, struct attribute, entry)
+    {
+        list_remove(&attr->entry);
+        free(attr);
     }
 
     assert(list_empty(&tvg->cache));
@@ -130,6 +158,173 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts)
     }
 
     return graph;
+}
+
+int tvg_set_primary_key(struct tvg *tvg, const char *key)
+{
+    struct attribute *attr, *next_attr, *other_attr;
+    struct list primary_key;
+    struct node *node;
+    const char *next;
+    uint32_t hash;
+    size_t keylen;
+    uint32_t i;
+    int res;
+
+    list_init(&primary_key);
+
+    for (;;)
+    {
+        next = strchr(key, ';');
+        keylen = next ? (next - key) : strlen(key);
+
+        if (!(attr = malloc(offsetof(struct attribute, buffer[keylen + 1]))))
+            goto error;
+
+        attr->key     = attr->buffer;
+        attr->value   = &attr->buffer[keylen];
+        memcpy((char *)attr->key, key, keylen);
+        ((char *)attr->key)[keylen] = 0;
+
+        LIST_FOR_EACH(other_attr, &primary_key, struct attribute, entry)
+        {
+            if ((res = strcmp(other_attr->key, attr->key)) > 0) break;
+            if (!res)  /* Attribute keys shouldn't collide */
+            {
+                free(attr);
+                goto skip;
+            }
+        }
+
+        list_add_before(&other_attr->entry, &attr->entry);
+    skip:
+        if (!next) break;
+        key = next + 1;
+    }
+
+    LIST_FOR_EACH_SAFE(attr, next_attr, &tvg->primary_key, struct attribute, entry)
+    {
+        list_remove(&attr->entry);
+        free(attr);
+    }
+
+    LIST_FOR_EACH_SAFE(attr, next_attr, &primary_key, struct attribute, entry)
+    {
+        list_remove(&attr->entry);
+        list_add_tail(&tvg->primary_key, &attr->entry);
+    }
+
+    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
+    {
+        LIST_FOR_EACH(node, &tvg->nodes_ind[i], struct node, entry_ind)
+        {
+            list_remove(&node->entry_key);
+
+            /* FIXME: When creating nodes before setting the primary key,
+             * there could be conflicts. */
+
+            hash = node_hash_primary_key(tvg, node);
+            if (hash == ~0U) list_init(&node->entry_key);
+            else list_add_head(&tvg->nodes_key[hash], &node->entry_key);
+        }
+    }
+
+    return 1;
+
+error:
+    LIST_FOR_EACH_SAFE(attr, next_attr, &primary_key, struct attribute, entry)
+    {
+        list_remove(&attr->entry);
+        free(attr);
+    }
+    return 0;
+}
+
+int tvg_link_node(struct tvg *tvg, struct node *node, uint64_t index)
+{
+    struct node *other_node;
+    uint32_t hash_ind, hash_key;
+
+    if (node->tvg)
+        return 0;
+
+    if ((hash_key = node_hash_primary_key(tvg, node)) != ~0U)
+    {
+        LIST_FOR_EACH(other_node, &tvg->nodes_key[hash_key], struct node, entry_key)
+        {
+            assert(other_node->tvg == tvg);
+            if (node_equal_key(tvg, node, other_node))
+            {
+                node->index = other_node->index;
+                return 0;  /* collision */
+            }
+        }
+    }
+
+    if (index != ~0ULL)
+    {
+        hash_ind = node_hash_index(tvg, index);
+        LIST_FOR_EACH(other_node, &tvg->nodes_ind[hash_ind], struct node, entry_ind)
+        {
+            assert(other_node->tvg == tvg);
+            if (other_node->index == index) return 0;
+        }
+    }
+    else
+    {
+    retry:
+        index = tvg->next_node++;
+
+        hash_ind = node_hash_index(tvg, index);
+        LIST_FOR_EACH(other_node, &tvg->nodes_ind[hash_ind], struct node, entry_ind)
+        {
+            assert(other_node->tvg == tvg);
+            if (other_node->index == index) goto retry;
+        }
+    }
+
+
+    node->index = index;
+    node->tvg   = tvg;
+    list_add_head(&tvg->nodes_ind[hash_ind], &node->entry_ind);
+
+    if (hash_key == ~0U) list_init(&node->entry_key);
+    else list_add_head(&tvg->nodes_key[hash_key], &node->entry_key);
+
+    grab_node(node);  /* grab extra reference */
+    return 1;
+}
+
+struct node *tvg_get_node_by_index(struct tvg *tvg, uint64_t index)
+{
+    struct node *node;
+    uint32_t hash;
+
+    hash = node_hash_index(tvg, index);
+    LIST_FOR_EACH(node, &tvg->nodes_ind[hash], struct node, entry_ind)
+    {
+        assert(node->tvg == tvg);
+        if (node->index == index) return grab_node(node);
+    }
+
+    return NULL;
+}
+
+struct node *tvg_get_node_by_primary_key(struct tvg *tvg, struct node *primary_key)
+{
+    struct node *node;
+    uint32_t hash;
+
+    if ((hash = node_hash_primary_key(tvg, primary_key)) == ~0U)
+        return NULL;
+
+    LIST_FOR_EACH(node, &tvg->nodes_key[hash], struct node, entry_key)
+    {
+        assert(node->tvg == tvg);
+        if (node_equal_key(tvg, node, primary_key)) return grab_node(node);
+    }
+
+    return NULL;
 }
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
@@ -212,6 +407,75 @@ error:
     if (graph) graph->revision = 0;
     if (!ret) unlink_graph(graph);
     free_graph(graph);
+    fclose(fp);
+    free(line);
+    return ret;
+}
+
+int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
+{
+    long long unsigned int index;
+    struct node *node;
+    const char *text;
+    ssize_t read;
+    size_t len = 0;
+    char *line = NULL;
+    int offset;
+    int ret = 0;
+    FILE *fp;
+
+    if (!(fp = fopen(filename, "r")))
+    {
+        fprintf(stderr, "%s: File '%s' not found\n", __func__, filename);
+        return 0;
+    }
+
+    while ((read = getline(&line, &len, fp)) > 0)
+    {
+        if (line[read - 1] == '\n') line[read - 1] = 0;
+        if (!line[0] || line[0] == '#' || line[0] == ';') continue;
+
+        if (sscanf(line, "%llu%n", &index, &offset) < 1)
+        {
+            fprintf(stderr, "%s: Line does not match expected format\n", __func__);
+            goto error;
+        }
+
+        text = &line[offset];
+        if (*text != ' ' && *text != '\t')
+        {
+            fprintf(stderr, "%s: Line does not match expected format\n", __func__);
+            goto error;
+        }
+        while (*text == ' ' || *text == '\t') text++;
+
+        if (!(node = alloc_node()))
+        {
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
+            goto error;
+        }
+
+        if (!node_set_attribute(node, "text", text))
+        {
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
+            free_node(node);
+            goto error;
+        }
+
+        if (!tvg_link_node(tvg, node, index))
+        {
+            fprintf(stderr, "%s: Index %llu or text '%s' already used?\n", __func__, index, text);
+            free_node(node);
+            continue;
+        }
+
+        free_node(node);
+    }
+
+    /* Success if we read at least one ĺabel. */
+    ret = 1;
+
+error:
     fclose(fp);
     free(line);
     return ret;

@@ -77,14 +77,14 @@ Usage Example
 To start a server with the example dataset, run the following command:
 
 ```bash
-./explorer/server.py --labels=datasets/example/example-tvg.labels \
+./explorer/server.py --nodes=datasets/example/example-tvg.nodes \
                      datasets/example/example-tvg.graph
 ```
 
 To run the server with the full dataset, run:
 
 ```bash
-./explorer/server.py --labels=datasets/network-topics/result.labels \
+./explorer/server.py --nodes=datasets/network-topics/result.nodes \
                      datasets/network-topics/result-sum.graph
 ```
 

@@ -927,6 +927,26 @@ static void test_load_graphs_from_file(void)
     free_tvg(tvg);
 }
 
+static void test_load_nodes_from_file(void)
+{
+    struct tvg *tvg;
+    int ret;
+
+    tvg = alloc_tvg(0);
+    assert(tvg != NULL);
+
+    ret = tvg_set_primary_key(tvg, "a;b;c");
+    assert(ret);
+
+    ret = tvg_set_primary_key(tvg, "text");
+    assert(ret);
+
+    ret = tvg_load_nodes_from_file(tvg, "../datasets/example/example-tvg.nodes");
+    assert(ret);
+
+    free_tvg(tvg);
+}
+
 static void test_vector_mul_vector(void)
 {
     struct vector *vector1, *vector2;
@@ -1134,6 +1154,7 @@ int main(void)
     test_graph_vector_for_each_entry();
     test_power_iteration();
     test_load_graphs_from_file();
+    test_load_nodes_from_file();
     test_vector_mul_vector();
     test_vector_for_each_entry2();
     test_tvg_for_each_graph();

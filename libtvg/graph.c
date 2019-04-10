@@ -66,6 +66,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->buckets     = buckets;
     graph->optimize    = 0;
     graph->delta       = NULL;
+    graph->delta_mul   = 0.0;
 
     /* set a proper 'optimize' value */
     graph_optimize(graph);

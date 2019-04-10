@@ -59,6 +59,7 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->entity_doc   = strdup(orig->entity_doc)))   goto error;
     if (!(config->entity_sen   = strdup(orig->entity_sen)))   goto error;
     if (!(config->entity_ent   = strdup(orig->entity_ent)))   goto error;
+    config->load_nodes   = orig->load_nodes;
     config->max_distance = orig->max_distance;
     return config;
 
@@ -230,7 +231,83 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
     return 0;
 }
 
-struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags)
+/* Replacement for bson_iter_init_find_w_len, which only exists
+ * in new versions and takes an int parameter instead of size_t. */
+static int bson_iter_init_find_key(bson_iter_t *iter, const bson_t *bson, const char *key, size_t keylen)
+{
+    const char *ikey;
+
+    if (!bson_iter_init(iter, bson))
+        return 0;
+
+    while (bson_iter_next(iter))
+    {
+        ikey = bson_iter_key(iter);
+        if (!strncmp(key, ikey, keylen) && ikey[keylen] == '\0')
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
+                             struct mongodb_config *config, uint64_t *value)
+{
+    struct node *node;
+    bson_iter_t iter;
+    const char *next;
+    const char *key;
+    const char *str;
+    size_t keylen;
+    uint32_t len;
+    int ret = 0;
+
+    if (!config->load_nodes)
+        return bson_parse_integer(doc, config->entity_ent, value);
+
+    if (!tvg)
+        return 0;
+
+    if (!(node = alloc_node()))
+        return 0;
+
+    key = config->entity_ent;
+    for (;;)
+    {
+        next = strchr(key, ';');
+        keylen = next ? (next - key) : strlen(key);
+
+        if (!bson_iter_init_find_key(&iter, doc, key, keylen))
+            goto skip;
+
+        if (!BSON_ITER_HOLDS_UTF8(&iter))
+            goto skip;
+
+        str = bson_iter_utf8(&iter, &len);
+        if (!bson_utf8_validate(str, len, false))
+            goto error;
+
+        if (!node_set_attribute_internal(node, key, keylen, str))
+            goto error;
+
+    skip:
+        if (!next) break;
+        key = next + 1;
+    }
+
+    /* node->index will be filled out even when a collision is detected */
+    tvg_link_node(tvg, node, ~0ULL);
+    *value = node->index;
+    ret = 1;
+
+error:
+    free_node(node);
+    return ret;
+}
+
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags)
 {
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
@@ -281,9 +358,9 @@ struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t 
             fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->entity_sen);
             continue;
         }
-        if (!bson_parse_integer(doc, config->entity_ent, &new_entry.ent))
+        if (!bson_parse_entity(tvg, doc, config, &new_entry.ent))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->entity_ent);
+            fprintf(stderr, "%s: %s field not found or not the correct type\n", __func__, config->entity_ent);
             continue;
         }
 
@@ -379,7 +456,7 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
             continue;
         }
 
-        if (!(graph = mongodb_load_graph(mongodb, id, graph_flags)))
+        if (!(graph = mongodb_load_graph(tvg, mongodb, id, graph_flags)))
         {
             fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
             goto error;
@@ -521,7 +598,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             continue;
         }
 
-        if (!(graph = mongodb_load_graph(mongodb, id, graph_flags)))
+        if (!(graph = mongodb_load_graph(tvg, mongodb, id, graph_flags)))
         {
             fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
             goto error;
@@ -757,7 +834,7 @@ void free_mongodb(struct mongodb *mongodb)
     assert(!mongodb);
 }
 
-struct graph *mongodb_load_graph(struct mongodb *mongodb, uint64_t id, uint32_t flags)
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags)
 {
     return NULL;
 }
