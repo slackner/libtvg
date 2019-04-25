@@ -348,7 +348,7 @@ const doConnect = function () {
     websocket.onerror = onError;
 };
 
-const daterangepicker = function () {
+const initDateRangePicker = function () {
     const nowHour = globalContext._now.startOf('hour');
     $('input[name="daterange"]').daterangepicker({
         timePicker: true,
@@ -386,10 +386,7 @@ const daterangepicker = function () {
     });
 };
 
-const init = function () {
-    daterangepicker();
-
-    // Initialize network
+const initColorPicker = function () {
     const listElement = document.getElementById('colorizeList');
     settings.color.forEach((element) => {
         const divRow = document.createElement('div');
@@ -419,13 +416,15 @@ const init = function () {
         const node = document.querySelector(`#nodeColor-${element.flag}`);
         node.addEventListener('change', watchColorPicker, false);
     });
+}
 
+const initNetwork = function () {
     const data = {
         nodes,
         edges,
     };
 
-    const optionsNetwork = {
+    const options = {
         nodes: {
             shape: 'dot',
             scaling: {
@@ -464,8 +463,14 @@ const init = function () {
         },
     };
 
-    const containerNetwork = document.getElementById('mynetwork');
-    network = new vis.Network(containerNetwork, data, optionsNetwork);
+    const container = document.getElementById('mynetwork');
+    network = new vis.Network(container, data, options);
+}
+
+const init = function () {
+    initDateRangePicker();
+    initColorPicker();
+    initNetwork();
 
     setTimeout(doConnect, 1000);
 
