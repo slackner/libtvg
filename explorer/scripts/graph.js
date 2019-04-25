@@ -1,8 +1,11 @@
-/* global vis, document, window, WebSocket, $ */
+/* global vis, document, window, WebSocket, moment, $ */
 
 'use strict';
 
-const globalContext = {};
+const globalContext = {
+    _privates: {},
+    _now: moment(),
+};
 
 const nodes = new vis.DataSet([]);
 const edges = new vis.DataSet([]);
@@ -59,9 +62,7 @@ const sendMessageJson = function (message) {
 };
 
 const watchColorPicker = function (event) {
-    globalContext._privates = {
-        nodeColor: event.target.value,
-    };
+    globalContext._privates.nodeColor = event.target.value;
 
     if (!globalContext.watchDog) {
         globalContext.watchDog = true;
@@ -139,29 +140,146 @@ const onError = function (evt) {
     websocket.close();
 };
 
+const resizeDateRangePicker = function (item) {
+    const drp = $('input[name="daterange"]').data('daterangepicker');
+    if (item.start) {
+        drp.setStartDate(item.start);
+    }
+    if (item.end) {
+        drp.setEndDate(item.end);
+    }
+};
+
 const onMessage = function (evt) {
     console.log('get message');
     const msg = JSON.parse(evt.data);
-    const options = {};
-    let current;
 
+    const options = {
+        editable: {
+            add: false,
+            updateTime: true,
+        },
+        onMove: (item, callback) => {
+            globalContext._privates.daterange = {
+                start: item.start,
+                end: item.end,
+            };
+            sendMessageJson({
+                cmd: 'timeline_seek',
+                time: item.start.getTime(),
+            });
+            timeline.focus(1);
+            item.start = moment(item.start);
+            item.end = moment(item.end);
+
+            callback(item);
+        },
+        onMoving: (item, callback) => {
+            resizeDateRangePicker({
+                start: moment(item.start.getTime()),
+                end: moment(item.end.getTime()),
+            });
+
+            callback(item);
+        },
+        // min: moment(),
+        // max: moment(),
+        zoomMin: 600000,
+        zoomMax: 314496000000,
+    };
+    let current;
+    let start;
+    let end;
+
+    const containerTimeline = document.getElementById('mytimeline');
     switch (msg.cmd) {
         case 'timeline_set_options':
-            console.log('timeline_set_options:');
-
-            options.min = new Date(msg.min);
-            options.max = new Date(msg.max);
-            options.clickToUse = true;
+            console.log('timeline_set_options');
 
             // Seek to the center of the given interval.
             current = new Date((msg.min + msg.max) / 2);
-            timeline.setCustomTime(current, 't1');
-            timeline.setCustomTimeTitle('preset', 't1');
-            timeline.setOptions(options);
+            start = moment(current).subtract(1, 'hours').startOf('hours');
+            end = moment(current).startOf('hours');
+
+            resizeDateRangePicker({
+                start,
+                end,
+            });
+
+            while (containerTimeline.firstChild) {
+                containerTimeline.removeChild(containerTimeline.firstChild);
+            }
+
+            times.clear();
+            times.add([
+                {
+                    id: 1,
+                    start,
+                    end, // end is optional
+                    content: 'selected period',
+                    style: 'color: white; background-color: #17a2b8; border-color: #0c7e90; text-align: center;',
+                    type: 'range',
+                    editable: {
+                        add: true,
+                        updateTime: true,
+                        updateGroup: false,
+                        remove: false,
+                        overrideItems: true,
+                    },
+                },
+                {
+                    id: 2,
+                    start: moment(msg.min),
+                    end: moment(msg.max),
+                    type: 'background',
+                    style: 'background-color: #eee;',
+                    editable: {
+                        add: false,
+                        updateTime: true,
+                        updateGroup: false,
+                        remove: false,
+                        overrideItems: true,
+                    },
+                },
+            ]);
+
+            timeline = new vis.Timeline(containerTimeline, times, options);
+            // timeline.setItems(times);
+            timeline.setSelection(1);
+            timeline.focus(1);
+
+            timeline.on('doubleClick', (properties) => {
+                const item = times.get(1);
+                const timeOffset = item.end.diff(item.start) / 2;
+                const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
+                const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
+
+                times.update({
+                    id: 1,
+                    start: startRescal.startOf('seconds'),
+                    end: endRescal.startOf('seconds'), // end is optional
+                });
+
+                resizeDateRangePicker({
+                    start,
+                    end,
+                });
+
+                timeline.focus(1);
+
+                sendMessageJson({
+                    cmd: 'timeline_seek',
+                    time: startRescal.unix() * 1000,
+                });
+            });
+
+            timeline.on('click', () => {
+                timeline.setSelection(1);
+            });
 
             sendMessageJson({
                 cmd: 'timeline_seek',
-                time: current.getTime(),
+                time: start.unix() * 1000,
             });
 
             break;
@@ -208,6 +326,12 @@ const onMessage = function (evt) {
             // FIXME: Stabilize?
             break;
 
+        case 'focus_timeline':
+            console.log('focus_timeline');
+
+            timeline.focus(1);
+            break;
+
         default:
             console.log(msg.cmd);
             console.log('response:', evt.data);
@@ -217,7 +341,6 @@ const onMessage = function (evt) {
 
 // eslint-disable-next-line no-unused-vars
 const doConnect = function () {
-    console.log('websocket established');
     websocket = new WebSocket('ws://localhost:8000/');
     websocket.onopen = onOpen;
     websocket.onclose = onClose;
@@ -225,9 +348,48 @@ const doConnect = function () {
     websocket.onerror = onError;
 };
 
-const init = function () {
-    // Initialize network
+const daterangepicker = function () {
+    const nowHour = globalContext._now.startOf('hour');
+    $('input[name="daterange"]').daterangepicker({
+        timePicker: true,
+        timePicker24Hour: true,
+        startDate: nowHour,
+        endDate: nowHour,
+        opens: 'left',
+        locale: {
+            format: 'DD.MM.YYYY HH:mm',
+        },
+    }, (start, end) => {
+        globalContext._privates.daterange = {
+            start,
+            end,
+        };
+        sendMessageJson({
+            cmd: 'timeline_seek',
+            time: start / 1,
+        });
+        times.update({
+            id: 1,
+            start: moment(start).startOf('seconds'),
+            end: moment(end).startOf('seconds'), // end is optional
+        });
+        timeline.focus(1);
+        /*
+        itemData.start = moment(start);
+        itemData.end = moment(end);
+        timeline.itemSet.items[0].setData(itemData);
+        timeline.itemSet.items[0].repositionX();
+        timeline.itemsData.update(itemData);
+        */
 
+        // console.log(`A new date selection was made: ${start.format('YYYY-MM-DD')} to ${end.format('YYYY-MM-DD')}`);
+    });
+};
+
+const init = function () {
+    daterangepicker();
+
+    // Initialize network
     const listElement = document.getElementById('colorizeList');
     settings.color.forEach((element) => {
         const divRow = document.createElement('div');
@@ -304,26 +466,6 @@ const init = function () {
 
     const containerNetwork = document.getElementById('mynetwork');
     network = new vis.Network(containerNetwork, data, optionsNetwork);
-
-    // Initialize timeline
-    const optionsTimeline = {
-        // showCurrentTime: true,
-        start: new Date(Date.now() - (1000 * 60 * 60 * 24)),
-        end: new Date(Date.now() + (1000 * 60 * 60 * 24 * 6)),
-        editable: false,
-    };
-
-    const containerTimeline = document.getElementById('mytimeline');
-    timeline = new vis.Timeline(containerTimeline, times, optionsTimeline);
-    timeline.addCustomTime(new Date(), 't1');
-    timeline.on('timechanged', (properties) => {
-        if (properties.id === 't1') {
-            sendMessageJson({
-                cmd: 'timeline_seek',
-                time: properties.time.getTime(),
-            });
-        }
-    });
 
     setTimeout(doConnect, 1000);
 

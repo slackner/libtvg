@@ -28,6 +28,7 @@ default_context = {
     },
     'defaultColor': '#bf8080',
     'nodeWeight': 'power_iteration',
+    'windowWidth': 600000,
 }
 
 class ComplexEncoder(json.JSONEncoder):
@@ -138,11 +139,11 @@ class Client(WebSocket):
 
     def event_connected(self):
         print(self.address, 'connected')
+        self.context = copy.deepcopy(default_context)
 
-        self.window = dataset_tvg.WindowDecay(600000, log_beta=np.log(0.93) / 1000.0)
+        self.window = dataset_tvg.WindowDecay(self.context['windowWidth'], log_beta=np.log(0.93) / 1000.0)
         self.window.eps = 1e-6
         self.ts = None
-        self.context = copy.deepcopy(default_context)
 
         # Set timeline min/max. The client can then seek to any position.
         min_ts = dataset_tvg.lookup_ge().ts
@@ -157,6 +158,7 @@ class Client(WebSocket):
 
         if msg['cmd'] == 'timeline_seek':
             self.timeline_seek(msg['time'])
+            self.send_message_json(cmd='focus_timeline');
             return
 
         elif msg['cmd'] == 'recolor_graph_nodes':
