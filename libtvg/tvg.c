@@ -358,7 +358,9 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
             ticks = clock_monotonic();
         }
 
-        if (line[read - 1] == '\n') line[read - 1] = 0;
+        if (line[read - 1] == '\n') line[--read] = 0;
+        if (read > 0 && line[read - 1] == '\r') line[--read] = 0;
+
         if (!line[0] || line[0] == '#' || line[0] == ';') continue;
 
         /* FIXME: Check that the full line was parsed. */
@@ -432,7 +434,9 @@ int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
 
     while ((read = getline(&line, &len, fp)) > 0)
     {
-        if (line[read - 1] == '\n') line[read - 1] = 0;
+        if (line[read - 1] == '\n') line[--read] = 0;
+        if (read > 0 && line[read - 1] == '\r') line[--read] = 0;
+
         if (!line[0] || line[0] == '#' || line[0] == ';') continue;
 
         if (sscanf(line, "%llu%n", &index, &offset) < 1)
