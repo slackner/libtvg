@@ -1231,6 +1231,7 @@ if __name__ == '__main__':
     import datetime
     import unittest
     import mockupdb
+    import tempfile
 
     class VectorTests(unittest.TestCase):
         def test_add_entry(self):
@@ -2083,6 +2084,60 @@ if __name__ == '__main__':
 
             self.assertEqual(timestamps, [100000])
             self.assertEqual(edges, [9097])
+
+            del tvg
+
+        def test_load_crlf(self):
+            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
+            with open(filename, "rb") as fp:
+                content = fp.read()
+
+            temp_graph = tempfile.NamedTemporaryFile()
+            temp_graph.write(content.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+            temp_graph.flush()
+
+            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.nodes")
+            with open(filename, "rb") as fp:
+                content = fp.read()
+
+            temp_nodes = tempfile.NamedTemporaryFile()
+            temp_nodes.write(content.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
+            temp_nodes.flush()
+
+            tvg = TVG.load(temp_graph.name, nodes=temp_nodes.name)
+            tvg.set_primary_key(["text"])
+
+            temp_graph.close()
+            temp_nodes.close()
+
+            l = tvg.node_by_index(1)
+            self.assertEqual(l.text, "polic")
+            l = tvg.node_by_index(362462)
+            self.assertEqual(l.text, "Jay Wright (basketball)")
+            with self.assertRaises(KeyError):
+                tvg.node_by_index(5)
+
+            l = tvg.node_by_text("polic")
+            self.assertEqual(l.index, 1)
+            l = tvg.node_by_text("Jay Wright (basketball)")
+            self.assertEqual(l.index, 362462)
+            with self.assertRaises(KeyError):
+                tvg.node_by_text("should-not-exist")
+
+            timestamps = []
+            edges = []
+            for g in tvg:
+                self.assertEqual(g.revision, 0)
+                timestamps.append(g.ts)
+                edges.append(g.num_edges)
+
+            self.assertEqual(timestamps, [      0,  130000,  141000,  164000,  176000,  272000,  376000,  465000,  666000,  682000,  696000,
+                                           770000,  848000, 1217000, 1236000, 1257000, 1266000, 1431000, 1515000, 1539000, 1579000, 1626000,
+                                          1763000, 1803000, 1834000, 1920000, 1967000, 2021000, 2188000, 2405000, 2482000, 2542000, 2551000,
+                                          2583000, 2591000, 2604000, 2620000, 2830000, 2852000, 2957000, 3008000])
+
+            self.assertEqual(edges, [155, 45, 1250, 90, 178, 85, 367, 98, 18, 528, 158, 201, 267, 214, 613, 567, 1, 137, 532, 59, 184,
+                                     40, 99, 285, 326, 140, 173, 315, 211, 120, 19, 137, 170, 42, 135, 348, 168, 132, 147, 218, 321])
 
             del tvg
 
