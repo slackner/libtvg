@@ -397,6 +397,18 @@ def libtvgobject(klass):
 
 @libtvgobject
 class Vector(object):
+    """
+    This object represents a vector of arbitrary / infinite dimension. To achieve that,
+    it only stores entries that are explicitly set, and assumes that all other entries
+    of the vector are zero. Internally, it uses hashing to map indices to buckets,
+    that are stored in contiguous blocks of memory and in sorted order for faster access.
+
+    # Arguments
+
+    nonzero: Enforce that all entries must be non-zero.
+    positive: Enforce that all entries must be positive.
+    """
+
     def __init__(self, nonzero=False, positive=False, obj=None):
         if obj is None:
             flags = 0
@@ -435,10 +447,19 @@ class Vector(object):
 
     @property
     def revision(self):
+        """
+        Return the current revision of the vector object. This value is incremented
+        whenever the vector is changed. It is also used by the @cacheable decorator
+        to check the cache validity.
+        """
         return self._obj.contents.revision
 
     @property
     def eps(self):
+        """
+        Get/set the current value of epsilon. This is used to determine whether an
+        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
+        """
         return self._obj.contents.eps
 
     @eps.setter
@@ -447,15 +468,31 @@ class Vector(object):
 
     @cacheable
     def empty(self):
+        """ Check if a vector is empty, i.e., if it does not have any entries. """
         return lib.vector_empty(self._obj)
 
     def has_entry(self, index):
+        """ Check if a vector has an entry with index `index`. """
         return lib.vector_has_entry(self._obj, index)
 
     def __getitem__(self, index):
+        """ Return entry `index` of the vector, or 0 if it doesn't exist. """
         return lib.vector_get_entry(self._obj, index)
 
     def entries(self, ret_indices=True, ret_weights=True):
+        """
+        Return all indices and/or weights of a vector.
+
+        # Arguments
+
+        ret_indices: Return indices, otherwise None.
+        ret_weights: Return weights, otherwise None.
+
+        # Returns
+
+        `(indices, weights)`
+        """
+
         num_entries = 100 # FIXME: Arbitrary limit.
         while True:
             max_entries = num_entries
@@ -475,17 +512,29 @@ class Vector(object):
     @property
     @cacheable
     def num_entries(self):
+        """ Return the number of entries of a vector. """
         return lib.vector_get_entries(self._obj, None, None, 0)
 
     def __len__(self):
+        """ Return the number of entries of a vector. """
         return self.num_entries
 
     def __setitem__(self, index, weight):
+        """ Set the entry with index `index` of a vector to `weight`. """
         res = lib.vector_set_entry(self._obj, index, weight)
         if not res:
             raise MemoryError
 
     def set_entries(self, indices, weights):
+        """
+        Short-cut to set multiple entries of a vector.
+
+        # Arguments
+
+        indices: List of indices (list or 1d numpy array).
+        weights: List of weights to set (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -503,11 +552,21 @@ class Vector(object):
             raise MemoryError
 
     def add_entry(self, index, weight):
+        """ Add weight `weight` to the entry with index `index`. """
         res = lib.vector_add_entry(self._obj, index, weight)
         if not res:
             raise MemoryError
 
     def add_entries(self, indices, weights):
+        """
+        Short-cut to update multiple entries of a vector by adding values.
+
+        # Arguments
+
+        indices: List of indices (list or 1d numpy array).
+        weights: List of weights to add (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -525,11 +584,21 @@ class Vector(object):
             raise MemoryError
 
     def sub_entry(self, index, weight):
+        """ Subtract weight `weight` from the entry with index `index`. """
         res = lib.vector_sub_entry(self._obj, index, weight)
         if not res:
             raise MemoryError
 
     def sub_entries(self, indices, weights):
+        """
+        Short-cut to update multiple entries of a vector by subtracting values.
+
+        # Arguments
+
+        indices: List of indices (list or 1d numpy array).
+        weights: List of weights to subtract (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -547,9 +616,18 @@ class Vector(object):
             raise MemoryError
 
     def __delitem__(self, index):
+        """ Delete entry `index` from the vector or do nothing if it doesn't exist. """
         lib.vector_del_entry(self._obj, index)
 
     def del_entries(self, indices):
+        """
+        Short-cut to delete multiple entries from a vector.
+
+        # Arguments
+
+        indices: List of indices (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
 
         if indices.size == 0:
@@ -560,18 +638,35 @@ class Vector(object):
         lib.vector_del_entries(self._obj, indices, indices.shape[0])
 
     def mul_const(self, constant):
+        """ Perform inplace element-wise multiplication of the vector with `constant`. """
         lib.vector_mul_const(self._obj, constant)
 
     @cacheable
     def norm(self):
+        """ Return the L2 norm of the vector. """
         return lib.vector_norm(self._obj)
 
     def mul_vector(self, other):
+        """ Compute the scalar product of the current vector with a second vector `other`. """
         # FIXME: Check type of 'other'.
         return lib.vector_mul_vector(self._obj, other._obj)
 
 @libtvgobject
 class Graph(object):
+    """
+    This object represents a graph of arbitrary / infinite dimension. To achieve that,
+    it only stores edges that are explicitly set, and assumes that all other edges
+    of the graph have a weight of zero. Internally, it uses hashing to map source and
+    target indices to buckets, that are stored in contiguous blocks of memory and in
+    sorted order for faster access.
+
+    # Arguments
+
+    nonzero: Enforce that all entries must be non-zero.
+    positive: Enforce that all entries must be positive.
+    directed: Create a directed graph.
+    """
+
     def __init__(self, nonzero=False, positive=False, directed=False, obj=None):
         if obj is None:
             flags = 0
@@ -611,10 +706,19 @@ class Graph(object):
 
     @property
     def revision(self):
+        """
+        Return the current revision of the graph object. This value is incremented
+        whenever the graph is changed. It is also used by the @cacheable decorator
+        to check the cache validity.
+        """
         return self._obj.contents.revision
 
     @property
     def eps(self):
+        """
+        Get/set the current value of epsilon. This is used to determine whether an
+        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
+        """
         return self._obj.contents.eps
 
     @eps.setter
@@ -623,10 +727,18 @@ class Graph(object):
 
     @property
     def ts(self):
+        """
+        Get the timestamp associated with this graph object. This only applies to
+        objects that are part of a time-varying graph.
+        """
         return self._obj.contents.ts
 
     @property
     def id(self):
+        """
+        Get the ID associated with this graph object. This only applies to objects
+        loaded from an external data source, e.g., from a MongoDB.
+        """
         return self._obj.contents.id
 
     @staticmethod
@@ -635,6 +747,17 @@ class Graph(object):
 
     @staticmethod
     def load_from_mongodb(mongodb, id, nonzero=False, positive=False, directed=False):
+        """
+        Load a single graph from a MongoDB database.
+
+        # Arguments
+
+        id: Identifier of the document to load
+        nonzero: Enforce that all entries must be non-zero.
+        positive: Enforce that all entries must be positive.
+        directed: Create a directed graph.
+        """
+
         flags = 0
         flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
         flags |= (TVG_FLAGS_POSITIVE if positive else 0)
@@ -648,27 +771,42 @@ class Graph(object):
     @property
     @cacheable
     def memory_usage(self):
+        """ Return the memory usage currently associated with the graph. """
         return lib.graph_memory_usage(self._obj)
 
     @property
     def next(self):
+        """ Return the (chronologically) next graph object. """
         obj = lib.next_graph(self._obj)
         return Graph(obj=obj) if obj else None
 
     @property
     def prev(self):
+        """ Return the (chronologically) previous graph object. """
         obj = lib.prev_graph(self._obj)
         return Graph(obj=obj) if obj else None
 
     def enable_delta(self):
+        """
+        Enable tracking of changes in a separate graph object. Whenever an edge of the
+        original graph is updated, the same change will also be performed on the delta
+        graph.
+        """
+
         res = lib.graph_enable_delta(self._obj)
         if not res:
             raise MemoryError
 
     def disable_delta(self):
+        """ Disable tracking of changes. """
         lib.graph_disable_delta(self._obj)
 
     def get_delta(self):
+        """
+        Return a reference to the delta graph, and the current multiplier. Those values
+        can be used to reconstruct the current graph if the previous state is known.
+        """
+
         mul = c_float()
         obj = lib.graph_get_delta(self._obj, mul)
         if not obj:
@@ -677,17 +815,33 @@ class Graph(object):
 
     @cacheable
     def empty(self):
+        """ Check if the graph is empty, i.e., it does not have any edges. """
         return lib.graph_empty(self._obj)
 
     def has_edge(self, indices):
+        """ Check if the graph has edge `(source, target)`. """
         (source, target) = indices
         return lib.graph_has_edge(self._obj, source, target)
 
     def __getitem__(self, indices):
+        """ Return the weight of edge `(source, target)`. """
         (source, target) = indices
         return lib.graph_get_edge(self._obj, source, target)
 
     def edges(self, ret_indices=True, ret_weights=True):
+        """
+        Return all indices and/or weights of a graph.
+
+        # Arguments
+
+        ret_indices: Return indices consisting of (source, target), otherwise None.
+        ret_weights: Return weights, otherwise None.
+
+        # Returns
+
+        `(indices, weights)`
+        """
+
         num_edges = 100 # FIXME: Arbitrary limit.
         while True:
             max_edges = num_edges
@@ -707,10 +861,15 @@ class Graph(object):
     @property
     @cacheable
     def num_edges(self):
+        """ Return the number of edges of a graph. """
         return lib.graph_get_edges(self._obj, None, None, 0)
 
     def nodes(self):
-        # Nodes are always implicit: A node exists when it is used as edge source or target.
+        """
+        Return a list of all nodes. A node is considered present, when it is connected
+        to at least one other node (either as a source or target).
+        """
+
         # FIXME: Add a C library helper?
         indices, _ = self.edges(ret_weights=False)
         return np.unique(indices)
@@ -718,9 +877,24 @@ class Graph(object):
     @property
     @cacheable
     def num_nodes(self):
+        """ Return the number of nodes of a graph. """
         return len(self.nodes())
 
     def adjacent_edges(self, source, ret_indices=True, ret_weights=True):
+        """
+        Return information about all edges adjacent to a given source edge.
+
+        # Arguments
+
+        source: Index of the source node.
+        ret_indices: Return target indices, otherwise None.
+        ret_weights: Return weights, otherwise None.
+
+        # Returns
+
+        `(indices, weights)`
+        """
+
         num_edges = 100 # FIXME: Arbitrary limit.
         while True:
             max_edges = num_edges
@@ -738,18 +912,30 @@ class Graph(object):
         return indices, weights
 
     def num_adjacent_edges(self, source):
+        """ Return the number of adjacent edges to a given `source` node, i.e., the node degree. """
         return lib.graph_get_adjacent_edges(self._obj, source, None, None, 0)
 
     def __len__(self):
+        """ Return the number of edges of a graph. """
         return self.num_edges
 
     def __setitem__(self, indices, weight):
+        """ Set edge `(source, target)` of a graph to `weight`."""
         (source, target) = indices
         res = lib.graph_set_edge(self._obj, source, target, weight)
         if not res:
             raise MemoryError
 
     def set_edges(self, indices, weights):
+        """
+        Short-cut to set multiple edges in a graph.
+
+        # Arguments
+
+        indices: List of indices (list of tuples or 2d numpy array).
+        weights: List of weights to set (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -767,12 +953,22 @@ class Graph(object):
             raise MemoryError
 
     def add_edge(self, indices, weight):
+        """ Add weight `weight` to edge `(source, target)`. """
         (source, target) = indices
         res = lib.graph_add_edge(self._obj, source, target, weight)
         if not res:
             raise MemoryError
 
     def add_edges(self, indices, weights):
+        """
+        Short-cut to update multiple edges of a graph by adding values.
+
+        # Arguments
+
+        indices: List of indices (list of tuples or 2d numpy array).
+        weights: List of weights to set (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -790,12 +986,22 @@ class Graph(object):
             raise MemoryError
 
     def sub_edge(self, indices, weight):
+        """ Subtract weight `weight` from edge `(source, target)`. """
         (source, target) = indices
         res = lib.graph_sub_edge(self._obj, source, target, weight)
         if not res:
             raise MemoryError
 
     def sub_edges(self, indices, weights):
+        """
+        Short-cut to update multiple edges of a graph by subtracting values.
+
+        # Arguments
+
+        indices: List of indices (list of tuples or 2d numpy array).
+        weights: List of weights to set (list or 1d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
         weights = np.asarray(weights, dtype=np.float32)
 
@@ -813,10 +1019,19 @@ class Graph(object):
             raise MemoryError
 
     def __delitem__(self, indices):
+        """ Delete edge `(source, target)` from the graph or do nothing if it doesn't exist. """
         (source, target) = indices
         lib.graph_del_edge(self._obj, source, target)
 
     def del_edges(self, indices):
+        """
+        Short-cut to delete multiple edges from a graph.
+
+        # Arguments
+
+        indices: List of indices (list of tuples or 2d numpy array).
+        """
+
         indices = np.asarray(indices, dtype=np.uint64)
 
         if indices.size == 0:
@@ -827,39 +1042,77 @@ class Graph(object):
         lib.graph_del_edges(self._obj, indices, indices.shape[0])
 
     def mul_const(self, constant):
+        """ Perform inplace element-wise multiplication of all graph edges with `constant`. """
         lib.graph_mul_const(self._obj, constant)
 
     def mul_vector(self, other):
+        """ Compute the matrix-vector product of the graph with vector `other`. """
         # FIXME: Check type of 'other'.
         return Vector(obj=lib.graph_mul_vector(self._obj, other._obj))
 
     def in_degrees(self):
+        """ Compute and return a vector of in-degrees. """
         return Vector(obj=lib.graph_in_degrees(self._obj))
 
     def in_weights(self):
+        """ Compute and return a vector of in-weights. """
         return Vector(obj=lib.graph_in_weights(self._obj))
 
     def out_degrees(self):
+        """ Compute and return a vector of out-degrees. """
         return Vector(obj=lib.graph_out_degrees(self._obj))
 
     def out_weights(self):
+        """ Compute and return a vector of out-weights. """
         return Vector(obj=lib.graph_out_weights(self._obj))
 
     def degree_anomalies(self):
+        """ Compute and return a vector of degree anomalies. """
         return Vector(obj=lib.graph_degree_anomalies(self._obj))
 
     def weight_anomalies(self):
+        """ Compute and return a vector of weight anomalies. """
         return Vector(obj=lib.graph_weight_anomalies(self._obj))
 
     def power_iteration(self, num_iterations=0, ret_eigenvalue=True):
+        """
+        Compute and return the eigenvector (and optionally the eigenvalue).
+
+        # Arguments
+
+        num_iterations: Number of iterations.
+        ret_eigenvalue: Also return the eigenvalue. This requires one more iteration.
+
+        # Returns
+
+        `(eigenvector, eigenvalue)`
+        """
+
         eigenvalue = c_double() if ret_eigenvalue else None
         vector = Vector(obj=lib.graph_power_iteration(self._obj, num_iterations, eigenvalue))
         if eigenvalue is not None:
             eigenvalue = eigenvalue.value
         return vector, eigenvalue
 
-    def bfs_count(self, source, max_count=0xffffffffffffffff):
+    def bfs_count(self, source, max_count=None):
+        """
+        Perform a breadth-first search in the graph, starting from node `source`.
+        In this version, the order is based solely on the number of links.
+
+        # Arguments
+
+        source: Index of the source node.
+        max_count: Maximum depth.
+
+        # Returns
+
+        List of tuples `(weight, count, edge_from, edge_to)`.
+        """
+
         result = []
+
+        if max_count is None:
+            max_count = 0xffffffffffffffff
 
         def wrapper(graph, entry, userdata):
             if entry.contents.count > max_count:
@@ -877,6 +1130,20 @@ class Graph(object):
         return result
 
     def bfs_weight(self, source, max_weight=np.inf):
+        """
+        Perform a breadth-first search in the graph, starting from node `source`.
+        In this version, the order is based on the sum of the weights.
+
+        # Arguments
+
+        source: Index of the source node.
+        max_weight: Maximum weight.
+
+        # Returns
+
+        List of tuples `(weight, count, edge_from, edge_to)`.
+        """
+
         result = []
 
         def wrapper(graph, entry, userdata):
@@ -895,6 +1162,24 @@ class Graph(object):
         return result
 
     def encode_visjs(self, node_attributes=None):
+        """
+        Encode a graph as a Python dictionary for parsing with visjs.
+
+        # Arguments
+
+        node_attributes: Function to query node attributes.
+
+        # Returns
+
+        Dictionary containing the following key-value pairs:
+
+        cmd: Either `"network_set"` for full updates, or `"network_update"` for partial updates.
+        nodes: List of nodes (with ids and custom attributes).
+        edges: List of edges (with ids and weights).
+        deleted_nodes: List of deleted node ids (only for `cmd = "network_update"`).
+        deleted_edges: List of deleted edge ids (only for `cmd = "network_update"`).
+        """
+
         if node_attributes is None:
             node_attributes = lambda i: {}
 
@@ -960,6 +1245,20 @@ class GraphIterReversed(object):
 
 @libtvgobject
 class Node(object):
+    """
+    This object represents a node. Since nodes are implicit in our model, they
+    should only have static attributes that do not depend on the timestamp.
+    For now, both node attribute keys and values are limited to the string type -
+    in the future this might be extended to other data types. Attributes related
+    to the primary key (that uniquely identify a node in the context of a time-
+    varying-graph) must be set before both objects are linked. All other attributes
+    can be set at any time.
+
+    # Arguments
+
+    **kwargs: Key-value pairs of type string to assign to the node.
+    """
+
     def __init__(self, obj=None, **kwargs):
         if obj is None:
             obj = lib.alloc_node()
@@ -979,27 +1278,38 @@ class Node(object):
 
     @property
     def index(self):
+        """ Return the index of the node. """
         return self._obj.contents.index
 
     @property
     def text(self):
+        """ Short-cut to return the 'text' attribute of a node. """
         return self["text"]
 
     def unlink(self):
+        """
+        Unlink the node from the time-varying graph. The node itself stays valid,
+        but it is no longer returned for any `node_by_index` or `node_by_primary_key`
+        call.
+        """
+
         lib.unlink_node(self._obj)
 
     def __setitem__(self, key, value):
+        """ Set the node attribute `key` to `value`. Both key and value must have the type string. """
         res = lib.node_set_attribute(self._obj, key.encode("utf-8"), value.encode("utf-8"))
         if not res:
             raise KeyError
 
     def __getitem__(self, key):
+        """ Return the node attribute for `key`. """
         value = lib.node_get_attribute(self._obj, key.encode("utf-8"))
         if not value:
             raise KeyError
         return value.decode("utf-8")
 
     def as_dict(self):
+        """ Return a dictionary containing all node attributes. """
         ptr = lib.node_get_attributes(self._obj)
         if not ptr:
             raise MemoryError
@@ -1016,6 +1326,17 @@ class Node(object):
 
 @libtvgobject
 class TVG(object):
+    """
+    This object represents a time-varying graph.
+
+    # Arguments
+
+    nonzero: Enforce that all entries must be non-zero.
+    positive: Enforce that all entries must be positive.
+    directed: Create a directed time-varying graph.
+    streaming: Support for streaming / differential updates.
+    """
+
     def __init__(self, nonzero=False, positive=False, directed=False, streaming=False, obj=None):
         if obj is None:
             flags = 0
@@ -1040,37 +1361,103 @@ class TVG(object):
         return self._obj.contents.flags
 
     def link_graph(self, graph, ts):
+        """
+        Link a graph to the time-varying-graph object.
+
+        # Arguments
+
+        graph: The graph to link.
+        ts: Time-stamp of the graph (as uint64, typically UNIX timestamp in milliseconds).
+        """
         res = lib.tvg_link_graph(self._obj, graph._obj, ts)
         if not res:
             raise RuntimeError
 
     def Graph(self, ts):
+        """ Create a new graph associated with the time-varying-graph object. """
         return Graph(obj=lib.tvg_alloc_graph(self._obj, ts))
 
     def set_primary_key(self, key):
+        """
+        Set or update the primary key used to distinguish graph nodes. The key can
+        consist of one or multiple attributes, and is used to identify a node
+        (especially, when loading from an external source, that does not use integer
+        identifiers).
+
+        # Arguments
+
+        key: List or semicolon separated string of attributes.
+        """
+
         if isinstance(key, list):
             key = ";".join(key)
         res = lib.tvg_set_primary_key(self._obj, key.encode("utf-8"))
         if not res:
             raise RuntimeError
 
-    def link_node(self, node, index=0xffffffffffffffff):
+    def link_node(self, node, index=None):
+        """
+        Link a node to the time-varying-graph object.
+
+        # Arguments
+
+        node: The node to link.
+        index: Index to assign to the node, or `None` if the next empty index should be used.
+        """
+
+        if index is None:
+            index = 0xffffffffffffffff
+
         res = lib.tvg_link_node(self._obj, node._obj, index)
         if not res:
             raise RuntimeError
 
     def Node(self, **kwargs):
+        """
+        Create a new node assicated with the graph. Note that all primary key attributes
+        must be set immediately during construction, it is not possible to change them later.
+
+        # Arguments
+
+        **kwargs: Key-value pairs of type string to assign to the node.
+        """
+
         node = Node(**kwargs)
         self.link_node(node)
         return node
 
     def node_by_index(self, index):
+        """
+        Lookup a node by index.
+
+        # Arguments
+
+        index: Index of the node.
+
+        # Returns
+
+        Node object.
+        """
+
         obj = lib.tvg_get_node_by_index(self._obj, index)
         if not obj:
             raise KeyError
         return Node(obj=obj)
 
     def node_by_primary_key(self, **kwargs):
+        """
+        Lookup a node by its primary key. This must match the primary key set with
+        `set_primary_key` (currently, a time-varying graph can only have one key).
+
+        # Arguments
+
+        **kwargs: Key-value pairs of the primary key.
+
+        # Returns
+
+        Node object.
+        """
+
         primary_key = Node(**kwargs)
         obj = lib.tvg_get_node_by_primary_key(self._obj, primary_key._obj)
         del primary_key
@@ -1079,10 +1466,21 @@ class TVG(object):
         return Node(obj=obj)
 
     def node_by_text(self, text):
+        """ Lookup a node by its text (assumes that `text` is the primary key). """
         return self.node_by_primary_key(text=text)
 
     @staticmethod
     def load(source, nodes=None, *args, **kwargs):
+        """
+        Load a time-varying-graph from an external data source.
+
+        # Arguments
+
+        source: Data source to load (currently either a file path, or a MongoDB object).
+        nodes: Secondary data source to load node attributes (must be a file path).
+        *args, **kwargs: Arguments passed through to the `TVG()` constructor.
+        """
+
         tvg = TVG(*args, **kwargs)
         if isinstance(source, MongoDB):
             tvg.load_graphs_from_mongodb(source)
@@ -1093,38 +1491,79 @@ class TVG(object):
         return tvg
 
     def load_graphs_from_file(self, filename):
+        """ Load a time-varying-graph (i.e., a collection of graphs) from a file. """
         res = lib.tvg_load_graphs_from_file(self._obj, filename.encode("utf-8"))
         if not res:
             raise IOError
 
     def load_nodes_from_file(self, filename):
+        """ Load node attributes from a file. """
         res = lib.tvg_load_nodes_from_file(self._obj, filename.encode("utf-8"))
         if not res:
             raise IOError
 
     def load_graphs_from_mongodb(self, mongodb):
+        """ Load a time-varying-graph (i.e., multiple graphs) from a MongoDB. """
         res = lib.tvg_load_graphs_from_mongodb(self._obj, mongodb._obj)
         if not res:
             raise IOError
 
     def enable_mongodb_sync(self, mongodb, batch_size=0, cache_size=0):
+        """
+        Enable synchronization with a MongoDB server. Whenever more data is needed
+        (e.g., querying the previous or next graph, or looking up graphs in a certain
+        range), requests are sent to the database. Each request loads up to
+        `batch_size` graphs. The total amount of data kept in memory can be controlled
+        with the `cache_size` parameter.
+
+        # Arguments
+
+        mongodb: MongoDB object.
+        batch_size: Maximum number of graphs to load in a single request.
+        cache_size: Maximum size of the cache (in bytes).
+        """
+
         res = lib.tvg_enable_mongodb_sync(self._obj, mongodb._obj, batch_size, cache_size)
         if not res:
             raise IOError
 
     def disable_mongodb_sync(self):
+        """ Disable synchronization with a MongoDB server. """
         lib.tvg_disable_mongodb_sync(self._obj)
 
     def __iter__(self):
+        """ Iterates through all graphs of a time-varying-graph object. """
         return GraphIter(self.lookup_ge())
 
     def __reversed__(self):
+        """ Iterates (in reverse order) through all graphs of a time-varying graph object. """
         return GraphIterReversed(self.lookup_le())
 
     def WindowRect(self, window_l, window_r):
+        """
+        Create a new rectangular filter window to aggregate data in a specific range
+        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+        considered.
+
+        # Arguments
+
+        window_l: Left boundary of the interval, relative to the timestamp.
+        window_r: Right boundary of the interval, relative to the timestamp.
+        """
+
         return Window(obj=lib.tvg_alloc_window_rect(self._obj, window_l, window_r))
 
     def WindowDecay(self, window, beta=None, log_beta=None):
+        """
+        Create a new exponential decay window to aggregate data in a specific range
+        around a fixed timestamp. Only graphs in [ts - window, window] are considered.
+
+        # Arguments
+
+        window: Amount of data in the past to consider.
+        beta: Exponential decay constant.
+        """
+
         if np.isinf(window):
             window = 0x7fffffffffffffff
         if log_beta is None:
@@ -1132,6 +1571,16 @@ class TVG(object):
         return Window(obj=lib.tvg_alloc_window_decay(self._obj, window, log_beta))
 
     def WindowSmooth(self, window, beta=None, log_beta=None):
+        """
+        Create a new exponential smoothing window to aggregate data in a specific range
+        around a fixed timestamp. Only graphs in [ts - window, window] are considered.
+
+        # Arguments
+
+        window: Amount of data in the past to consider.
+        beta: Exponential decay constant.
+        """
+
         if np.isinf(window):
             window = 0x7fffffffffffffff
         if log_beta is None:
@@ -1139,24 +1588,28 @@ class TVG(object):
         return Window(obj=lib.tvg_alloc_window_smooth(self._obj, window, log_beta))
 
     def lookup_ge(self, ts=0):
+        """ Search for the first graph with timestamps `>= ts`. """
         if isinstance(ts, float):
             ts = math.ceil(ts)
         obj = lib.tvg_lookup_graph_ge(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
     def lookup_le(self, ts=0xffffffffffffffff):
+        """ Search for the last graph with timestamps `<= ts`. """
         if isinstance(ts, float):
             ts = int(ts)
         obj = lib.tvg_lookup_graph_le(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
     def lookup_near(self, ts):
+        """ Search for a graph with a timestamp close to `ts`. """
         if isinstance(ts, float):
             ts = int(ts + 0.5)
         obj = lib.tvg_lookup_graph_near(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
     def compress(self, step, offset=0):
+        """ Compress the graph by aggregating timestamps differing by at most `step`. """
         if np.isinf(step):
             step = 0
         res = lib.tvg_compress(self._obj, step, offset)
@@ -1165,6 +1618,12 @@ class TVG(object):
 
 @libtvgobject
 class Window(object):
+    """
+    This object represents a sliding window, which can be used to extract and aggregate
+    data in a specific timeframe. Once the object has been created, most parameters can
+    not be changed anymore. Only the timestamp can be changed.
+    """
+
     def __init__(self, obj=None):
         if obj is None:
             raise NotImplementedError
@@ -1181,6 +1640,10 @@ class Window(object):
 
     @property
     def eps(self):
+        """
+        Get/set the current value of epsilon. This is used to determine whether an
+        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
+        """
         return self._obj.contents.eps
 
     @eps.setter
@@ -1189,16 +1652,59 @@ class Window(object):
 
     @property
     def ts(self):
+        """ Return the current timestamp of the window. """
         return self._obj.contents.ts
 
     def clear(self):
+        """"
+        Clear all additional data associated with the window, and force a full recompute
+        when the `update` function is used the next time.
+        """
+
         lib.window_clear(self._obj)
 
     def update(self, ts):
+        """
+        Move the sliding window to a new timestamp. Whenever possible, the previous state
+        will be reused to speed up the computation. For rectangular windows, for example,
+        it is sufficient to add data points that are moved into the interval, and to remove
+        data points that are now outside of the interval. For exponential windows, it is
+        also necessary to perform a multiplication of the full graph.
+
+        # Arguments
+
+        ts: New timestamp of the window.
+
+        # Returns
+
+        Graph object.
+        """
+
         return Graph(obj=lib.window_update(self._obj, ts))
 
 @libtvgobject
 class MongoDB(object):
+    """
+    This object represents a MongoDB connection.
+
+    # Arguments
+
+    uri: URI to identify the MongoDB server, e.g., mongodb://localhost.
+    database: Name of the database.
+
+    col_articles: Name of the articles collection.
+    article_id: Name of the article ID key.
+    article_time: Name of the article time key.
+
+    col_entities: Name of the entities collection.
+    entity_doc: Name of the entity doc key.
+    entity_sen: Name of the entity sen key.
+    entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
+
+    load_nodes: Load node attributes.
+    max_distance: Maximum distance of mentions.
+    """
+
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, load_nodes,
                  max_distance, obj=None):
