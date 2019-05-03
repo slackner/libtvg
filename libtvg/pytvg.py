@@ -404,7 +404,6 @@ class Vector(object):
     that are stored in contiguous blocks of memory and in sorted order for faster access.
 
     # Arguments
-
     nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     """
@@ -484,12 +483,10 @@ class Vector(object):
         Return all indices and/or weights of a vector.
 
         # Arguments
-
         ret_indices: Return indices, otherwise None.
         ret_weights: Return weights, otherwise None.
 
         # Returns
-
         `(indices, weights)`
         """
 
@@ -530,7 +527,6 @@ class Vector(object):
         Short-cut to set multiple entries of a vector.
 
         # Arguments
-
         indices: List of indices (list or 1d numpy array).
         weights: List of weights to set (list or 1d numpy array).
         """
@@ -562,7 +558,6 @@ class Vector(object):
         Short-cut to update multiple entries of a vector by adding values.
 
         # Arguments
-
         indices: List of indices (list or 1d numpy array).
         weights: List of weights to add (list or 1d numpy array).
         """
@@ -594,7 +589,6 @@ class Vector(object):
         Short-cut to update multiple entries of a vector by subtracting values.
 
         # Arguments
-
         indices: List of indices (list or 1d numpy array).
         weights: List of weights to subtract (list or 1d numpy array).
         """
@@ -624,7 +618,6 @@ class Vector(object):
         Short-cut to delete multiple entries from a vector.
 
         # Arguments
-
         indices: List of indices (list or 1d numpy array).
         """
 
@@ -661,7 +654,6 @@ class Graph(object):
     sorted order for faster access.
 
     # Arguments
-
     nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     directed: Create a directed graph.
@@ -751,7 +743,6 @@ class Graph(object):
         Load a single graph from a MongoDB database.
 
         # Arguments
-
         id: Identifier of the document to load
         nonzero: Enforce that all entries must be non-zero.
         positive: Enforce that all entries must be positive.
@@ -833,12 +824,10 @@ class Graph(object):
         Return all indices and/or weights of a graph.
 
         # Arguments
-
         ret_indices: Return indices consisting of (source, target), otherwise None.
         ret_weights: Return weights, otherwise None.
 
         # Returns
-
         `(indices, weights)`
         """
 
@@ -885,13 +874,11 @@ class Graph(object):
         Return information about all edges adjacent to a given source edge.
 
         # Arguments
-
         source: Index of the source node.
         ret_indices: Return target indices, otherwise None.
         ret_weights: Return weights, otherwise None.
 
         # Returns
-
         `(indices, weights)`
         """
 
@@ -931,7 +918,6 @@ class Graph(object):
         Short-cut to set multiple edges in a graph.
 
         # Arguments
-
         indices: List of indices (list of tuples or 2d numpy array).
         weights: List of weights to set (list or 1d numpy array).
         """
@@ -964,7 +950,6 @@ class Graph(object):
         Short-cut to update multiple edges of a graph by adding values.
 
         # Arguments
-
         indices: List of indices (list of tuples or 2d numpy array).
         weights: List of weights to set (list or 1d numpy array).
         """
@@ -997,7 +982,6 @@ class Graph(object):
         Short-cut to update multiple edges of a graph by subtracting values.
 
         # Arguments
-
         indices: List of indices (list of tuples or 2d numpy array).
         weights: List of weights to set (list or 1d numpy array).
         """
@@ -1028,7 +1012,6 @@ class Graph(object):
         Short-cut to delete multiple edges from a graph.
 
         # Arguments
-
         indices: List of indices (list of tuples or 2d numpy array).
         """
 
@@ -1079,12 +1062,10 @@ class Graph(object):
         Compute and return the eigenvector (and optionally the eigenvalue).
 
         # Arguments
-
         num_iterations: Number of iterations.
         ret_eigenvalue: Also return the eigenvalue. This requires one more iteration.
 
         # Returns
-
         `(eigenvector, eigenvalue)`
         """
 
@@ -1100,12 +1081,10 @@ class Graph(object):
         In this version, the order is based solely on the number of links.
 
         # Arguments
-
         source: Index of the source node.
         max_count: Maximum depth.
 
         # Returns
-
         List of tuples `(weight, count, edge_from, edge_to)`.
         """
 
@@ -1135,12 +1114,10 @@ class Graph(object):
         In this version, the order is based on the sum of the weights.
 
         # Arguments
-
         source: Index of the source node.
         max_weight: Maximum weight.
 
         # Returns
-
         List of tuples `(weight, count, edge_from, edge_to)`.
         """
 
@@ -1166,11 +1143,9 @@ class Graph(object):
         Encode a graph as a Python dictionary for parsing with visjs.
 
         # Arguments
-
         node_attributes: Function to query node attributes.
 
         # Returns
-
         Dictionary containing the following key-value pairs:
 
         cmd: Either `"network_set"` for full updates, or `"network_update"` for partial updates.
@@ -1255,7 +1230,6 @@ class Node(object):
     can be set at any time.
 
     # Arguments
-
     **kwargs: Key-value pairs of type string to assign to the node.
     """
 
@@ -1330,7 +1304,6 @@ class TVG(object):
     This object represents a time-varying graph.
 
     # Arguments
-
     nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     directed: Create a directed time-varying graph.
@@ -1365,7 +1338,6 @@ class TVG(object):
         Link a graph to the time-varying-graph object.
 
         # Arguments
-
         graph: The graph to link.
         ts: Time-stamp of the graph (as uint64, typically UNIX timestamp in milliseconds).
         """
@@ -1385,7 +1357,6 @@ class TVG(object):
         identifiers).
 
         # Arguments
-
         key: List or semicolon separated string of attributes.
         """
 
@@ -1400,7 +1371,6 @@ class TVG(object):
         Link a node to the time-varying-graph object.
 
         # Arguments
-
         node: The node to link.
         index: Index to assign to the node, or `None` if the next empty index should be used.
         """
@@ -1418,7 +1388,6 @@ class TVG(object):
         must be set immediately during construction, it is not possible to change them later.
 
         # Arguments
-
         **kwargs: Key-value pairs of type string to assign to the node.
         """
 
@@ -1431,11 +1400,9 @@ class TVG(object):
         Lookup a node by index.
 
         # Arguments
-
         index: Index of the node.
 
         # Returns
-
         Node object.
         """
 
@@ -1450,11 +1417,9 @@ class TVG(object):
         `set_primary_key` (currently, a time-varying graph can only have one key).
 
         # Arguments
-
         **kwargs: Key-value pairs of the primary key.
 
         # Returns
-
         Node object.
         """
 
@@ -1475,7 +1440,6 @@ class TVG(object):
         Load a time-varying-graph from an external data source.
 
         # Arguments
-
         source: Data source to load (currently either a file path, or a MongoDB object).
         nodes: Secondary data source to load node attributes (must be a file path).
         *args, **kwargs: Arguments passed through to the `TVG()` constructor.
@@ -1517,7 +1481,6 @@ class TVG(object):
         with the `cache_size` parameter.
 
         # Arguments
-
         mongodb: MongoDB object.
         batch_size: Maximum number of graphs to load in a single request.
         cache_size: Maximum size of the cache (in bytes).
@@ -1546,7 +1509,6 @@ class TVG(object):
         considered.
 
         # Arguments
-
         window_l: Left boundary of the interval, relative to the timestamp.
         window_r: Right boundary of the interval, relative to the timestamp.
         """
@@ -1559,7 +1521,6 @@ class TVG(object):
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
 
         # Arguments
-
         window: Amount of data in the past to consider.
         beta: Exponential decay constant.
         """
@@ -1576,7 +1537,6 @@ class TVG(object):
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
 
         # Arguments
-
         window: Amount of data in the past to consider.
         beta: Exponential decay constant.
         """
@@ -1672,11 +1632,9 @@ class Window(object):
         also necessary to perform a multiplication of the full graph.
 
         # Arguments
-
         ts: New timestamp of the window.
 
         # Returns
-
         Graph object.
         """
 
@@ -1688,7 +1646,6 @@ class MongoDB(object):
     This object represents a MongoDB connection.
 
     # Arguments
-
     uri: URI to identify the MongoDB server, e.g., mongodb://localhost.
     database: Name of the database.
 

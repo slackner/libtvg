@@ -161,9 +161,8 @@ that are stored in contiguous blocks of memory and in sorted order for faster ac
 
 __Arguments__
 
-
-nonzero: Enforce that all entries must be non-zero.
-positive: Enforce that all entries must be positive.
+- __nonzero__: Enforce that all entries must be non-zero.
+- __positive__: Enforce that all entries must be positive.
 
 
 ### eps
@@ -203,12 +202,10 @@ Return all indices and/or weights of a vector.
 
 __Arguments__
 
-
-ret_indices: Return indices, otherwise None.
-ret_weights: Return weights, otherwise None.
+- __ret_indices__: Return indices, otherwise None.
+- __ret_weights__: Return weights, otherwise None.
 
 __Returns__
-
 
 `(indices, weights)`
 
@@ -222,9 +219,8 @@ Short-cut to set multiple entries of a vector.
 
 __Arguments__
 
-
-indices: List of indices (list or 1d numpy array).
-weights: List of weights to set (list or 1d numpy array).
+- __indices__: List of indices (list or 1d numpy array).
+- __weights__: List of weights to set (list or 1d numpy array).
 
 
 ### add_entry
@@ -242,9 +238,8 @@ Short-cut to update multiple entries of a vector by adding values.
 
 __Arguments__
 
-
-indices: List of indices (list or 1d numpy array).
-weights: List of weights to add (list or 1d numpy array).
+- __indices__: List of indices (list or 1d numpy array).
+- __weights__: List of weights to add (list or 1d numpy array).
 
 
 ### sub_entry
@@ -262,9 +257,8 @@ Short-cut to update multiple entries of a vector by subtracting values.
 
 __Arguments__
 
-
-indices: List of indices (list or 1d numpy array).
-weights: List of weights to subtract (list or 1d numpy array).
+- __indices__: List of indices (list or 1d numpy array).
+- __weights__: List of weights to subtract (list or 1d numpy array).
 
 
 ### del_entries
@@ -276,8 +270,7 @@ Short-cut to delete multiple entries from a vector.
 
 __Arguments__
 
-
-indices: List of indices (list or 1d numpy array).
+- __indices__: List of indices (list or 1d numpy array).
 
 
 ### mul_const
@@ -311,10 +304,9 @@ sorted order for faster access.
 
 __Arguments__
 
-
-nonzero: Enforce that all entries must be non-zero.
-positive: Enforce that all entries must be positive.
-directed: Create a directed graph.
+- __nonzero__: Enforce that all entries must be non-zero.
+- __positive__: Enforce that all entries must be positive.
+- __directed__: Create a directed graph.
 
 
 ### eps
@@ -363,11 +355,10 @@ Load a single graph from a MongoDB database.
 
 __Arguments__
 
-
-id: Identifier of the document to load
-nonzero: Enforce that all entries must be non-zero.
-positive: Enforce that all entries must be positive.
-directed: Create a directed graph.
+- __id__: Identifier of the document to load
+- __nonzero__: Enforce that all entries must be non-zero.
+- __positive__: Enforce that all entries must be positive.
+- __directed__: Create a directed graph.
 
 
 ### enable_delta
@@ -416,12 +407,10 @@ Return all indices and/or weights of a graph.
 
 __Arguments__
 
-
-ret_indices: Return indices consisting of (source, target), otherwise None.
-ret_weights: Return weights, otherwise None.
+- __ret_indices__: Return indices consisting of (source, target), otherwise None.
+- __ret_weights__: Return weights, otherwise None.
 
 __Returns__
-
 
 `(indices, weights)`
 
@@ -444,13 +433,11 @@ Return information about all edges adjacent to a given source edge.
 
 __Arguments__
 
-
-source: Index of the source node.
-ret_indices: Return target indices, otherwise None.
-ret_weights: Return weights, otherwise None.
+- __source__: Index of the source node.
+- __ret_indices__: Return target indices, otherwise None.
+- __ret_weights__: Return weights, otherwise None.
 
 __Returns__
-
 
 `(indices, weights)`
 
@@ -470,9 +457,8 @@ Short-cut to set multiple edges in a graph.
 
 __Arguments__
 
-
-indices: List of indices (list of tuples or 2d numpy array).
-weights: List of weights to set (list or 1d numpy array).
+- __indices__: List of indices (list of tuples or 2d numpy array).
+- __weights__: List of weights to set (list or 1d numpy array).
 
 
 ### add_edge
@@ -490,9 +476,8 @@ Short-cut to update multiple edges of a graph by adding values.
 
 __Arguments__
 
-
-indices: List of indices (list of tuples or 2d numpy array).
-weights: List of weights to set (list or 1d numpy array).
+- __indices__: List of indices (list of tuples or 2d numpy array).
+- __weights__: List of weights to set (list or 1d numpy array).
 
 
 ### sub_edge
@@ -510,9 +495,8 @@ Short-cut to update multiple edges of a graph by subtracting values.
 
 __Arguments__
 
-
-indices: List of indices (list of tuples or 2d numpy array).
-weights: List of weights to set (list or 1d numpy array).
+- __indices__: List of indices (list of tuples or 2d numpy array).
+- __weights__: List of weights to set (list or 1d numpy array).
 
 
 ### del_edges
@@ -524,8 +508,7 @@ Short-cut to delete multiple edges from a graph.
 
 __Arguments__
 
-
-indices: List of indices (list of tuples or 2d numpy array).
+- __indices__: List of indices (list of tuples or 2d numpy array).
 
 
 ### mul_const
@@ -585,12 +568,10 @@ Compute and return the eigenvector (and optionally the eigenvalue).
 
 __Arguments__
 
-
-num_iterations: Number of iterations.
-ret_eigenvalue: Also return the eigenvalue. This requires one more iteration.
+- __num_iterations__: Number of iterations.
+- __ret_eigenvalue__: Also return the eigenvalue. This requires one more iteration.
 
 __Returns__
-
 
 `(eigenvector, eigenvalue)`
 
@@ -605,12 +586,10 @@ In this version, the order is based solely on the number of links.
 
 __Arguments__
 
-
-source: Index of the source node.
-max_count: Maximum depth.
+- __source__: Index of the source node.
+- __max_count__: Maximum depth.
 
 __Returns__
-
 
 List of tuples `(weight, count, edge_from, edge_to)`.
 
@@ -625,12 +604,10 @@ In this version, the order is based on the sum of the weights.
 
 __Arguments__
 
-
-source: Index of the source node.
-max_weight: Maximum weight.
+- __source__: Index of the source node.
+- __max_weight__: Maximum weight.
 
 __Returns__
-
 
 List of tuples `(weight, count, edge_from, edge_to)`.
 
@@ -644,13 +621,11 @@ Encode a graph as a Python dictionary for parsing with visjs.
 
 __Arguments__
 
-
-node_attributes: Function to query node attributes.
+- __node_attributes__: Function to query node attributes.
 
 __Returns__
 
-
-Dictionary containing the following key-value pairs:
+`Dictionary containing the following key-value pairs`:
 
 cmd: Either `"network_set"` for full updates, or `"network_update"` for partial updates.
 nodes: List of nodes (with ids and custom attributes).
@@ -674,8 +649,7 @@ can be set at any time.
 
 __Arguments__
 
-
-**kwargs: Key-value pairs of type string to assign to the node.
+- __**kwargs__: Key-value pairs of type string to assign to the node.
 
 
 ### index
@@ -709,11 +683,10 @@ This object represents a time-varying graph.
 
 __Arguments__
 
-
-nonzero: Enforce that all entries must be non-zero.
-positive: Enforce that all entries must be positive.
-directed: Create a directed time-varying graph.
-streaming: Support for streaming / differential updates.
+- __nonzero__: Enforce that all entries must be non-zero.
+- __positive__: Enforce that all entries must be positive.
+- __directed__: Create a directed time-varying graph.
+- __streaming__: Support for streaming / differential updates.
 
 
 ### link_graph
@@ -725,9 +698,8 @@ Link a graph to the time-varying-graph object.
 
 __Arguments__
 
-
-graph: The graph to link.
-ts: Time-stamp of the graph (as uint64, typically UNIX timestamp in milliseconds).
+- __graph__: The graph to link.
+- __ts__: Time-stamp of the graph (as uint64, typically UNIX timestamp in milliseconds).
 
 
 ### Graph
@@ -748,8 +720,7 @@ identifiers).
 
 __Arguments__
 
-
-key: List or semicolon separated string of attributes.
+- __key__: List or semicolon separated string of attributes.
 
 
 ### link_node
@@ -761,9 +732,8 @@ Link a node to the time-varying-graph object.
 
 __Arguments__
 
-
-node: The node to link.
-index: Index to assign to the node, or `None` if the next empty index should be used.
+- __node__: The node to link.
+- __index__: Index to assign to the node, or `None` if the next empty index should be used.
 
 
 ### Node
@@ -776,8 +746,7 @@ must be set immediately during construction, it is not possible to change them l
 
 __Arguments__
 
-
-**kwargs: Key-value pairs of type string to assign to the node.
+- __**kwargs__: Key-value pairs of type string to assign to the node.
 
 
 ### node_by_index
@@ -789,11 +758,9 @@ Lookup a node by index.
 
 __Arguments__
 
-
-index: Index of the node.
+- __index__: Index of the node.
 
 __Returns__
-
 
 Node object.
 
@@ -808,11 +775,9 @@ Lookup a node by its primary key. This must match the primary key set with
 
 __Arguments__
 
-
-**kwargs: Key-value pairs of the primary key.
+- __**kwargs__: Key-value pairs of the primary key.
 
 __Returns__
-
 
 Node object.
 
@@ -829,10 +794,9 @@ Load a time-varying-graph from an external data source.
 
 __Arguments__
 
-
-source: Data source to load (currently either a file path, or a MongoDB object).
-nodes: Secondary data source to load node attributes (must be a file path).
-*args, **kwargs: Arguments passed through to the `TVG()` constructor.
+- __source__: Data source to load (currently either a file path, or a MongoDB object).
+- __nodes__: Secondary data source to load node attributes (must be a file path).
+- __*args, **kwargs__: Arguments passed through to the `TVG()` constructor.
 
 
 ### load_graphs_from_file
@@ -866,10 +830,9 @@ with the `cache_size` parameter.
 
 __Arguments__
 
-
-mongodb: MongoDB object.
-batch_size: Maximum number of graphs to load in a single request.
-cache_size: Maximum size of the cache (in bytes).
+- __mongodb__: MongoDB object.
+- __batch_size__: Maximum number of graphs to load in a single request.
+- __cache_size__: Maximum size of the cache (in bytes).
 
 
 ### disable_mongodb_sync
@@ -889,9 +852,8 @@ considered.
 
 __Arguments__
 
-
-window_l: Left boundary of the interval, relative to the timestamp.
-window_r: Right boundary of the interval, relative to the timestamp.
+- __window_l__: Left boundary of the interval, relative to the timestamp.
+- __window_r__: Right boundary of the interval, relative to the timestamp.
 
 
 ### WindowDecay
@@ -904,9 +866,8 @@ around a fixed timestamp. Only graphs in [ts - window, window] are considered.
 
 __Arguments__
 
-
-window: Amount of data in the past to consider.
-beta: Exponential decay constant.
+- __window__: Amount of data in the past to consider.
+- __beta__: Exponential decay constant.
 
 
 ### WindowSmooth
@@ -919,9 +880,8 @@ around a fixed timestamp. Only graphs in [ts - window, window] are considered.
 
 __Arguments__
 
-
-window: Amount of data in the past to consider.
-beta: Exponential decay constant.
+- __window__: Amount of data in the past to consider.
+- __beta__: Exponential decay constant.
 
 
 ### lookup_ge
@@ -989,11 +949,9 @@ also necessary to perform a multiplication of the full graph.
 
 __Arguments__
 
-
-ts: New timestamp of the window.
+- __ts__: New timestamp of the window.
 
 __Returns__
-
 
 Graph object.
 
@@ -1018,9 +976,8 @@ This object represents a MongoDB connection.
 
 __Arguments__
 
-
-uri: URI to identify the MongoDB server, e.g., mongodb://localhost.
-database: Name of the database.
+- __uri__: URI to identify the MongoDB server, e.g., mongodb://localhost.
+- __database__: Name of the database.
 
 col_articles: Name of the articles collection.
 article_id: Name of the article ID key.

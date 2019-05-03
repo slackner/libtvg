@@ -22,5 +22,4 @@ sed -i "s/^@libtvgobject$//g" pytvg.py
 pydocmd simple pytvg++ > "$REPODIR/PYTVG.md"
 
 cd "$REPODIR"
-git add PYTVG.md
 rm -rf "$TEMPDIR"
