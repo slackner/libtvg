@@ -19,7 +19,7 @@ sed -i "/^class c_.*/a \\    def __init__(self, *args, **kwargs):\\n        supe
 sed -i "s/^@libtvgobject$//g" pytvg.py
 # FIXME: Hide internal types.
 
-pydocmd simple pytvg++ > "$REPODIR/PYTVG.md"
+pydocmd simple pytvg++ > "$REPODIR/docs/pytvg.md"
 
 cd "$REPODIR"
 rm -rf "$TEMPDIR"

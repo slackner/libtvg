@@ -52,24 +52,13 @@ To run tests for the Python 3 bindings, execute:
 ./libtvg/pytvg.py
 ```
 
-Time Varying Graph File Format
-==============================
+Documentation
+=============
 
-Most programs contained in this package require graph data with the following
-input format:
+Documentation can be found in the `docs/` directory.
 
-```
-# Lines starting with '#' are ignored
-StartNode EndNode Weight Timestamp  \
-StartNode EndNode Weight Timestamp   } Edges
-StartNode EndNode Weight Timestamp  /
-[...]
-```
-
-Lines starting with "#" are comments and have to be ignored. All remaining
-lines describe edges. Each edge is defined by a start node ID, an end node ID,
-a weight, and a timestamp. The node IDs can be arbitrary integers between 0 and
-2^64 - 1. An example graph can be seen in src/data/example-tvg.graph.
+* `docs/pytvg.md` describes how to use API functions provided by `pytvg`.
+* `docs/load-tvg.md` describes different ways to load time varying graphs.
 
 Usage Example
 =============
