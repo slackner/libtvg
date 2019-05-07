@@ -278,7 +278,7 @@ lib.tvg_alloc_graph.restype = c_graph_p
 lib.tvg_set_primary_key.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_set_primary_key.restype = c_int
 
-lib.tvg_link_node.argtypes = (c_tvg_p, c_node_p, c_uint64)
+lib.tvg_link_node.argtypes = (c_tvg_p, c_node_p, POINTER(c_node_p), c_uint64)
 lib.tvg_link_node.restype = c_int
 
 lib.tvg_get_node_by_index.argtypes = (c_tvg_p, c_uint64)
@@ -1378,7 +1378,7 @@ class TVG(object):
         if index is None:
             index = 0xffffffffffffffff
 
-        res = lib.tvg_link_node(self._obj, node._obj, index)
+        res = lib.tvg_link_node(self._obj, node._obj, None, index)
         if not res:
             raise RuntimeError
 
@@ -1392,7 +1392,15 @@ class TVG(object):
         """
 
         node = Node(**kwargs)
-        self.link_node(node)
+
+        obj = c_node_p()
+        res = lib.tvg_link_node(self._obj, node._obj, obj, 0xffffffffffffffff)
+        if not res:
+            del node
+            if not obj:
+                raise RuntimeError
+            node = Node(obj=obj)
+
         return node
 
     def node_by_index(self, index):
@@ -2608,7 +2616,7 @@ if __name__ == '__main__':
             tvg = TVG()
             tvg.set_primary_key("text")
 
-            l = tvg.Node(text="A")
+            l = tvg.Node(text="A", other="sample text")
             self.assertEqual(l.index, 0)
             self.assertEqual(l.text, "A")
             l = tvg.Node(text="B")
@@ -2621,8 +2629,10 @@ if __name__ == '__main__':
             self.assertEqual(l.index, 3)
             self.assertEqual(l.text, "D")
 
-            with self.assertRaises(RuntimeError):
-                tvg.Node(text="A")
+            l = tvg.Node(text="A")
+            self.assertEqual(l.index, 0)
+            self.assertEqual(l.text, "A")
+            self.assertEqual(l['other'], "sample text")
 
             l = tvg.node_by_index(1)
             self.assertEqual(l.index, 1)
@@ -2663,7 +2673,7 @@ if __name__ == '__main__':
             self.assertEqual(l.index, 0xffffffffffffffff)
             with self.assertRaises(RuntimeError):
                 tvg.link_node(l)
-            self.assertEqual(l.index, 4)
+            self.assertEqual(l.index, 0xffffffffffffffff)
 
             del tvg
 

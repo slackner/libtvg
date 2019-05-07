@@ -863,7 +863,7 @@ struct vector *graph_weight_anomalies(const struct graph *graph)
     return vector;
 }
 
-struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out)
+struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *ret_eigenvalue)
 {
     struct vector *vector;
     struct vector *temp;
@@ -900,14 +900,14 @@ struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_ite
         vector_mul_const(vector, (float)(1.0 / vector_norm(vector)));
     }
 
-    if (eigenvalue_out)
+    if (ret_eigenvalue)
     {
         if (!(temp = graph_mul_vector(graph, vector)))
         {
             free_vector(vector);
             return NULL;
         }
-        *eigenvalue_out = vector_mul_vector(vector, temp);
+        *ret_eigenvalue = vector_mul_vector(vector, temp);
         free_vector(temp);
     }
 

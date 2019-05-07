@@ -1327,7 +1327,7 @@ struct vector *graph_out_weights(const struct graph *graph);
 struct vector *graph_degree_anomalies(const struct graph *graph);
 struct vector *graph_weight_anomalies(const struct graph *graph);
 
-struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *eigenvalue_out);
+struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *ret_eigenvalue);
 
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
               const struct bfs_entry *, void *), void *userdata);
@@ -1355,7 +1355,7 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
 struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
 int tvg_set_primary_key(struct tvg *tvg, const char *key);
-int tvg_link_node(struct tvg *tvg, struct node *node, uint64_t index);
+int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, uint64_t index);
 struct node *tvg_get_node_by_index(struct tvg *tvg, uint64_t index);
 struct node *tvg_get_node_by_primary_key(struct tvg *tvg, struct node *primary_key);
 

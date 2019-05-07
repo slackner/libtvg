@@ -255,6 +255,7 @@ static int bson_iter_init_find_key(bson_iter_t *iter, const bson_t *bson, const 
 static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
                              struct mongodb_config *config, uint64_t *value)
 {
+    struct node *other_node;
     struct node *node;
     bson_iter_t iter;
     const char *next;
@@ -297,8 +298,12 @@ static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
         key = next + 1;
     }
 
-    /* node->index will be filled out even when a collision is detected */
-    tvg_link_node(tvg, node, ~0ULL);
+    if (!tvg_link_node(tvg, node, &other_node, ~0ULL))
+    {
+        free_node(node);
+        if (!(node = other_node)) goto error;
+    }
+
     *value = node->index;
     ret = 1;
 

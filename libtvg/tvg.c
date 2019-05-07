@@ -240,10 +240,13 @@ error:
     return 0;
 }
 
-int tvg_link_node(struct tvg *tvg, struct node *node, uint64_t index)
+int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, uint64_t index)
 {
     struct node *other_node;
     uint32_t hash_ind, hash_key;
+
+    if (ret_node)
+        *ret_node = NULL;
 
     if (node->tvg)
         return 0;
@@ -255,7 +258,7 @@ int tvg_link_node(struct tvg *tvg, struct node *node, uint64_t index)
             assert(other_node->tvg == tvg);
             if (node_equal_key(tvg, node, other_node))
             {
-                node->index = other_node->index;
+                if (ret_node) *ret_node = grab_node(other_node);
                 return 0;  /* collision */
             }
         }
@@ -466,7 +469,7 @@ int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
             goto error;
         }
 
-        if (!tvg_link_node(tvg, node, index))
+        if (!tvg_link_node(tvg, node, NULL, index))
         {
             fprintf(stderr, "%s: Index %llu or text '%s' already used?\n", __func__, index, text);
             free_node(node);
