@@ -17,6 +17,8 @@
 
 #include "list.h"
 
+#define LIBTVG_API_VERSION  0x00000001ULL
+
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
 #define TVG_FLAGS_DIRECTED  0x00000004U  /* edges are directed */
@@ -1232,6 +1234,10 @@ static inline int __node_next_primary_attribute2(struct _node_primary_attr_iter2
 
 #define NODE_FOR_EACH_PRIMARY_ATTRIBUTE2(_tvg, _node1, _attr1, _node2, _attr2) \
     _NODE_FOR_EACH_PRIMARY_ATTRIBUTE2((_tvg), (_node1), (_attr1), (_node2), (_attr2), _UNIQUE_VARIABLE(__iter_))
+
+/* init function */
+
+int init_libtvg(uint64_t api_version);
 
 /* vector functions */
 

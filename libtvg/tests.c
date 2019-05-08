@@ -1134,6 +1134,12 @@ int main(void)
 {
     srand((unsigned int)time(NULL));
 
+    if (!init_libtvg(LIBTVG_API_VERSION))
+    {
+        fprintf(stderr, "Incompatible libtvg library! Try to run 'make'.\n");
+        exit(1);
+    }
+
     test_alloc_vector();
     test_alloc_graph();
     test_alloc_tvg();

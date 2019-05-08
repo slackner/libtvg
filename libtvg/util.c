@@ -10,6 +10,12 @@
 
 #include "internal.h"
 
+int init_libtvg(uint64_t api_version)
+{
+    /* For now just check that the API version matches. */
+    return (api_version == LIBTVG_API_VERSION);
+}
+
 void progress(const char *format, ...)
 {
     static int last_len;
