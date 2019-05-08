@@ -1308,9 +1308,10 @@ class TVG(object):
     positive: Enforce that all entries must be positive.
     directed: Create a directed time-varying graph.
     streaming: Support for streaming / differential updates.
+    primary_key: List or semicolon separated string of attributes.
     """
 
-    def __init__(self, nonzero=False, positive=False, directed=False, streaming=False, obj=None):
+    def __init__(self, nonzero=False, positive=False, directed=False, streaming=False, primary_key=None, obj=None):
         if obj is None:
             flags = 0
             flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
@@ -1322,6 +1323,9 @@ class TVG(object):
         self._obj = obj
         if not obj:
             raise MemoryError
+
+        if primary_key:
+            self.set_primary_key(primary_key)
 
     def __del__(self):
         if lib is None:
@@ -2575,8 +2579,7 @@ if __name__ == '__main__':
             temp_nodes.write(content.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))
             temp_nodes.flush()
 
-            tvg = TVG.load(temp_graph.name, nodes=temp_nodes.name)
-            tvg.set_primary_key(["text"])
+            tvg = TVG.load(temp_graph.name, nodes=temp_nodes.name, primary_key=["text"])
 
             temp_graph.close()
             temp_nodes.close()
@@ -3050,7 +3053,7 @@ if __name__ == '__main__':
                     self.assertEqual(g.num_edges, 0)
 
         def test_load(self):
-            future = mockupdb.go(TVG.load, self.db)
+            future = mockupdb.go(TVG.load, self.db, primary_key="dummy")
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")

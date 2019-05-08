@@ -107,12 +107,16 @@ db = pytvg.MongoDB("mongodb://localhost:27017", # URI
 To load the full database content into memory, the following code can be used:
 
 ```python
-tvg = pytvg.TVG.load(db)
+tvg = pytvg.TVG.load(db, primary_key="attr1")
 ```
 
 If `load_nodes` is set to `False`, the entity ID column must contain integer
-values. If it is set to `True`, the entity ID column can be a semicolon
-separated list of attributes to load for each node, e.g., `"attr1;attr2;attr3"`.
+values. In this case setting a primary key can be skipped. If it is set to
+`True`, nodes will created for entities, whenever they first appear in the
+dataset. In this case, the entity ID column can be a semicolon separated list
+of attributes to load for each node, e.g., `"attr1;attr2;attr3"`. Besides the
+attributes that form the primary key, this can also include additional keys
+that should be loaded from the dataset.
 
 Be aware that this method is still only suitable for small to medium sized
 collections, since the full dataset is kept in memory. Also, the generated graphs

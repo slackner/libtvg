@@ -676,7 +676,12 @@ Return a dictionary containing all node attributes.
 
 ## TVG
 ```python
-TVG(nonzero=False, positive=False, directed=False, streaming=False, obj=None)
+TVG(nonzero=False,
+    positive=False,
+    directed=False,
+    streaming=False,
+    primary_key=None,
+    obj=None)
 ```
 
 This object represents a time-varying graph.
@@ -687,6 +692,7 @@ __Arguments__
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed time-varying graph.
 - __streaming__: Support for streaming / differential updates.
+- __primary_key__: List or semicolon separated string of attributes.
 
 
 ### link_graph
