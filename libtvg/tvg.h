@@ -95,9 +95,6 @@ struct graph
     uint32_t    bits_target; /* 0...31 */
     struct bucket2 *buckets;
     uint64_t    optimize;
-
-    struct graph *delta;
-    float       delta_mul;
 };
 
 struct attribute
@@ -1287,10 +1284,6 @@ uint64_t graph_memory_usage(struct graph *graph);
 struct graph *prev_graph(struct graph *graph);
 struct graph *next_graph(struct graph *graph);
 
-int graph_enable_delta(struct graph *graph);
-void graph_disable_delta(struct graph *graph);
-struct graph *graph_get_delta(struct graph *graph, float *mul);
-
 int graph_inc_bits_target(struct graph *graph);
 int graph_dec_bits_target(struct graph *graph);
 int graph_inc_bits_source(struct graph *graph);
@@ -1393,7 +1386,6 @@ void free_window(struct window *window);
 void window_set_eps(struct window *window, float eps);
 void window_clear(struct window *window);
 struct graph *window_update(struct window *window, uint64_t ts);
-struct graph *window_get_delta(struct window *window, float *mul);
 
 /* MongoDB functions */
 

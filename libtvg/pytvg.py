@@ -177,14 +177,6 @@ lib.prev_graph.restype = c_graph_p
 lib.next_graph.argtypes = (c_graph_p,)
 lib.next_graph.restype = c_graph_p
 
-lib.graph_enable_delta.argtypes = (c_graph_p,)
-lib.graph_enable_delta.restype = c_int
-
-lib.graph_disable_delta.argtypes = (c_graph_p,)
-
-lib.graph_get_delta.argtypes = (c_graph_p, POINTER(c_float))
-lib.graph_get_delta.restype = c_graph_p
-
 lib.graph_set_eps.argtypes = (c_graph_p, c_float)
 
 lib.graph_empty.argtypes = (c_graph_p,)
@@ -790,33 +782,6 @@ class Graph(object):
         obj = lib.prev_graph(self._obj)
         return Graph(obj=obj) if obj else None
 
-    def enable_delta(self):
-        """
-        Enable tracking of changes in a separate graph object. Whenever an edge of the
-        original graph is updated, the same change will also be performed on the delta
-        graph.
-        """
-
-        res = lib.graph_enable_delta(self._obj)
-        if not res:
-            raise MemoryError
-
-    def disable_delta(self):
-        """ Disable tracking of changes. """
-        lib.graph_disable_delta(self._obj)
-
-    def get_delta(self):
-        """
-        Return a reference to the delta graph, and the current multiplier. Those values
-        can be used to reconstruct the current graph if the previous state is known.
-        """
-
-        mul = c_float()
-        obj = lib.graph_get_delta(self._obj, mul)
-        if not obj:
-            return (None, None)
-        return Graph(obj=obj), mul.value
-
     @cacheable
     def empty(self):
         """ Check if the graph is empty, i.e., it does not have any edges. """
@@ -1177,32 +1142,11 @@ class Graph(object):
         for i in self.nodes():
             nodes.append({'id': i, **node_attributes(i)})
 
-        delta, mul = self.get_delta()
-        if delta is None:
-            indices, weights = self.edges()
-            for i, w in zip(indices, weights):
-                edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
-
-            return {'cmd': 'network_set', 'nodes': nodes, 'edges': edges}
-
-        deleted_nodes = set()
-        deleted_edges = []
-
-        indices, weights = delta.edges()
+        indices, weights = self.edges()
         for i, w in zip(indices, weights):
-            if w > 0.0:
-                edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
-                continue
-            deleted_edges.append({'id': "%d-%d" % (i[0], i[1])})
-            if self.num_adjacent_edges(i[0]) == 0:
-                deleted_nodes.add(i[0])
-            if self.num_adjacent_edges(i[1]) == 0:
-                deleted_nodes.add(i[1])
+            edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
 
-        deleted_nodes = [{'id': x} for x in deleted_nodes]
-        return {'cmd': 'network_update', 'mul':mul,
-                'nodes': nodes, 'deleted_nodes': deleted_nodes,
-                'edges': edges, 'deleted_edges': deleted_edges}
+        return {'cmd': 'network_set', 'nodes': nodes, 'edges': edges}
 
 class GraphIter(object):
     def __init__(self, graph):
@@ -2296,47 +2240,6 @@ if __name__ == '__main__':
             else:
                 self.assertTrue(False)
 
-        def test_delta(self):
-            g = Graph()
-            g[0, 0] = 1.0
-            g[0, 1] = 2.0
-            g[0, 2] = 3.0
-            g.enable_delta()
-            del g[0, 0]
-            g[0, 1] = 3.0
-            g.mul_const(2.0)
-            d, m = g.get_delta()
-            self.assertNotEqual(d, None)
-            self.assertEqual(m, 2.0)
-            indices, weights = d.edges()
-            self.assertEqual(indices.tolist(), [[0, 0], [0, 1]])
-            self.assertEqual(weights.tolist(), [0.0, 6.0])
-            g.disable_delta()
-            d, m = g.get_delta()
-            self.assertEqual(d, None)
-            self.assertEqual(m, None)
-            del g
-
-            g = Graph(directed=True)
-            g[0, 0] = 1.0
-            g[0, 1] = 2.0
-            g[0, 2] = 3.0
-            g.enable_delta()
-            del g[0, 0]
-            g[0, 1] = 3.0
-            g.mul_const(2.0)
-            d, m = g.get_delta()
-            self.assertNotEqual(d, None)
-            self.assertEqual(m, 2.0)
-            indices, weights = d.edges()
-            self.assertEqual(indices.tolist(), [[0, 0], [0, 1]])
-            self.assertEqual(weights.tolist(), [0.0, 6.0])
-            g.disable_delta()
-            d, m = g.get_delta()
-            self.assertEqual(d, None)
-            self.assertEqual(m, None)
-            del g
-
         def test_weights(self):
             g = Graph(directed=True)
             g[0, 0] = 1.0
@@ -2775,71 +2678,6 @@ if __name__ == '__main__':
             del window
             del tvg
 
-        def test_rect_streaming(self):
-            tvg = TVG(positive=True, streaming=True)
-
-            g = tvg.Graph(100)
-            g[0, 0] = 1.0
-            g = tvg.Graph(200)
-            g[0, 1] = 2.0
-            g = tvg.Graph(300)
-            g[0, 2] = 3.0
-
-            window = tvg.WindowRect(-50, 50)
-
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
-            self.assertEqual(g[0, 0], 1.0)
-            self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 0.0)
-            d, m = g.get_delta()
-            self.assertEqual(d, None)
-            self.assertEqual(m, None)
-
-            g = window.update(200)
-            self.assertEqual(window.ts, 200)
-            self.assertEqual(g[0, 0], 0.0)
-            self.assertEqual(g[0, 1], 2.0)
-            self.assertEqual(g[0, 2], 0.0)
-            d, m = g.get_delta()
-            self.assertNotEqual(d, None)
-            self.assertEqual(m, 1.0)
-            indices, weights = d.edges()
-            self.assertEqual(indices.tolist(), [[0, 0], [0, 1]])
-            self.assertEqual(weights.tolist(), [0.0, 2.0])
-
-            g = window.update(300)
-            self.assertEqual(window.ts, 300)
-            self.assertEqual(g[0, 0], 0.0)
-            self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 3.0)
-            d, m = g.get_delta()
-            self.assertNotEqual(d, None)
-            self.assertEqual(m, 1.0)
-            indices, weights = d.edges()
-            self.assertEqual(indices.tolist(), [[0, 1], [0, 2]])
-            self.assertEqual(weights.tolist(), [0.0, 3.0])
-
-            # Clearing the window should not modify the last output graph.
-            window.clear()
-            g2 = window.update(100)
-            self.assertEqual(window.ts, 100)
-
-            self.assertEqual(g[0, 0], 0.0)
-            self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 3.0)
-
-            self.assertEqual(d[0, 0], 0.0)
-            self.assertEqual(d[0, 1], 0.0)
-            self.assertEqual(d[0, 2], 3.0)
-
-            self.assertEqual(g2[0, 0], 1.0)
-            self.assertEqual(g2[0, 1], 0.0)
-            self.assertEqual(g2[0, 2], 0.0)
-
-            del window
-            del tvg
-
         def test_decay_precision(self):
             tvg = TVG(positive=True)
             beta = 0.3
@@ -2894,44 +2732,6 @@ if __name__ == '__main__':
                 self.assertEqual(window.ts, t)
                 expected = beta * expected + (1.0 - beta) * s
                 self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
-            del window
-            del tvg
-
-        def test_smooth_streaming(self):
-            source = np.random.rand(100)
-            beta = 0.3
-
-            tvg = TVG(positive=True, streaming=True)
-
-            for t, s in enumerate(source):
-                g = tvg.Graph(t)
-                g[0, 0] = s
-                if (t % 10) == 0:
-                    g[0, 1] = 1.0
-
-            window = tvg.WindowSmooth(np.inf, beta)
-            expected = 0.0
-            for t, s in enumerate(source):
-                g = window.update(t)
-                self.assertEqual(window.ts, t)
-                expected = beta * expected + (1.0 - beta) * s
-                self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
-                d, m = g.get_delta()
-                if t == 0:
-                    self.assertEqual(d, None)
-                    self.assertEqual(m, None)
-                    continue
-
-                self.assertNotEqual(d, None)
-                self.assertTrue(abs(m - beta) < 1e-6)
-                indices, weights = d.edges()
-                if (t % 10) == 0:
-                    self.assertEqual(indices.tolist(), [[0, 0], [0, 1]])
-                    self.assertEqual(weights.tolist(), [g[0, 0], g[0, 1]])
-                else:
-                    self.assertEqual(indices.tolist(), [[0, 0]])
-                    self.assertEqual(weights.tolist(), [g[0, 0]])
-
             del window
             del tvg
 

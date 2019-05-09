@@ -65,8 +65,6 @@ struct graph *alloc_graph(uint32_t flags)
     graph->bits_target = bits_target;
     graph->buckets     = buckets;
     graph->optimize    = 0;
-    graph->delta       = NULL;
-    graph->delta_mul   = 0.0;
 
     /* set a proper 'optimize' value */
     graph_optimize(graph);
@@ -96,7 +94,6 @@ void free_graph(struct graph *graph)
     assert(!graph->tvg);
     assert(!graph->cache);
 
-    free_graph(graph->delta);
     free(graph->buckets);
     free(graph);
 }
@@ -221,36 +218,6 @@ struct graph *next_graph(struct graph *graph)
     assert(graph->tvg == tvg);
     graph_refresh_cache(graph);
     return grab_graph(graph);
-}
-
-int graph_enable_delta(struct graph *graph)
-{
-    uint32_t graph_flags;
-
-    /* Do not set TVG_FLAGS_NONZERO / TVG_FLAGS_POSITIVE! */
-    graph_flags = graph->flags & TVG_FLAGS_DIRECTED;
-
-    free_graph(graph->delta);
-    if (!(graph->delta = alloc_graph(graph_flags)))
-        return 0;
-
-    graph->delta_mul = 1.0;
-    return 1;
-}
-
-void graph_disable_delta(struct graph *graph)
-{
-    free_graph(graph->delta);
-    graph->delta = NULL;
-}
-
-struct graph *graph_get_delta(struct graph *graph, float *mul)
-{
-    if (!graph->delta)
-        return NULL;
-
-    *mul = graph->delta_mul;
-    return grab_graph(graph->delta);
 }
 
 int graph_inc_bits_target(struct graph *graph)

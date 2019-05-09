@@ -50,7 +50,6 @@ static float generic_get(struct graph *graph, uint64_t source, uint64_t target)
 
 static int generic_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
-    struct graph *delta;
     struct entry2 *edge;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
@@ -75,15 +74,11 @@ static int generic_set(struct graph *graph, uint64_t source, uint64_t target, fl
     if (!--graph->optimize)
         graph_optimize(graph);
 
-    if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, weight);
-
     return 1;
 }
 
 static int generic_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
-    struct graph *delta;
     struct entry2 *edge;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
@@ -109,15 +104,11 @@ static int generic_add(struct graph *graph, uint64_t source, uint64_t target, fl
     if (!--graph->optimize)
         graph_optimize(graph);
 
-    if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, weight);
-
     return 1;
 }
 
 static void generic_del(struct graph *graph, uint64_t source, uint64_t target)
 {
-    struct graph *delta;
     int changed = 0;
 
     if (_graph_del_edge(graph, source, target))
@@ -135,21 +126,11 @@ static void generic_del(struct graph *graph, uint64_t source, uint64_t target)
     graph->revision++;
     if (!--graph->optimize)
         graph_optimize(graph);
-
-    if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, 0.0);
 }
 
 static void generic_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge;
-    struct graph *delta;
-
-    if ((delta = graph->delta))
-    {
-        delta->ops->mul_const(delta, constant);
-        graph->delta_mul *= constant;
-    }
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
     {
@@ -184,7 +165,6 @@ static int nonzero_add(struct graph *graph, uint64_t source, uint64_t target, fl
 {
     struct bucket2 *bucket;
     struct entry2 *edge;
-    struct graph *delta;
     int allocate;
 
     /* Only allocate a new edge when the weight is not filtered. */
@@ -228,9 +208,6 @@ static int nonzero_add(struct graph *graph, uint64_t source, uint64_t target, fl
     if (!--graph->optimize)
         graph_optimize(graph);
 
-    if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, allocate ? weight : 0.0f);
-
     return 1;
 }
 
@@ -239,13 +216,6 @@ static void nonzero_mul_const(struct graph *graph, float constant)
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
-    struct graph *delta;
-
-    if ((delta = graph->delta))
-    {
-        delta->ops->mul_const(delta, constant);
-        graph->delta_mul *= constant;
-    }
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
@@ -257,11 +227,7 @@ static void nonzero_mul_const(struct graph *graph, float constant)
         {
             edge->weight *= constant;
             if (fabs(edge->weight) <= graph->eps)
-            {
-                if (delta && ((graph->flags & TVG_FLAGS_DIRECTED) || edge->source <= edge->target))
-                    delta->ops->set(delta, edge->source, edge->target, 0.0);
                 continue;
-            }
             *out++ = *edge;
         }
 
@@ -298,7 +264,6 @@ static int positive_add(struct graph *graph, uint64_t source, uint64_t target, f
 {
     struct bucket2 *bucket;
     struct entry2 *edge;
-    struct graph *delta;
     int allocate;
 
     /* Only allocate a new edge when the weight is not filtered. */
@@ -342,9 +307,6 @@ static int positive_add(struct graph *graph, uint64_t source, uint64_t target, f
     if (!--graph->optimize)
         graph_optimize(graph);
 
-    if ((delta = graph->delta))
-        delta->ops->set(delta, source, target, allocate ? weight : 0.0f);
-
     return 1;
 }
 
@@ -353,13 +315,6 @@ static void positive_mul_const(struct graph *graph, float constant)
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
-    struct graph *delta;
-
-    if ((delta = graph->delta))
-    {
-        delta->ops->mul_const(delta, constant);
-        graph->delta_mul *= constant;
-    }
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
@@ -371,11 +326,7 @@ static void positive_mul_const(struct graph *graph, float constant)
         {
             edge->weight *= constant;
             if (edge->weight <= graph->eps)
-            {
-                if (delta && ((graph->flags & TVG_FLAGS_DIRECTED) || edge->source <= edge->target))
-                    delta->ops->set(delta, edge->source, edge->target, 0.0);
                 continue;
-            }
             *out++ = *edge;
         }
 

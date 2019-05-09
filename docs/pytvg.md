@@ -361,31 +361,6 @@ __Arguments__
 - __directed__: Create a directed graph.
 
 
-### enable_delta
-```python
-Graph.enable_delta()
-```
-
-Enable tracking of changes in a separate graph object. Whenever an edge of the
-original graph is updated, the same change will also be performed on the delta
-graph.
-
-
-### disable_delta
-```python
-Graph.disable_delta()
-```
-Disable tracking of changes.
-
-### get_delta
-```python
-Graph.get_delta()
-```
-
-Return a reference to the delta graph, and the current multiplier. Those values
-can be used to reconstruct the current graph if the previous state is known.
-
-
 ### empty
 ```python
 Graph.empty()

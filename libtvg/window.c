@@ -99,11 +99,6 @@ restart:
     }
     else
     {
-        if (tvg->flags & TVG_FLAGS_STREAMING)
-        {
-            if (!graph_enable_delta(window->result))
-                return NULL;
-        }
         update = (ts != window->ts);
     }
 
