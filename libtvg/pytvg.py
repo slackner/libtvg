@@ -248,6 +248,9 @@ lib.graph_weight_anomalies.restype = c_vector_p
 lib.graph_power_iteration.argtypes = (c_graph_p, c_uint, c_double_p)
 lib.graph_power_iteration.restype = c_vector_p
 
+lib.graph_filter_nodes.argtypes = (c_graph_p, c_vector_p)
+lib.graph_filter_nodes.restype = c_graph_p
+
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
@@ -1105,6 +1108,25 @@ class Graph(object):
         if eigenvalue is not None:
             eigenvalue = eigenvalue.value
         return vector, eigenvalue
+
+    def filter_nodes(self, nodes):
+        """
+        Create a subgraph by only keeping edges, where at least one node is
+        part of the subset specified by the `nodes` parameter.
+
+        # Arguments
+        nodes: Vector or list of nodes to preserve
+
+        # Returns
+        Resulting graph.
+        """
+
+        if not isinstance(nodes, Vector):
+            vector = Vector()
+            vector.set_entries(nodes)
+            nodes = vector
+
+        return Graph(obj=lib.graph_filter_nodes(self._obj, nodes._obj))
 
     def bfs_count(self, source, max_count=None):
         """
@@ -2394,6 +2416,22 @@ if __name__ == '__main__':
             expected = "Graph({(0, 1): X, (1, 1): X, (1, 2): X, (1, 3): X, (1, 4): X, (1, 5): X, (1, 6): X, (1, 7): X, (1, 8): X, (1, 9): X, ...})"
             self.assertEqual(repr(g).replace("1.000000", "X"), expected)
             del g
+
+        def test_filter_nodes(self):
+            g = Graph(directed=True)
+            g[0, 1] = 1.0
+            g[1, 2] = 2.0
+            g[2, 3] = 3.0
+            g[3, 4] = 4.0
+            g[2, 4] = 5.0
+
+            h = g.filter_nodes([1, 2, 3])
+            indices, weights = h.edges()
+            self.assertEqual(indices.tolist(), [[1, 2], [2, 3]])
+            self.assertEqual(weights.tolist(), [2.0, 3.0])
+
+            del g
+            del h
 
     class TVGTests(unittest.TestCase):
         def test_lookup(self):

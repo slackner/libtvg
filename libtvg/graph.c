@@ -921,3 +921,32 @@ struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_ite
 
     return vector;
 }
+
+struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes)
+{
+    uint32_t graph_flags;
+    struct entry2 *edge;
+    struct graph *out;
+
+    graph_flags = graph->flags & (TVG_FLAGS_NONZERO |
+                                  TVG_FLAGS_POSITIVE |
+                                  TVG_FLAGS_DIRECTED);
+
+
+    if (!(out = alloc_graph(graph_flags)))
+        return NULL;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!vector_has_entry(nodes, edge->source)) continue;
+        if (!vector_has_entry(nodes, edge->target)) continue;
+
+        if (!graph_set_edge(out, edge->source, edge->target, edge->weight))
+        {
+            free_graph(out);
+            return NULL;
+        }
+    }
+
+    return out;
+}

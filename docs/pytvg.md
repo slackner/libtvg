@@ -557,6 +557,23 @@ __Returns__
 `(eigenvector, eigenvalue)`
 
 
+### filter_nodes
+```python
+Graph.filter_nodes(nodes)
+```
+
+Create a subgraph by only keeping edges, where at least one node is
+part of the subset specified by the `nodes` parameter.
+
+__Arguments__
+
+- __nodes__: Vector or list of nodes to preserve
+
+__Returns__
+
+Resulting graph.
+
+
 ### bfs_count
 ```python
 Graph.bfs_count(source, max_count=None)
