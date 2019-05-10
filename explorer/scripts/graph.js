@@ -310,27 +310,6 @@ const onMessage = function (evt) {
             // FIXME: Stabilize?
             break;
 
-        case 'network_update':
-            console.log('network_update:');
-            console.log(msg.deleted_nodes.length, 'deleted nodes');
-            console.log(msg.deleted_edges.length, 'deleted edges');
-            console.log(msg.nodes.length, 'nodes');
-            console.log(msg.edges.length, 'edges');
-            console.log('mul =', msg.mul);
-
-            edges.remove(msg.deleted_edges);
-            nodes.remove(msg.deleted_nodes);
-
-            edges.forEach((edge) => {
-                edge.weight *= msg.mul;
-            });
-
-            nodes.update(msg.nodes);
-            edges.update(msg.edges);
-
-            // FIXME: Stabilize?
-            break;
-
         case 'focus_timeline':
             console.log('focus_timeline');
 

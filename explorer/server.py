@@ -111,7 +111,12 @@ class Client(WebSocket):
             print('Unimplemented node weight "%s"!' % context['nodeWeight'])
             raise NotImplementedError
 
-        def node_attributes(i):
+        # Showing the full graph is not feasible. Limit the view
+        # to a sparse subgraph of about ~40 nodes.
+        subgraph = graph.sparse_subgraph()
+
+        nodes = []
+        for i in subgraph.nodes():
             value = values[i]
             value = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
 
@@ -135,10 +140,13 @@ class Client(WebSocket):
             except KeyError:
                 color = context['defaultColor']
 
-            return {'value': value, 'label': label, 'color': color}
+            nodes.append({'id': i, 'value': value, 'label': label, 'color': color})
 
-        visjs = graph.encode_visjs(node_attributes)
-        self.send_message_json(**visjs)
+        edges = []
+        for i, w in zip(*subgraph.edges()):
+            edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
+
+        self.send_message_json(cmd='network_set', nodes=nodes, edges=edges)
         self.ts = ts
 
     def event_connected(self):
