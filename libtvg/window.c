@@ -20,10 +20,10 @@ struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64
     window->refcount    = 1;
     window->eps         = 0.0;
     window->ts          = 0;
-    window->tvg         = grab_tvg(tvg);
-    window->ops         = ops;
     window->window_l    = window_l;
     window->window_r    = window_r;
+    window->tvg         = grab_tvg(tvg);
+    window->ops         = ops;
     window->weight      = weight;
     window->log_beta    = log_beta;
     list_init(&window->sources);

@@ -17,7 +17,7 @@
 
 #include "list.h"
 
-#define LIBTVG_API_VERSION  0x00000001ULL
+#define LIBTVG_API_VERSION  0x00000002ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -152,12 +152,12 @@ struct window
     uint64_t    refcount;
     float       eps;
     uint64_t    ts;
+    int64_t     window_l;
+    int64_t     window_r;
 
     /* private: */
     struct tvg *tvg;
     const struct window_ops *ops;
-    int64_t     window_l;
-    int64_t     window_r;
     float       weight;
     float       log_beta;
     struct list sources;

@@ -83,6 +83,12 @@ Structure/Union member
 ### ts
 Structure/Union member
 
+### window_l
+Structure/Union member
+
+### window_r
+Structure/Union member
+
 ## c_mongodb_config
 ```python
 c_mongodb_config(*args, **kwargs)
@@ -942,6 +948,9 @@ entry is equal to zero. Whenever |x| < eps, it is treated as zero.
 
 ### ts
 Return the current timestamp of the window.
+
+### width
+Return the width of the window.
 
 ### clear
 ```python

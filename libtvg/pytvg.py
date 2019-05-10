@@ -25,7 +25,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000001
+LIBTVG_API_VERSION  = 0x00000002
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -60,7 +60,9 @@ class c_tvg(Structure):
 class c_window(Structure):
     _fields_ = [("refcount", c_uint64),
                 ("eps",      c_float),
-                ("ts",       c_uint64)]
+                ("ts",       c_uint64),
+                ("window_l", c_int64),
+                ("window_r", c_int64)]
 
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
@@ -1668,6 +1670,11 @@ class Window(object):
         """ Return the current timestamp of the window. """
         return self._obj.contents.ts
 
+    @property
+    def width(self):
+        """ Return the width of the window. """
+        return self._obj.contents.window_r - self._obj.contents.window_l
+
     def clear(self):
         """"
         Clear all additional data associated with the window, and force a full recompute
@@ -2802,6 +2809,7 @@ if __name__ == '__main__':
                 tvg.WindowRect(1, 0)
 
             window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
 
             g = window.update(100)
             self.assertEqual(window.ts, 100)
