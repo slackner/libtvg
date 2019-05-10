@@ -163,7 +163,8 @@ const initTimeline = function (min, max) {
             };
             sendMessageJson({
                 cmd: 'timeline_seek',
-                time: item.start.getTime(),
+                start: item.start.getTime(),
+                end: item.end.getTime(),
             });
             timeline.focus(1);
             item.start = moment(item.start);
@@ -264,7 +265,8 @@ const initTimeline = function (min, max) {
 
         sendMessageJson({
             cmd: 'timeline_seek',
-            time: startRescal.unix() * 1000,
+            start: startRescal.unix() * 1000,
+            end: endRescal.unix() * 1000,
         });
     });
 
@@ -274,7 +276,8 @@ const initTimeline = function (min, max) {
 
     sendMessageJson({
         cmd: 'timeline_seek',
-        time: start.unix() * 1000,
+        start: start.unix() * 1000,
+        end: end.unix() * 1000,
     });
 };
 
@@ -350,7 +353,8 @@ const initDateRangePicker = function () {
         };
         sendMessageJson({
             cmd: 'timeline_seek',
-            time: start / 1,
+            start: start / 1,
+            end: end / 1,
         });
         times.update({
             id: 1,

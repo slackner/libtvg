@@ -24,7 +24,6 @@ default_context = {
     },
     'defaultColor': '#bf8080',
     'nodeWeight': 'power_iteration',
-    'windowWidth': 600000,
 }
 
 class ComplexEncoder(json.JSONEncoder):
@@ -82,8 +81,24 @@ class Client(WebSocket):
         data = json.dumps(kwargs, indent=4, cls=ComplexEncoder)
         self.sendMessage(data)
 
-    def timeline_seek(self, ts): # ts = x-value on timeline
+    def timeline_seek(self, ts=None, width=None):
+        """
+        Update the graph view. If ts is given, seek to the given timestamp.
+        Note that the timestamp specifies the right end of the window. If
+        width is given, also update the width of the window.
+        """
         context = self.context
+
+        if self.window is None and (ts is None or width is None):
+            print('Error: Cannot seek with partial information!')
+            return
+
+        if ts is None:
+            ts = self.window.ts
+
+        if self.window is None or (width is not None and self.window.width != width):
+            self.window = dataset_tvg.WindowTopics(-width, 0)
+
         graph = self.window.update(ts)
 
         if context['nodeWeight'] == 'in_degrees':
@@ -108,7 +123,7 @@ class Client(WebSocket):
             values, _ = graph.power_iteration(ret_eigenvalue=False)
 
         else:
-            print('Unimplemented node weight "%s"!' % context['nodeWeight'])
+            print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
             raise NotImplementedError
 
         # Showing the full graph is not feasible. Limit the view
@@ -136,9 +151,9 @@ class Client(WebSocket):
 
             try:
                 ne = node['NE']
-                color = context['colorMap'][ne]
+                color = self.context['colorMap'][ne]
             except KeyError:
-                color = context['defaultColor']
+                color = self.context['defaultColor']
 
             nodes.append({'id': i, 'value': value, 'label': label, 'color': color})
 
@@ -152,10 +167,7 @@ class Client(WebSocket):
     def event_connected(self):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
-
-        self.window = dataset_tvg.WindowSumEdgesExp(self.context['windowWidth'],
-                                                    log_beta=np.log(0.93) / 1000.0, eps=1e-6)
-        self.ts = None
+        self.window  = None
 
         # Set timeline min/max. The client can then seek to any position.
         min_ts = dataset_tvg.lookup_ge().ts
@@ -169,7 +181,7 @@ class Client(WebSocket):
         context = self.context
 
         if msg['cmd'] == 'timeline_seek':
-            self.timeline_seek(msg['time'])
+            self.timeline_seek(ts=int(msg['end']), width=int(msg['end'] - msg['start']))
             self.send_message_json(cmd='focus_timeline');
             return
 
@@ -179,12 +191,13 @@ class Client(WebSocket):
             else:
                 context['defaultColor'] = msg['color']
 
-            self.timeline_seek(self.ts)
+            self.timeline_seek()
             return
 
         elif msg['cmd'] == 'change_node_weight':
             context['nodeWeight'] = msg['value']
-            self.timeline_seek(self.ts)
+
+            self.timeline_seek()
             return
 
         print('Unimplemented command "%s"!' % msg['cmd'])
