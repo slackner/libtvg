@@ -132,19 +132,19 @@ lib.vector_get_entries.restype = c_uint64
 lib.vector_set_entry.argtypes = (c_vector_p, c_uint64, c_float)
 lib.vector_set_entry.restype = c_int
 
-lib.vector_set_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.vector_set_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_set_entries.restype = c_int
 
 lib.vector_add_entry.argtypes = (c_vector_p, c_uint64, c_float)
 lib.vector_add_entry.restype = c_int
 
-lib.vector_add_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.vector_add_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_add_entries.restype = c_int
 
 lib.vector_sub_entry.argtypes = (c_vector_p, c_uint64, c_float)
 lib.vector_sub_entry.restype = c_int
 
-lib.vector_sub_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.vector_sub_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_sub_entries.restype = c_int
 
 lib.vector_del_entry.argtypes = (c_vector_p, c_uint64)
@@ -197,13 +197,13 @@ lib.graph_get_adjacent_edges.restype = c_uint64
 lib.graph_set_edge.argtypes = (c_graph_p, c_uint64, c_uint64, c_float)
 lib.graph_set_edge.restype = c_int
 
-lib.graph_set_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.graph_set_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_set_edges.restype = c_int
 
 lib.graph_add_edge.argtypes = (c_graph_p, c_uint64, c_uint64, c_float)
 lib.graph_add_edge.restype = c_int
 
-lib.graph_add_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.graph_add_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_add_edges.restype = c_int
 
 lib.graph_add_graph.argtypes = (c_graph_p, c_graph_p, c_float)
@@ -212,7 +212,7 @@ lib.graph_add_graph.restype = c_int
 lib.graph_sub_edge.argtypes = (c_graph_p, c_uint64, c_uint64, c_float)
 lib.graph_sub_edge.restype = c_int
 
-lib.graph_sub_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), npc.ndpointer(dtype=np.float32), c_uint64)
+lib.graph_sub_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_sub_edges.restype = c_int
 
 lib.graph_sub_graph.argtypes = (c_graph_p, c_graph_p, c_float)
@@ -527,9 +527,10 @@ class Vector(object):
         if not res:
             raise MemoryError
 
-    def set_entries(self, indices, weights):
+    def set_entries(self, indices, weights=None):
         """
         Short-cut to set multiple entries of a vector.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list or 1d numpy array).
@@ -537,16 +538,24 @@ class Vector(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 1:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.vector_set_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -558,9 +567,10 @@ class Vector(object):
         if not res:
             raise MemoryError
 
-    def add_entries(self, indices, weights):
+    def add_entries(self, indices, weights=None):
         """
         Short-cut to update multiple entries of a vector by adding values.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list or 1d numpy array).
@@ -568,16 +578,24 @@ class Vector(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 1:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.vector_add_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -589,9 +607,10 @@ class Vector(object):
         if not res:
             raise MemoryError
 
-    def sub_entries(self, indices, weights):
+    def sub_entries(self, indices, weights=None):
         """
         Short-cut to update multiple entries of a vector by subtracting values.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list or 1d numpy array).
@@ -599,16 +618,24 @@ class Vector(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 1:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.vector_sub_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -891,9 +918,10 @@ class Graph(object):
         if not res:
             raise MemoryError
 
-    def set_edges(self, indices, weights):
+    def set_edges(self, indices, weights=None):
         """
         Short-cut to set multiple edges in a graph.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list of tuples or 2d numpy array).
@@ -901,16 +929,24 @@ class Graph(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 2 or indices.shape[1] != 2:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.graph_set_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -923,9 +959,10 @@ class Graph(object):
         if not res:
             raise MemoryError
 
-    def add_edges(self, indices, weights):
+    def add_edges(self, indices, weights=None):
         """
         Short-cut to update multiple edges of a graph by adding values.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list of tuples or 2d numpy array).
@@ -933,16 +970,23 @@ class Graph(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 2 or indices.shape[1] != 2:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.graph_add_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -955,9 +999,10 @@ class Graph(object):
         if not res:
             raise MemoryError
 
-    def sub_edges(self, indices, weights):
+    def sub_edges(self, indices, weights=None):
         """
         Short-cut to update multiple edges of a graph by subtracting values.
+        If weights is None the elements are set to 1.
 
         # Arguments
         indices: List of indices (list of tuples or 2d numpy array).
@@ -965,16 +1010,24 @@ class Graph(object):
         """
 
         indices = np.asarray(indices, dtype=np.uint64)
-        weights = np.asarray(weights, dtype=np.float32)
 
-        if indices.size == 0 and weights.size == 0:
-            return # nothing to do for empty array
-        if len(indices.shape) != 2 or indices.shape[1] != 2:
-            raise ValueError("indices array does not have correct dimensions")
-        if len(weights.shape) != 1:
-            raise ValueError("weights array does not have correct dimensions")
-        if indices.shape[0] != weights.shape[0]:
-            raise ValueError("indices/weights arrays have different length")
+        if weights is not None:
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        else:
+            if indices.size == 0:
+                return # nothing to do for empty array
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
 
         res = lib.graph_sub_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
@@ -1738,8 +1791,20 @@ if __name__ == '__main__':
             self.assertEqual(indices.tolist(), [0, 1, 2])
             self.assertEqual(weights.tolist(), [2.0, 4.0, 6.0])
 
+            v.add_entries([])
+            v.add_entries(test_indices)
+            indices, weights = v.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [3.0, 5.0, 7.0])
+
             v.sub_entries([], [])
             v.sub_entries(test_indices, -test_weights)
+            indices, weights = v.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [4.0, 7.0, 10.0])
+
+            v.sub_entries([])
+            v.sub_entries(test_indices)
             indices, weights = v.entries()
             self.assertEqual(indices.tolist(), [0, 1, 2])
             self.assertEqual(weights.tolist(), [3.0, 6.0, 9.0])
@@ -1749,6 +1814,12 @@ if __name__ == '__main__':
             indices, weights = v.entries()
             self.assertEqual(indices.tolist(), [0, 1, 2])
             self.assertEqual(weights.tolist(), [1.0, 2.0, 3.0])
+
+            v.set_entries([])
+            v.set_entries(test_indices)
+            indices, weights = v.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [1.0, 1.0, 1.0])
 
             v.del_entries([])
             v.del_entries(test_indices)
@@ -2025,8 +2096,20 @@ if __name__ == '__main__':
             self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
             self.assertEqual(weights.tolist(), [6.0, 2.0, 4.0])
 
+            g.add_edges([])
+            g.add_edges(test_indices)
+            indices, weights = g.edges()
+            self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
+            self.assertEqual(weights.tolist(), [7.0, 3.0, 5.0])
+
             g.sub_edges([], [])
             g.sub_edges(test_indices, -test_weights)
+            indices, weights = g.edges()
+            self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
+            self.assertEqual(weights.tolist(), [10.0, 4.0, 7.0])
+
+            g.sub_edges([])
+            g.sub_edges(test_indices)
             indices, weights = g.edges()
             self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
             self.assertEqual(weights.tolist(), [9.0, 3.0, 6.0])
@@ -2036,6 +2119,12 @@ if __name__ == '__main__':
             indices, weights = g.edges()
             self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
             self.assertEqual(weights.tolist(), [3.0, 1.0, 2.0])
+
+            g.set_edges([])
+            g.set_edges(test_indices)
+            indices, weights = g.edges()
+            self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
+            self.assertEqual(weights.tolist(), [1.0, 1.0, 1.0])
 
             g.del_edges([])
             g.del_edges(test_indices)

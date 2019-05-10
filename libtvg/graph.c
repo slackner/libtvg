@@ -564,13 +564,26 @@ int graph_set_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 
 int graph_set_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t num_edges)
 {
-    while (num_edges--)
+    if (weights)
     {
-        if (!graph->ops->set(graph, indices[0], indices[1], weights[0]))
-            return 0;
+        while (num_edges--)
+        {
+            if (!graph->ops->set(graph, indices[0], indices[1], weights[0]))
+                return 0;
 
-        indices += 2;
-        weights++;
+            indices += 2;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_edges--)
+        {
+            if (!graph->ops->set(graph, indices[0], indices[1], 1.0f))
+                return 0;
+
+            indices += 2;
+        }
     }
 
     return 1;
@@ -583,13 +596,26 @@ int graph_add_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 
 int graph_add_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t num_edges)
 {
-    while (num_edges--)
+    if (weights)
     {
-        if (!graph->ops->add(graph, indices[0], indices[1], weights[0]))
-            return 0;
+        while (num_edges--)
+        {
+            if (!graph->ops->add(graph, indices[0], indices[1], weights[0]))
+                return 0;
 
-        indices += 2;
-        weights++;
+            indices += 2;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_edges--)
+        {
+            if (!graph->ops->add(graph, indices[0], indices[1], 1.0f))
+                return 0;
+
+            indices += 2;
+        }
     }
 
     return 1;
@@ -604,6 +630,8 @@ int graph_add_graph(struct graph *out, struct graph *graph, float weight)
 
     GRAPH_FOR_EACH_EDGE(graph, edge)
     {
+        /* Note that we intentionally don't use out->ops->add here. It is safer to
+         * always use exported functions when working on other objects. */
         if (!graph_add_edge(out, edge->source, edge->target, edge->weight * weight))
             return 0;
     }
@@ -619,13 +647,26 @@ int graph_sub_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 
 int graph_sub_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t num_edges)
 {
-    while (num_edges--)
+    if (weights)
     {
-        if (!graph->ops->add(graph, indices[0], indices[1], -weights[0]))
-            return 0;
+        while (num_edges--)
+        {
+            if (!graph->ops->add(graph, indices[0], indices[1], -weights[0]))
+                return 0;
 
-        indices += 2;
-        weights++;
+            indices += 2;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_edges--)
+        {
+            if (!graph->ops->add(graph, indices[0], indices[1], -1.0f))
+                return 0;
+
+            indices += 2;
+        }
     }
 
     return 1;

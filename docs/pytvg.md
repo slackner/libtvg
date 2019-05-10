@@ -212,10 +212,11 @@ __Returns__
 
 ### set_entries
 ```python
-Vector.set_entries(indices, weights)
+Vector.set_entries(indices, weights=None)
 ```
 
 Short-cut to set multiple entries of a vector.
+If weights is None the elements are set to 1.
 
 __Arguments__
 
@@ -231,10 +232,11 @@ Add weight `weight` to the entry with index `index`.
 
 ### add_entries
 ```python
-Vector.add_entries(indices, weights)
+Vector.add_entries(indices, weights=None)
 ```
 
 Short-cut to update multiple entries of a vector by adding values.
+If weights is None the elements are set to 1.
 
 __Arguments__
 
@@ -250,10 +252,11 @@ Subtract weight `weight` from the entry with index `index`.
 
 ### sub_entries
 ```python
-Vector.sub_entries(indices, weights)
+Vector.sub_entries(indices, weights=None)
 ```
 
 Short-cut to update multiple entries of a vector by subtracting values.
+If weights is None the elements are set to 1.
 
 __Arguments__
 
@@ -425,10 +428,11 @@ Return the number of adjacent edges to a given `source` node, i.e., the node deg
 
 ### set_edges
 ```python
-Graph.set_edges(indices, weights)
+Graph.set_edges(indices, weights=None)
 ```
 
 Short-cut to set multiple edges in a graph.
+If weights is None the elements are set to 1.
 
 __Arguments__
 
@@ -444,10 +448,11 @@ Add weight `weight` to edge `(source, target)`.
 
 ### add_edges
 ```python
-Graph.add_edges(indices, weights)
+Graph.add_edges(indices, weights=None)
 ```
 
 Short-cut to update multiple edges of a graph by adding values.
+If weights is None the elements are set to 1.
 
 __Arguments__
 
@@ -463,10 +468,11 @@ Subtract weight `weight` from edge `(source, target)`.
 
 ### sub_edges
 ```python
-Graph.sub_edges(indices, weights)
+Graph.sub_edges(indices, weights=None)
 ```
 
 Short-cut to update multiple edges of a graph by subtracting values.
+If weights is None the elements are set to 1.
 
 __Arguments__
 

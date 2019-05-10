@@ -254,13 +254,26 @@ int vector_set_entry(struct vector *vector, uint64_t index, float weight)
 
 int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
 {
-    while (num_entries--)
+    if (weights)
     {
-        if (!vector->ops->set(vector, indices[0], weights[0]))
-            return 0;
+        while (num_entries--)
+        {
+            if (!vector->ops->set(vector, indices[0], weights[0]))
+                return 0;
 
-        indices++;
-        weights++;
+            indices++;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_entries--)
+        {
+            if (!vector->ops->set(vector, indices[0], 1.0f))
+                return 0;
+
+            indices++;
+        }
     }
 
     return 1;
@@ -273,13 +286,26 @@ int vector_add_entry(struct vector *vector, uint64_t index, float weight)
 
 int vector_add_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
 {
-    while (num_entries--)
+    if (weights)
     {
-        if (!vector->ops->add(vector, indices[0], weights[0]))
-            return 0;
+        while (num_entries--)
+        {
+            if (!vector->ops->add(vector, indices[0], weights[0]))
+                return 0;
 
-        indices++;
-        weights++;
+            indices++;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_entries--)
+        {
+            if (!vector->ops->add(vector, indices[0], 1.0f))
+                return 0;
+
+            indices++;
+        }
     }
 
     return 1;
@@ -292,13 +318,26 @@ int vector_sub_entry(struct vector *vector, uint64_t index, float weight)
 
 int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
 {
-    while (num_entries--)
+    if (weights)
     {
-        if (!vector->ops->add(vector, indices[0], -weights[0]))
-            return 0;
+        while (num_entries--)
+        {
+            if (!vector->ops->add(vector, indices[0], -weights[0]))
+                return 0;
 
-        indices++;
-        weights++;
+            indices++;
+            weights++;
+        }
+    }
+    else
+    {
+        while (num_entries--)
+        {
+            if (!vector->ops->add(vector, indices[0], -1.0f))
+                return 0;
+
+            indices++;
+        }
     }
 
     return 1;
