@@ -724,28 +724,6 @@ __Returns__
 List of tuples `(weight, count, edge_from, edge_to)`.
 
 
-### encode_visjs
-```python
-Graph.encode_visjs(node_attributes=None)
-```
-
-Encode a graph as a Python dictionary for parsing with visjs.
-
-__Arguments__
-
-- __node_attributes__: Function to query node attributes.
-
-__Returns__
-
-`Dictionary containing the following key-value pairs`:
-
-cmd: Either `"network_set"` for full updates, or `"network_update"` for partial updates.
-nodes: List of nodes (with ids and custom attributes).
-edges: List of edges (with ids and weights).
-deleted_nodes: List of deleted node ids (only for `cmd = "network_update"`).
-deleted_edges: List of deleted edge ids (only for `cmd = "network_update"`).
-
-
 ### as_dict
 ```python
 Graph.as_dict()

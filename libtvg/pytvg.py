@@ -1402,38 +1402,6 @@ class Graph(object):
 
         return result
 
-    def encode_visjs(self, node_attributes=None):
-        """
-        Encode a graph as a Python dictionary for parsing with visjs.
-
-        # Arguments
-        node_attributes: Function to query node attributes.
-
-        # Returns
-        Dictionary containing the following key-value pairs:
-
-        cmd: Either `"network_set"` for full updates, or `"network_update"` for partial updates.
-        nodes: List of nodes (with ids and custom attributes).
-        edges: List of edges (with ids and weights).
-        deleted_nodes: List of deleted node ids (only for `cmd = "network_update"`).
-        deleted_edges: List of deleted edge ids (only for `cmd = "network_update"`).
-        """
-
-        if node_attributes is None:
-            node_attributes = lambda i: {}
-
-        nodes = []
-        edges = []
-
-        for i in self.nodes():
-            nodes.append({'id': i, **node_attributes(i)})
-
-        indices, weights = self.edges()
-        for i, w in zip(indices, weights):
-            edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
-
-        return {'cmd': 'network_set', 'nodes': nodes, 'edges': edges}
-
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
