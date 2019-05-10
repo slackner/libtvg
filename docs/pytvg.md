@@ -294,6 +294,12 @@ Vector.mul_vector(other)
 ```
 Compute the scalar product of the current vector with a second vector `other`.
 
+### as_dict
+```python
+Vector.as_dict()
+```
+Return a dictionary containing all vector entries.
+
 ## Graph
 ```python
 Graph(nonzero=False, positive=False, directed=False, obj=None)
@@ -631,6 +637,12 @@ edges: List of edges (with ids and weights).
 deleted_nodes: List of deleted node ids (only for `cmd = "network_update"`).
 deleted_edges: List of deleted edge ids (only for `cmd = "network_update"`).
 
+
+### as_dict
+```python
+Graph.as_dict()
+```
+Return a dictionary containing all graph edges.
 
 ## Node
 ```python

@@ -679,6 +679,10 @@ class Vector(object):
         # FIXME: Check type of 'other'.
         return lib.vector_mul_vector(self._obj, other._obj)
 
+    def as_dict(self):
+        """ Return a dictionary containing all vector entries. """
+        return dict(zip(*self.entries()))
+
 @libtvgobject
 class Graph(object):
     """
@@ -1222,6 +1226,11 @@ class Graph(object):
             edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
 
         return {'cmd': 'network_set', 'nodes': nodes, 'edges': edges}
+
+    def as_dict(self):
+        """ Return a dictionary containing all graph edges. """
+        indices, weights = self.edges()
+        return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
 class GraphIter(object):
     def __init__(self, graph):
@@ -2002,6 +2011,16 @@ if __name__ == '__main__':
             self.assertEqual(repr(v).replace("1.000000", "X"), expected)
             del v
 
+        def test_as_dict(self):
+            v = Vector()
+            for i in range(10):
+                v[i] = i * i
+
+            result = v.as_dict()
+            self.assertEqual(result, {0: 0.0, 1: 1.0, 2: 4.0, 3: 9.0, 4: 16.0,
+                                      5: 25.0, 6: 36.0, 7: 49.0, 8: 64.0, 9: 81.0})
+            del v
+
     class GraphTests(unittest.TestCase):
         def test_add_edge(self):
             g = Graph(directed=True)
@@ -2432,6 +2451,19 @@ if __name__ == '__main__':
 
             del g
             del h
+
+        def test_as_dict(self):
+            g = Graph(directed=True)
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = i
+
+            result = g.as_dict()
+            self.assertEqual(len(result), 100)
+            for i in range(100):
+                s, t = i//10, i%10
+                self.assertEqual(result[s, t], i)
+            del g
 
     class TVGTests(unittest.TestCase):
         def test_lookup(self):
