@@ -181,7 +181,7 @@ class Client(WebSocket):
         context = self.context
 
         if msg['cmd'] == 'timeline_seek':
-            self.timeline_seek(ts=int(msg['end']), width=int(msg['end'] - msg['start']))
+            self.timeline_seek(ts=int(msg['end']), width=max(int(msg['end'] - msg['start']), 1000))
             self.send_message_json(cmd='focus_timeline');
             return
 
