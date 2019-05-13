@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
         dataset_tvg = pytvg.TVG(positive=True, streaming=True)
         dataset_tvg.set_primary_key(args.primary_key)
-        dataset_tvg.enable_mongodb_sync(mongodb, batch_size=64, cache_size=0x10000000) # 256 MB
+        dataset_tvg.enable_mongodb_sync(mongodb, batch_size=256, cache_size=0x10000000) # 256 MB
 
     else:
         dataset_tvg    = pytvg.TVG.load(args.source, nodes=args.nodes, positive=True, streaming=True)
