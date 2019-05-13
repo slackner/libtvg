@@ -170,6 +170,8 @@ const initTimeline = function (min, max) {
             item.start = moment(item.start);
             item.end = moment(item.end);
 
+            $('#loading').show();
+
             callback(item);
         },
         onMoving: (item, callback) => {
@@ -268,6 +270,8 @@ const initTimeline = function (min, max) {
             start: startRescal.unix() * 1000,
             end: endRescal.unix() * 1000,
         });
+
+        $('#loading').show();
     });
 
     timeline.on('click', () => {
@@ -279,6 +283,8 @@ const initTimeline = function (min, max) {
         start: start.unix() * 1000,
         end: end.unix() * 1000,
     });
+
+    $('#loading').show();
 };
 
 const onMessage = function (evt) {
@@ -309,6 +315,8 @@ const onMessage = function (evt) {
 
             nodes.add(msg.nodes);
             edges.add(msg.edges);
+
+            $('#loading').hide();
 
             // FIXME: Stabilize?
             break;
@@ -369,6 +377,8 @@ const initDateRangePicker = function () {
         timeline.itemSet.items[0].repositionX();
         timeline.itemsData.update(itemData);
         */
+
+        $('#loading').show();
 
         // console.log(`A new date selection was made: ${start.format('YYYY-MM-DD')} to ${end.format('YYYY-MM-DD')}`);
     });

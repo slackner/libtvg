@@ -1,0 +1,22 @@
+<svg width="80px"  height="80px"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" class="lds-flat-reload" style="background: none;">
+    <g>
+      <defs>
+        <mask ng-attr-id="{{config.cpid}}" id="lds-flat-reload-mask-c15b8bcb206a1">
+          <circle cx="50" cy="50" r="45" ng-attr-fill="{{config.base}}" fill="#72becf"></circle>
+        </mask>
+      </defs>
+      <circle cx="50" cy="50" r="45" ng-attr-fill="{{config.base}}" fill="#72becf"></circle>
+      <path ng-attr-d="{{config.d}}" fill="rgb(92, 153, 167)" ng-attr-mask="url(#{{config.cpid}})" d="M25.251262658470836 74.74873734152916 A35 35 0 0 1 74.74873734152916 25.25126265847084 L174.74873734152916 125.25126265847084 L125.25126265847084 174.74873734152916 Z" mask="url(#lds-flat-reload-mask-c15b8bcb206a1)"></path>
+      <g transform="translate(50 50)">
+        <g transform="scale(0.85)">
+          <g transform="translate(-50 -50)">
+            <g transform="rotate(150 50 50)">
+              <path d="M50 15A35 35 0 1 0 74.787 25.213" fill="none" ng-attr-stroke="{{config.color}}" ng-attr-stroke-width="{{config.width}}" stroke="#55f7c3" stroke-width="12"></path>
+              <path ng-attr-d="{{config.darrow}}" ng-attr-fill="{{config.color}}" d="M49 3L49 27L61 15L49 3" fill="#55f7c3"></path>
+              <animateTransform attributeName="transform" type="rotate" calcMode="linear" values="0 50 50;360 50 50" keyTimes="0;1" dur="1s" begin="0s" repeatCount="indefinite"></animateTransform>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>
