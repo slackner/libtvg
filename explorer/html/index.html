@@ -39,68 +39,69 @@
       <div id="designMenu" class="card">
         <div class="card-body">
           <span class="h5 card-title">User tool box</span>
-        <hr>
+          <hr>
 
-        <!-- FIXME: write explanation -->
-        <p class="card-text">Tool to visualize...</p>
+          <!-- FIXME: write explanation -->
+          <p class="card-text">Tool to visualize...</p>
 
-        <hr>
+          <hr>
 
-        <div>
-          <span style="float: left; width: 50%;">
-            <b>amount of data</b>
-          </span>
-          <span class="fas fa-calendar-alt" style="text-align: right; width: 50%">
-          </span>
-        </div>
+          <div>
+            <span style="float: left; width: 50%;">
+              <b>amount of data</b>
+            </span>
+            <span class="fas fa-calendar-alt" style="text-align: right; width: 50%">
+            </span>
+          </div>
 
-        <div>
-          <input id="daterangepicker" class="form-control" style="margin-top: 10px;" type="text" name="daterange" />
-        </div>
+          <div>
+            <input id="daterangepicker" class="form-control" style="margin-top: 10px;" type="text" name="daterange" />
+          </div>
 
-        <hr>
+          <hr>
 
-        <div>
-          <span style="float: left; width: 50%;">
-            <b>node size</b>
-          </span>
-          <span class="far fa-circle" style="text-align: right; width: 50%;">
-          </span>
-        </div>
+          <div>
+            <span style="float: left; width: 50%;">
+              <b>node size</b>
+            </span>
+            <span class="far fa-circle" style="text-align: right; width: 50%;">
+            </span>
+          </div>
 
-        <div style="width: 100%; margin-top: 10px;">
-          <div class="btn-group">
-            <button id="nodeWeight" class="btn btn-info" type="button">
-                Select Node Size
-            </button>
-            <button class="btn btn-info dropdown-toggle pull-right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick="toggleExpand()">
-            </button>
-            <div class="dropdown-menu" aria-labelledby="nodeWeight">
-              <b class="dropdown-item" name="in_degrees" onclick="getDropdownContent(event)">in_degrees</b>
-              <b class="dropdown-item" name="in_weights" onclick="getDropdownContent(event)">in_weights</b>
-              <b class="dropdown-item" name="out_degrees" onclick="getDropdownContent(event)">out_degrees</b>
-              <b class="dropdown-item" name="out_weights" onclick="getDropdownContent(event)">out_weights</b>
-              <b class="dropdown-item" name="degree_anomalies" onclick="getDropdownContent(event)">degree_anomalies</b>
-              <b class="dropdown-item" name="weight_anomalies" onclick="getDropdownContent(event)">weight_anomalies</b>
-              <a class="dropdown-item" name="power_iteration" onclick="getDropdownContent(event)">power_iteration</a>
+          <div style="width: 100%; margin-top: 10px;">
+            <div class="btn-group">
+              <button id="nodeWeight" class="btn btn-info" type="button">
+                  Select Node Size
+              </button>
+              <button class="btn btn-info dropdown-toggle pull-right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick="toggleExpand()">
+              </button>
+              <div class="dropdown-menu" aria-labelledby="nodeWeight">
+                <b class="dropdown-item" name="in_degrees" onclick="getDropdownContent(event)">in_degrees</b>
+                <b class="dropdown-item" name="in_weights" onclick="getDropdownContent(event)">in_weights</b>
+                <b class="dropdown-item" name="out_degrees" onclick="getDropdownContent(event)">out_degrees</b>
+                <b class="dropdown-item" name="out_weights" onclick="getDropdownContent(event)">out_weights</b>
+                <b class="dropdown-item" name="degree_anomalies" onclick="getDropdownContent(event)">degree_anomalies</b>
+                <b class="dropdown-item" name="weight_anomalies" onclick="getDropdownContent(event)">weight_anomalies</b>
+                <a class="dropdown-item" name="power_iteration" onclick="getDropdownContent(event)">power_iteration</a>
+              </div>
             </div>
           </div>
+
+          <hr>
+
+          <div>
+            <span style="float: left; width: 50%;">
+              <b>node colorize</b>
+            </span>
+            <span class="fas fa-tint" style="text-align: right; width: 50%">
+            </span>
+          </div>
+
+          <div style="width: 100%; margin-top: 10px;">
+            <div id="colorizeList"></div>
+          </div>
+
         </div>
-
-        <hr>
-
-        <div>
-          <span style="float: left; width: 50%;">
-            <b>node colorize</b>
-          </span>
-          <span class="fas fa-tint" style="text-align: right; width: 50%">
-          </span>
-        </div>
-
-        <div style="width: 100%; margin-top: 10px;">
-          <div id="colorizeList"></div>
-        </div>
-
       </div>
     </right>
   </body>
