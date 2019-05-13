@@ -156,10 +156,6 @@ const initTimeline = function (min, max) {
             updateTime: true,
         },
         onMove: (item, callback) => {
-            globalContext._privates.daterange = {
-                start: item.start,
-                end: item.end,
-            };
             sendMessageJson({
                 cmd: 'timeline_seek',
                 start: item.start.getTime(),
@@ -354,10 +350,6 @@ const initDateRangePicker = function () {
             format: 'DD.MM.YYYY HH:mm',
         },
     }, (start, end) => {
-        globalContext._privates.daterange = {
-            start,
-            end,
-        };
         sendMessageJson({
             cmd: 'timeline_seek',
             start: start / 1,
