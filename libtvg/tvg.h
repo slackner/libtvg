@@ -1351,6 +1351,7 @@ struct tvg *grab_tvg(struct tvg *tvg);
 void free_tvg(struct tvg *tvg);
 
 void tvg_debug(struct tvg *tvg);
+uint64_t tvg_memory_usage(struct tvg *tvg);
 
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
 struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);

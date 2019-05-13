@@ -107,6 +107,22 @@ void tvg_debug(struct tvg *tvg)
     }
 }
 
+uint64_t tvg_memory_usage(struct tvg *tvg)
+{
+    struct graph *graph;
+    uint64_t size = sizeof(*tvg);
+
+    LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
+    {
+        size += graph_memory_usage(graph);
+    }
+
+    /* FIXME: This is not fully correct, there are some more structures
+     * associated with a TVG that are not taken into account here. */
+
+    return size;
+}
+
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
 {
     struct graph *other_graph;

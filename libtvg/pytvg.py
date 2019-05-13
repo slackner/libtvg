@@ -281,6 +281,9 @@ lib.alloc_tvg.restype = c_tvg_p
 
 lib.free_tvg.argtypes = (c_tvg_p,)
 
+lib.tvg_memory_usage.argtypes = (c_tvg_p,)
+lib.tvg_memory_usage.restype = c_uint64
+
 lib.tvg_link_graph.argtypes = (c_tvg_p, c_graph_p, c_uint64)
 lib.tvg_link_graph.restype = c_int
 
@@ -1380,6 +1383,11 @@ class TVG(object):
     def flags(self):
         return self._obj.contents.flags
 
+    @property
+    def memory_usage(self):
+        """ Return the memory usage currently associated with the TVG. """
+        return lib.tvg_memory_usage(self._obj)
+
     def link_graph(self, graph, ts):
         """
         Link a graph to the time-varying-graph object.
@@ -2476,6 +2484,7 @@ if __name__ == '__main__':
         def test_lookup(self):
             tvg = TVG(positive=True)
             self.assertEqual(tvg.flags, TVG_FLAGS_POSITIVE)
+            mem = tvg.memory_usage
 
             g1 = tvg.Graph(100)
             self.assertEqual(g1.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
@@ -2486,6 +2495,7 @@ if __name__ == '__main__':
             g3 = tvg.Graph(300)
             self.assertEqual(g3.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g3.ts, 300)
+            self.assertGreater(tvg.memory_usage, mem)
 
             g = tvg.lookup_le(50)
             self.assertEqual(g, None)

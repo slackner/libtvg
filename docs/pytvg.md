@@ -711,6 +711,9 @@ __Arguments__
 - __primary_key__: List or semicolon separated string of attributes.
 
 
+### memory_usage
+Return the memory usage currently associated with the TVG.
+
 ### link_graph
 ```python
 TVG.link_graph(graph, ts)
