@@ -119,10 +119,6 @@ const getDropdownContent = function (event) {
 
 const onOpen = function (content) {
     console.log('connected');
-    globalContext.websocket = {
-        content,
-        connection: true,
-    };
 
     $('#serverConnection').css('color', '#00f100');
     $('#serverConnection').attr('title', 'server connected');
@@ -130,7 +126,6 @@ const onOpen = function (content) {
 
 const onClose = function () {
     console.log('disconnected');
-    delete globalContext.websocket;
 
     // eslint-disable-next-line no-use-before-define
     setTimeout(doConnect, 1000);
