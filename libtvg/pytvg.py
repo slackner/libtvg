@@ -397,7 +397,7 @@ def libtvgobject(klass):
         def __new__(cls, *args, obj=None, **kwargs):
             if obj:
                 try:
-                    return cache[addressof(obj.contents)]
+                    return cache[addressof(obj.contents)]._get_obj()
                 except KeyError:
                     pass
             result = klass(*args, obj=obj, **kwargs)
@@ -437,6 +437,10 @@ class Vector(object):
             return
         if self._obj:
             lib.free_vector(self._obj)
+
+    def _get_obj(self):
+        lib.free_vector(self._obj)
+        return self
 
     @cacheable
     def __repr__(self):
@@ -720,6 +724,10 @@ class Graph(object):
             return
         if self._obj:
             lib.free_graph(self._obj)
+
+    def _get_obj(self):
+        lib.free_graph(self._obj)
+        return self
 
     @cacheable
     def __repr__(self):
@@ -1296,6 +1304,10 @@ class Node(object):
         if self._obj:
             lib.free_node(self._obj)
 
+    def _get_obj(self):
+        lib.free_node(self._obj)
+        return self
+
     @property
     def index(self):
         """ Return the index of the node. """
@@ -1378,6 +1390,10 @@ class TVG(object):
             return
         if self._obj:
             lib.free_tvg(self._obj)
+
+    def _get_obj(self):
+        lib.free_tvg(self._obj)
+        return self
 
     @property
     def flags(self):
@@ -1661,6 +1677,10 @@ class Window(object):
         if self._obj:
             lib.free_window(self._obj)
 
+    def _get_obj(self):
+        lib.free_window(self._obj)
+        return self
+
     @property
     def eps(self):
         """
@@ -1757,6 +1777,10 @@ class MongoDB(object):
             return
         if self._obj:
             lib.free_mongodb(self._obj)
+
+    def _get_obj(self):
+        lib.free_mongodb(self._obj)
+        return self
 
 if __name__ == '__main__':
     import datetime
