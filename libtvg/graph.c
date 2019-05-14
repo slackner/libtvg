@@ -73,7 +73,7 @@ struct graph *alloc_graph(uint32_t flags)
 
 struct graph *grab_graph(struct graph *graph)
 {
-    if (graph) graph->refcount++;
+    if (graph) __sync_fetch_and_add(&graph->refcount, 1);
     return graph;
 }
 
@@ -82,7 +82,7 @@ void free_graph(struct graph *graph)
     uint64_t i, num_buckets;
 
     if (!graph) return;
-    if (--graph->refcount) return;
+    if (__sync_sub_and_fetch(&graph->refcount, 1)) return;
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
@@ -184,7 +184,7 @@ struct graph *prev_graph(struct graph *graph)
         return NULL;
 
     /* Ensure that the user has one additional reference. */
-    assert(graph->refcount >= 2);
+    assert(__sync_fetch_and_add(&graph->refcount, 0) >= 2);
 
     if (graph->flags & TVG_FLAGS_LOAD_PREV)
         tvg_load_prev_graph(tvg, graph);
@@ -206,7 +206,7 @@ struct graph *next_graph(struct graph *graph)
         return NULL;
 
     /* Ensure that the user has one additional reference. */
-    assert(graph->refcount >= 2);
+    assert(__sync_fetch_and_add(&graph->refcount, 0) >= 2);
 
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
         tvg_load_next_graph(tvg, graph);

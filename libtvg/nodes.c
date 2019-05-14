@@ -27,7 +27,7 @@ struct node *alloc_node(void)
 
 struct node *grab_node(struct node *node)
 {
-    if (node) node->refcount++;
+    if (node) __sync_fetch_and_add(&node->refcount, 1);
     return node;
 }
 
@@ -36,7 +36,7 @@ void free_node(struct node *node)
     struct attribute *attr, *next_attr;
 
     if (!node) return;
-    if (--node->refcount) return;
+    if (__sync_sub_and_fetch(&node->refcount, 1)) return;
 
     LIST_FOR_EACH_SAFE(attr, next_attr, &node->attributes, struct attribute, entry)
     {

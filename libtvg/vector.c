@@ -59,7 +59,7 @@ struct vector *alloc_vector(uint32_t flags)
 
 struct vector *grab_vector(struct vector *vector)
 {
-    if (vector) vector->refcount++;
+    if (vector) __sync_fetch_and_add(&vector->refcount, 1);
     return vector;
 }
 
@@ -68,7 +68,7 @@ void free_vector(struct vector *vector)
     uint64_t i, num_buckets;
 
     if (!vector) return;
-    if (--vector->refcount) return;
+    if (__sync_sub_and_fetch(&vector->refcount, 1)) return;
 
     num_buckets = 1ULL << vector->bits;
     for (i = 0; i < num_buckets; i++)

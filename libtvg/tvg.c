@@ -45,7 +45,7 @@ struct tvg *alloc_tvg(uint32_t flags)
 
 struct tvg *grab_tvg(struct tvg *tvg)
 {
-    if (tvg) tvg->refcount++;
+    if (tvg) __sync_fetch_and_add(&tvg->refcount, 1);
     return tvg;
 }
 
@@ -57,7 +57,7 @@ void free_tvg(struct tvg *tvg)
     uint32_t i;
 
     if (!tvg) return;
-    if (--tvg->refcount) return;
+    if (__sync_sub_and_fetch(&tvg->refcount, 1)) return;
 
     LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {

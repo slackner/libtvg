@@ -155,14 +155,14 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
 
 struct mongodb *grab_mongodb(struct mongodb *mongodb)
 {
-    if (mongodb) mongodb->refcount++;
+    if (mongodb) __sync_fetch_and_add(&mongodb->refcount, 1);
     return mongodb;
 }
 
 void free_mongodb(struct mongodb *mongodb)
 {
     if (!mongodb) return;
-    if (--mongodb->refcount) return;
+    if (__sync_sub_and_fetch(&mongodb->refcount, 1)) return;
 
     if (mongodb->articles)
         mongoc_collection_destroy(mongodb->articles);
@@ -678,7 +678,10 @@ error:
         assert(graph->tvg == tvg);
         assert(graph->cache != 0);
         if (tvg->cache_used + cache_reserve <= tvg->cache_size) break;
-        if (graph->refcount > 1) continue;  /* cannot free space */
+        if (__sync_fetch_and_add(&graph->refcount, 0) > 1) continue;  /* cannot free space */
+
+        /* FIXME: Ensure that user cannot get reference while we are deleting
+         *        the object. Otherwise {next,prev}_graph() will return NULL. */
         unlink_graph(graph);
         free_graph(graph);
     }

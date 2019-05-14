@@ -34,14 +34,14 @@ struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64
 
 struct window *grab_window(struct window *window)
 {
-    if (window) window->refcount++;
+    if (window) __sync_fetch_and_add(&window->refcount, 1);
     return window;
 }
 
 void free_window(struct window *window)
 {
     if (!window) return;
-    if (--window->refcount) return;
+    if (__sync_sub_and_fetch(&window->refcount, 1)) return;
 
     window_clear(window);
     free_tvg(window->tvg);
