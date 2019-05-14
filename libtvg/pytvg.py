@@ -1763,6 +1763,7 @@ if __name__ == '__main__':
     import unittest
     import mockupdb
     import tempfile
+    import gc
 
     class VectorTests(unittest.TestCase):
         def test_add_entry(self):
@@ -3218,3 +3219,4 @@ if __name__ == '__main__':
 
     # Run the unit tests
     unittest.main()
+    gc.collect()
