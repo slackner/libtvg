@@ -128,6 +128,9 @@ Structure/Union member
 ### uri
 Structure/Union member
 
+### use_pool
+Structure/Union member
+
 ## c_mongodb
 ```python
 c_mongodb(*args, **kwargs)
@@ -997,6 +1000,7 @@ MongoDB(uri,
         entity_ent,
         load_nodes,
         max_distance,
+        use_pool=True,
         obj=None)
 ```
 
@@ -1018,4 +1022,6 @@ entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
 load_nodes: Load node attributes.
 max_distance: Maximum distance of mentions.
+
+use_pool: Use a connection pool to access MongoDB.
 

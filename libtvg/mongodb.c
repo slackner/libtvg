@@ -59,6 +59,7 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->entity_doc   = strdup(orig->entity_doc)))   goto error;
     if (!(config->entity_sen   = strdup(orig->entity_sen)))   goto error;
     if (!(config->entity_ent   = strdup(orig->entity_ent)))   goto error;
+    config->use_pool     = orig->use_pool;
     config->load_nodes   = orig->load_nodes;
     config->max_distance = orig->max_distance;
     return config;
@@ -68,8 +69,32 @@ error:
     return NULL;
 }
 
+static mongoc_client_t *mongodb_pop_client(struct mongodb *mongodb)
+{
+    if (mongodb->pool)
+        return mongoc_client_pool_pop(mongodb->pool);
+
+    if (mongodb->client)
+        return mongodb->client;
+
+    assert(0);
+    return NULL;
+}
+
+static void mongodb_push_client(struct mongodb *mongodb, mongoc_client_t *client)
+{
+    if (mongodb->pool)
+    {
+        mongoc_client_pool_push(mongodb->pool, client);
+        return;
+    }
+
+    assert(client == mongodb->client);
+}
+
 struct mongodb *alloc_mongodb(const struct mongodb_config *config)
 {
+    mongoc_client_t *client;
     struct mongodb *mongodb;
     bson_t *command, reply;
     bson_error_t error;
@@ -88,8 +113,7 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
 
     mongodb->refcount = 1;
     mongodb->client   = NULL;
-    mongodb->articles = NULL;
-    mongodb->entities = NULL;
+    mongodb->pool     = NULL;
 
     /* From now on, always use the copied version. */
     config = mongodb->config;
@@ -102,15 +126,31 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
         return NULL;
     }
 
-    mongodb->client = mongoc_client_new_from_uri(uri);
-    mongoc_uri_destroy(uri);
-    if (!mongodb->client)
+    if (config->use_pool)
     {
-        free_mongodb(mongodb);
-        return NULL;
-    }
+        mongodb->pool = mongoc_client_pool_new(uri);
+        mongoc_uri_destroy(uri);
+        if (!mongodb->pool)
+        {
+            free_mongodb(mongodb);
+            return NULL;
+        }
 
-    mongoc_client_set_appname(mongodb->client, "libtvg");
+        mongoc_client_pool_set_error_api(mongodb->pool, 2);
+        mongoc_client_pool_set_appname(mongodb->pool, "libtvg");
+    }
+    else
+    {
+        mongodb->client = mongoc_client_new_from_uri(uri);
+        mongoc_uri_destroy(uri);
+        if (!mongodb->client)
+        {
+            free_mongodb(mongodb);
+            return NULL;
+        }
+
+        mongoc_client_set_appname(mongodb->client, "libtvg");
+    }
 
     command = BCON_NEW("ping", BCON_INT32(1));
     if (!command)
@@ -119,7 +159,9 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
         return NULL;
     }
 
-    success = mongoc_client_command_simple(mongodb->client, config->database, command, NULL, &reply, &error);
+    client = mongodb_pop_client(mongodb);
+    success = mongoc_client_command_simple(client, config->database, command, NULL, &reply, &error);
+    mongodb_push_client(mongodb, client);
     bson_destroy(command);
     if (!success)
     {
@@ -135,21 +177,6 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
     }
 
     bson_destroy(&reply);
-
-    mongodb->articles = mongoc_client_get_collection(mongodb->client, config->database, config->col_articles);
-    if (!mongodb->articles)
-    {
-        free_mongodb(mongodb);
-        return NULL;
-    }
-
-    mongodb->entities = mongoc_client_get_collection(mongodb->client, config->database, config->col_entities);
-    if (!mongodb->entities)
-    {
-        free_mongodb(mongodb);
-        return NULL;
-    }
-
     return mongodb;
 }
 
@@ -164,12 +191,10 @@ void free_mongodb(struct mongodb *mongodb)
     if (!mongodb) return;
     if (__sync_sub_and_fetch(&mongodb->refcount, 1)) return;
 
-    if (mongodb->articles)
-        mongoc_collection_destroy(mongodb->articles);
-    if (mongodb->entities)
-        mongoc_collection_destroy(mongodb->entities);
     if (mongodb->client)
         mongoc_client_destroy(mongodb->client);
+    if (mongodb->pool)
+        mongoc_client_pool_destroy(mongodb->pool);
 
     free_mongodb_config(mongodb->config);
     free(mongodb);
@@ -316,7 +341,9 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint6
 {
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
+    mongoc_collection_t *entities;
     struct occurrence new_entry;
+    mongoc_client_t *client;
     mongoc_cursor_t *cursor;
     bson_t *filter, *opts;
     struct graph *graph = NULL;
@@ -338,11 +365,26 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint6
         return NULL;
     }
 
-    cursor = mongoc_collection_find_with_opts(mongodb->entities, filter, opts, NULL);
+    client = mongodb_pop_client(mongodb);
+    entities = mongoc_client_get_collection(client, config->database, config->col_entities);
+    if (!entities)
+    {
+        mongodb_push_client(mongodb, client);
+        bson_destroy(filter);
+        bson_destroy(opts);
+        return 0;
+    }
+
+    cursor = mongoc_collection_find_with_opts(entities, filter, opts, NULL);
     bson_destroy(filter);
     bson_destroy(opts);
     if (!cursor)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        mongoc_collection_destroy(entities);
+        mongodb_push_client(mongodb, client);
         return NULL;
+    }
 
     if (!(graph = alloc_graph(flags)))
     {
@@ -408,6 +450,9 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint6
 
 error:
     mongoc_cursor_destroy(cursor);
+    mongoc_collection_destroy(entities);
+    mongodb_push_client(mongodb, client);
+
     if (graph) graph->revision = 0;
     if (!ret)
     {
@@ -422,6 +467,8 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 {
     struct mongodb_config *config = mongodb->config;
     bson_t *opts, filter = BSON_INITIALIZER;
+    mongoc_collection_t *articles;
+    mongoc_client_t *client;
     mongoc_cursor_t *cursor;
     uint32_t graph_flags;
     struct graph *graph;
@@ -438,11 +485,26 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
         return 0;
     }
 
-    cursor = mongoc_collection_find_with_opts(mongodb->articles, &filter, opts, NULL);
+    client = mongodb_pop_client(mongodb);
+    articles = mongoc_client_get_collection(client, config->database, config->col_articles);
+    if (!articles)
+    {
+        mongodb_push_client(mongodb, client);
+        bson_destroy(&filter);
+        bson_destroy(opts);
+        return 0;
+    }
+
+    cursor = mongoc_collection_find_with_opts(articles, &filter, opts, NULL);
     bson_destroy(&filter);
     bson_destroy(opts);
     if (!cursor)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        mongoc_collection_destroy(articles);
+        mongodb_push_client(mongodb, client);
         return 0;
+    }
 
     graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
                                 TVG_FLAGS_POSITIVE |
@@ -488,6 +550,8 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 
 error:
     mongoc_cursor_destroy(cursor);
+    mongoc_collection_destroy(articles);
+    mongodb_push_client(mongodb, client);
     return ret;
 }
 
@@ -496,7 +560,9 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
 {
     struct mongodb *mongodb = tvg->mongodb;
     struct mongodb_config *config = mongodb->config;
+    mongoc_collection_t *articles;
     struct graph *next_graph;
+    mongoc_client_t *client;
     mongoc_cursor_t *cursor;
     uint64_t cache_reserve = 0;
     uint32_t graph_flags;
@@ -524,11 +590,22 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         return;
     }
 
-    cursor = mongoc_collection_find_with_opts(mongodb->articles, filter, opts, NULL);
+    client = mongodb_pop_client(mongodb);
+    articles = mongoc_client_get_collection(client, config->database, config->col_articles);
+    if (!articles)
+    {
+        mongodb_push_client(mongodb, client);
+        bson_destroy(opts);
+        return;
+    }
+
+    cursor = mongoc_collection_find_with_opts(articles, filter, opts, NULL);
     bson_destroy(opts);
     if (!cursor)
     {
         fprintf(stderr, "%s: Out of memory!\n", __func__);
+        mongoc_collection_destroy(articles);
+        mongodb_push_client(mongodb, client);
         return;
     }
 
@@ -673,6 +750,10 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
     }
 
 error:
+    mongoc_cursor_destroy(cursor);
+    mongoc_collection_destroy(articles);
+    mongodb_push_client(mongodb, client);
+
     LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->cache, struct graph, cache_entry)
     {
         assert(graph->tvg == tvg);
@@ -693,8 +774,6 @@ error:
         list_add_tail(&tvg->cache, &graph->cache_entry);
         tvg->cache_used += graph->cache;
     }
-
-    mongoc_cursor_destroy(cursor);
 }
 
 void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)

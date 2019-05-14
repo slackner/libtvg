@@ -25,7 +25,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000002
+LIBTVG_API_VERSION  = 0x00000003
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -67,6 +67,7 @@ class c_window(Structure):
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
                 ("database",     c_char_p),
+                ("use_pool",     c_int),
                 ("col_articles", c_char_p),
                 ("article_id",   c_char_p),
                 ("article_time", c_char_p),
@@ -1755,15 +1756,18 @@ class MongoDB(object):
 
     load_nodes: Load node attributes.
     max_distance: Maximum distance of mentions.
+
+    use_pool: Use a connection pool to access MongoDB.
     """
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, load_nodes,
-                 max_distance, obj=None):
+                 max_distance, use_pool=True, obj=None):
         if obj is None:
             config = c_mongodb_config()
             config.uri          = uri.encode("utf-8")
             config.database     = database.encode("utf-8")
+            config.use_pool     = use_pool
             config.col_articles = col_articles.encode("utf-8")
             config.article_id   = article_id.encode("utf-8")
             config.article_time = article_time.encode("utf-8")
@@ -3026,7 +3030,8 @@ if __name__ == '__main__':
             self.s.run()
 
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
-                                 "_id", "time", "col_entities", "doc", "sen", "ent", False, 5)
+                                 "_id", "time", "col_entities", "doc", "sen", "ent",
+                                 False, 5, False)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})

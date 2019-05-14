@@ -17,7 +17,7 @@
 
 #include "list.h"
 
-#define LIBTVG_API_VERSION  0x00000002ULL
+#define LIBTVG_API_VERSION  0x00000003ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -168,6 +168,7 @@ struct mongodb_config
 {
     char       *uri;
     char       *database;
+    int        use_pool;
 
     char       *col_articles;
     char       *article_id;     /* document id */
@@ -189,8 +190,7 @@ struct mongodb
     /* private: */
     struct mongodb_config *config;
     void       *client;     /* mongoc_client_t */
-    void       *articles;   /* mongoc_collection_t */
-    void       *entities;   /* mongoc_collection_t */
+    void       *pool;       /* mongoc_client_pool_t */
 };
 
 struct bfs_entry
