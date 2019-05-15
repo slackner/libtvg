@@ -52,14 +52,14 @@ struct tvg *grab_tvg(struct tvg *tvg)
 void free_tvg(struct tvg *tvg)
 {
     struct attribute *attr, *next_attr;
-    struct graph *graph, *next_graph;
-    struct node *node, *next_node;
+    struct graph *graph;
+    struct node *node;
     uint32_t i;
 
     if (!tvg) return;
     if (__sync_sub_and_fetch(&tvg->refcount, 1)) return;
 
-    LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
+    while ((graph = LIST_HEAD(&tvg->graphs, struct graph, entry)))
     {
         assert(graph->tvg == tvg);
         unlink_graph(graph);
@@ -67,7 +67,7 @@ void free_tvg(struct tvg *tvg)
 
     for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
     {
-        LIST_FOR_EACH_SAFE(node, next_node, &tvg->nodes_ind[i], struct node, entry_ind)
+        while ((node = LIST_HEAD(&tvg->nodes_ind[i], struct node, entry_ind)))
         {
             assert(node->tvg == tvg);
             unlink_node(node);

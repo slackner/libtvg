@@ -27,9 +27,21 @@ struct list
     if (&__ret->field == (list)) __ret = NULL; \
     __ret; })
 
+/* retrieve the first element in a linked list */
+#define LIST_HEAD(list, type, field) ({ \
+    typeof(((type *)0)) __ret = LIST_ENTRY((list)->next, type, field); \
+    if (&__ret->field == (list)) __ret = NULL; \
+    __ret; })
+
 /* retrieve the previous element in a linked list */
 #define LIST_PREV(cursor, list, type, field) ({ \
     typeof(((type *)0)) __ret = LIST_ENTRY((cursor) ? (cursor)->field.prev : (list)->prev, type, field); \
+    if (&__ret->field == (list)) __ret = NULL; \
+    __ret; })
+
+/* retrieve the last element in a linked list */
+#define LIST_TAIL(list, type, field)  ({ \
+    typeof(((type *)0)) __ret = LIST_ENTRY((list)->prev, type, field); \
     if (&__ret->field == (list)) __ret = NULL; \
     __ret; })
 
