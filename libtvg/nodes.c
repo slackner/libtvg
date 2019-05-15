@@ -56,6 +56,7 @@ void unlink_node(struct node *node)
     list_remove(&node->entry_ind);
     list_remove(&node->entry_key);
     node->tvg = NULL;
+    free_node(node);
 }
 
 int node_set_attribute_internal(struct node *node, const char *key, size_t keylen, const char *value)

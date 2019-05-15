@@ -63,7 +63,6 @@ void free_tvg(struct tvg *tvg)
     {
         assert(graph->tvg == tvg);
         unlink_graph(graph);
-        free_graph(graph);
     }
 
     for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
@@ -72,7 +71,6 @@ void free_tvg(struct tvg *tvg)
         {
             assert(node->tvg == tvg);
             unlink_node(node);
-            free_node(node);
         }
     }
 
@@ -715,7 +713,6 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
                 return 0;
 
             unlink_graph(graph);
-            free_graph(graph);
             continue;
         }
 

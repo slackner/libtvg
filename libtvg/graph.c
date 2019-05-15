@@ -129,6 +129,7 @@ void unlink_graph(struct graph *graph)
 
     list_remove(&graph->entry);
     graph->tvg = NULL;
+    free_graph(graph);
 }
 
 void graph_refresh_cache(struct graph *graph)

@@ -683,7 +683,6 @@ error:
         /* FIXME: Ensure that user cannot get reference while we are deleting
          *        the object. Otherwise {next,prev}_graph() will return NULL. */
         unlink_graph(graph);
-        free_graph(graph);
     }
 
     LIST_FOR_EACH_SAFE(graph, next_graph, &todo, struct graph, cache_entry)
