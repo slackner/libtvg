@@ -109,6 +109,23 @@ void progress(const char *format, ...) __attribute__((format (printf,1,2))) DECL
 uint64_t clock_monotonic(void) DECL_INTERNAL;
 uint64_t count_lines(FILE *fp) DECL_INTERNAL;
 
+void init_futex(void) DECL_INTERNAL;
+
+void event_init(struct event *event) DECL_INTERNAL;
+void event_signal(struct event *event) DECL_INTERNAL;
+int event_wait(struct event *event, uint64_t timeout_ms) DECL_INTERNAL;
+
+void mutex_init(struct mutex *mutex) DECL_INTERNAL;
+int mutex_trylock(struct mutex *mutex, uint64_t timeout_ms) DECL_INTERNAL;
+void mutex_lock(struct mutex *mutex) DECL_INTERNAL;
+void mutex_unlock(struct mutex *mutex) DECL_INTERNAL;
+
+void rwlock_init(struct rwlock *rwlock) DECL_INTERNAL;
+void rwlock_lock_w(struct rwlock *rwlock) DECL_INTERNAL;
+void rwlock_unlock_w(struct rwlock *rwlock) DECL_INTERNAL;
+void rwlock_lock_r(struct rwlock *rwlock) DECL_INTERNAL;
+void rwlock_unlock_r(struct rwlock *rwlock) DECL_INTERNAL;
+
 void random_bytes(uint8_t *buffer, size_t length) DECL_INTERNAL;
 float random_float(void) DECL_INTERNAL;
 

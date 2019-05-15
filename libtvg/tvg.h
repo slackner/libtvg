@@ -38,6 +38,23 @@ struct objectid
 };
 #pragma pack(pop)
 
+struct event
+{
+    int value;
+};
+
+struct mutex
+{
+    int value;
+};
+
+struct rwlock
+{
+    struct mutex control;
+    struct mutex write;
+    int          readers;
+};
+
 struct entry1
 {
     uint64_t index;
