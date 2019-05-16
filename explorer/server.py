@@ -102,6 +102,7 @@ class Client(WebSocket):
             self.edges  = self.window.Topics()
 
         log_scale = True
+        custom_colors = {}
 
         if context['nodeWeight'] == 'in_degrees':
             self.window.update(ts)
@@ -147,6 +148,13 @@ class Client(WebSocket):
 
         elif self.context['nodeWeight'] == 'entropy_2d':
             values = self.nodes.metric_entropy_2d(ts, self.window.width * 3)
+            log_scale = False
+
+        elif self.context['nodeWeight'] == 'trend':
+            values = self.nodes.metric_trend(ts, self.window.width * 3)
+            for i in values.keys():
+                custom_colors[i] = 'green' if values[i] >= 0.0 else 'red'
+                values[i] = abs(values[i])
             log_scale = False
 
         else:
@@ -204,7 +212,22 @@ class Client(WebSocket):
             except KeyError:
                 color = self.context['defaultColor']
 
-            nodes.append({'id': i, 'value': 0.2 + 0.8 * value, 'label': label, 'color': color, 'font': { 'size': 5 + value * 35 }})
+            attrs = {
+                'id':    i,
+                'value': 0.2 + 0.8 * value,
+                'label': label,
+                'color': color,
+                'font':  { 'size': 5 + value * 35 }
+            }
+
+            if i in custom_colors:
+                attrs['borderWidth'] = 2
+                attrs['color'] = {
+                    'background': custom_colors[i],
+                    'border':     color
+                }
+
+            nodes.append(attrs)
 
         edges = []
         for i, w in zip(*subgraph.edges()):
