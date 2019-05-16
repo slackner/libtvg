@@ -894,7 +894,7 @@ static void test_power_iteration(void)
     graph_add_edge(graph, 1, 0, 0.2);
     graph_add_edge(graph, 1, 1, 0.8);
 
-    vector = graph_power_iteration(graph, 0, &eigenvalue);
+    vector = graph_power_iteration(graph, 0, 0.0, &eigenvalue);
     assert(vector != NULL);
     assert(fabs(eigenvalue - 1.0) < 1e-7);
     assert(fabs(vector_get_entry(vector, 0) - invsqrt2) < 1e-7);
@@ -903,7 +903,7 @@ static void test_power_iteration(void)
 
     graph_mul_const(graph, -1.0);
 
-    vector = graph_power_iteration(graph, 0, &eigenvalue);
+    vector = graph_power_iteration(graph, 0, 0.0, &eigenvalue);
     assert(vector != NULL);
     assert(fabs(eigenvalue + 1.0) < 1e-7);
     assert(fabs(vector_get_entry(vector, 0) - invsqrt2) < 1e-7);

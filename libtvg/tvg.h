@@ -17,7 +17,7 @@
 
 #include "list.h"
 
-#define LIBTVG_API_VERSION  0x00000003ULL
+#define LIBTVG_API_VERSION  0x00000004ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -1327,7 +1327,7 @@ struct vector *graph_out_weights(const struct graph *graph);
 struct vector *graph_degree_anomalies(const struct graph *graph);
 struct vector *graph_weight_anomalies(const struct graph *graph);
 
-struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double *ret_eigenvalue);
+struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double tolerance, double *ret_eigenvalue);
 
 struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes);
 
