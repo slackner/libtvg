@@ -120,7 +120,7 @@ class Client(WebSocket):
             values = graph.weight_anomalies()
 
         elif context['nodeWeight'] == 'power_iteration':
-            values, _ = graph.power_iteration(ret_eigenvalue=False)
+            values, _ = graph.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
         else:
             print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
