@@ -101,28 +101,41 @@ class Client(WebSocket):
             self.nodes  = self.window.SumEdges()
             self.edges  = self.window.Topics()
 
-        self.window.update(ts)
+        log_scale = True
 
         if context['nodeWeight'] == 'in_degrees':
+            self.window.update(ts)
             values = self.nodes.result.in_degrees()
 
         elif context['nodeWeight'] == 'in_weights':
+            self.window.update(ts)
             values = self.nodes.result.in_weights()
 
         elif context['nodeWeight'] == 'out_degrees':
+            self.window.update(ts)
             values = self.nodes.result.out_degrees()
 
         elif context['nodeWeight'] == 'out_weights':
+            self.window.update(ts)
             values = self.nodes.result.out_weights()
 
         elif context['nodeWeight'] == 'degree_anomalies':
+            self.window.update(ts)
             values = self.nodes.result.degree_anomalies()
 
         elif context['nodeWeight'] == 'weight_anomalies':
+            self.window.update(ts)
             values = self.nodes.result.weight_anomalies()
 
         elif context['nodeWeight'] == 'eigenvector':
+            self.window.update(ts)
             values, _ = self.nodes.result.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
+
+        elif self.context['nodeWeight'] == 'stable_nodes':
+            values = self.nodes.metric_stability(ts, self.window.width * 3)
+            for i in values.keys():
+                values[i] = -values[i]
+            log_scale = False
 
         else:
             print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
@@ -130,20 +143,30 @@ class Client(WebSocket):
 
         # Showing the full graph is not feasible. Limit the view
         # to a sparse subgraph of about ~40 nodes.
+
+        if self.window.ts != ts:
+            self.window.update(ts)
+
         subgraph = self.edges.result.sparse_subgraph()
 
-        # rescale the values of selected nodes to [0.2, 1.0]
-        temp_values = {}
-        for i in subgraph.nodes():
-            value = values[i]
-            temp_values[i] = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
+        # convert values to dictionary
+        if isinstance(values, pytvg.Vector):
+            values = values.as_dict()
 
-        min_value = min(temp_values.values())
-        max_value = max(temp_values.values())
+        # convert values to logarithmic scale
+        if log_scale:
+            for i in values.keys():
+                values[i] = max(math.log(values[i]) + 10.0, 1.0) if values[i] > 0.0 else 1.0
 
-        values = {}
-        for i in subgraph.nodes():
-            values[i] = 0.2 + 0.8 * (temp_values[i] - min_value) / (max_value - min_value)
+        # rescale the values of selected nodes to [0.0, 1.0]
+        min_value = min(values.values())
+        max_value = max(values.values())
+        if min_value != max_value:
+            for i in values.keys():
+                values[i] = (values[i] - min_value) / (max_value - min_value)
+        else:
+            for i in values.keys():
+                values[i] = 1.0
 
         nodes = []
         for i in subgraph.nodes():
@@ -169,7 +192,7 @@ class Client(WebSocket):
             except KeyError:
                 color = self.context['defaultColor']
 
-            nodes.append({'id': i, 'value': value, 'label': label, 'color': color, 'font': { 'size': value * 40 }})
+            nodes.append({'id': i, 'value': 0.2 + 0.8 * value, 'label': label, 'color': color, 'font': { 'size': 5 + value * 35 }})
 
         edges = []
         for i, w in zip(*subgraph.edges()):
