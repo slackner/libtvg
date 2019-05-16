@@ -872,7 +872,8 @@ struct vector *graph_weight_anomalies(const struct graph *graph)
     return vector;
 }
 
-struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_iterations, double tolerance, double *ret_eigenvalue)
+struct vector *graph_power_iteration(const struct graph *graph, struct vector *initial_guess,
+                                     uint32_t num_iterations, double tolerance, double *ret_eigenvalue)
 {
     struct vector *vector;
     struct vector *temp;
@@ -881,17 +882,26 @@ struct vector *graph_power_iteration(const struct graph *graph, uint32_t num_ite
     if (!num_iterations)
         num_iterations = 100;
 
-    /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
-        return NULL;
-
-    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    if (initial_guess)
     {
-        if (vector_has_entry(vector, edge->target)) continue;
-        if (!vector_add_entry(vector, edge->target, random_float()))
-        {
-            free_vector(vector);
+        /* Use initial guess if provided. We increment the refcount so
+         * that the object remains valid in the code path below. */
+        vector = grab_vector(initial_guess);
+    }
+    else
+    {
+        /* FIXME: Appropriate flags? */
+        if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
             return NULL;
+
+        GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+        {
+            if (vector_has_entry(vector, edge->target)) continue;
+            if (!vector_add_entry(vector, edge->target, random_float()))
+            {
+                free_vector(vector);
+                return NULL;
+            }
         }
     }
 

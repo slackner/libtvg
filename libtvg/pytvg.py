@@ -25,7 +25,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000004
+LIBTVG_API_VERSION  = 0x00000005
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -251,7 +251,7 @@ lib.graph_degree_anomalies.restype = c_vector_p
 lib.graph_weight_anomalies.argtypes = (c_graph_p,)
 lib.graph_weight_anomalies.restype = c_vector_p
 
-lib.graph_power_iteration.argtypes = (c_graph_p, c_uint, c_double, c_double_p)
+lib.graph_power_iteration.argtypes = (c_graph_p, c_vector_p, c_uint, c_double, c_double_p)
 lib.graph_power_iteration.restype = c_vector_p
 
 lib.graph_filter_nodes.argtypes = (c_graph_p, c_vector_p)
@@ -1116,12 +1116,14 @@ class Graph(object):
         """ Compute and return a vector of weight anomalies. """
         return Vector(obj=lib.graph_weight_anomalies(self._obj))
 
-    def power_iteration(self, num_iterations=0, tolerance=0.0, ret_eigenvalue=True):
+    def power_iteration(self, initial_guess=None, num_iterations=0, tolerance=0.0, ret_eigenvalue=True):
         """
         Compute and return the eigenvector (and optionally the eigenvalue).
 
         # Arguments
+        initial_guess: Initial guess for the solver.
         num_iterations: Number of iterations.
+        tolerance: Desired tolerance.
         ret_eigenvalue: Also return the eigenvalue. This requires one more iteration.
 
         # Returns
@@ -1129,7 +1131,8 @@ class Graph(object):
         """
 
         eigenvalue = c_double() if ret_eigenvalue else None
-        vector = Vector(obj=lib.graph_power_iteration(self._obj, num_iterations, tolerance, eigenvalue))
+        initial_guess = initial_guess._obj if initial_guess is not None else None
+        vector = Vector(obj=lib.graph_power_iteration(self._obj, initial_guess, num_iterations, tolerance, eigenvalue))
         if eigenvalue is not None:
             eigenvalue = eigenvalue.value
         return vector, eigenvalue
@@ -2153,6 +2156,14 @@ if __name__ == '__main__':
             self.assertTrue(abs(v[0] - 1.0 / math.sqrt(2)) < 1e-3)
             self.assertTrue(abs(v[1] - 1.0 / math.sqrt(2)) < 1e-3)
             del v
+            w = Vector()
+            w[0] = 1.0 / math.sqrt(2)
+            w[1] = 1.0 / math.sqrt(2)
+            v, _ = g.power_iteration(initial_guess=w, num_iterations=1)
+            self.assertTrue(abs(v[0] - 1.0 / math.sqrt(2)) < 1e-7)
+            self.assertTrue(abs(v[1] - 1.0 / math.sqrt(2)) < 1e-7)
+            del v
+            del w
 
             g.mul_const(-1)
 
