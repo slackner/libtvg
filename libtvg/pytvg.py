@@ -161,6 +161,9 @@ lib.vector_norm.restype = c_double
 lib.vector_mul_vector.argtypes = (c_vector_p, c_vector_p)
 lib.vector_mul_vector.restype = c_double
 
+lib.vector_sub_vector_norm.argtypes = (c_vector_p, c_vector_p)
+lib.vector_sub_vector_norm.restype = c_double
+
 # graph functions
 
 lib.alloc_graph.argtypes = (c_uint,)
@@ -687,6 +690,10 @@ class Vector(object):
         """ Compute the scalar product of the current vector with a second vector `other`. """
         # FIXME: Check type of 'other'.
         return lib.vector_mul_vector(self._obj, other._obj)
+
+    def sub_vector_norm(self, other):
+        """ Compute L2 norm of (self - other). """
+        return lib.vector_sub_vector_norm(self._obj, other._obj)
 
     def as_dict(self):
         """ Return a dictionary containing all vector entries. """
@@ -2038,6 +2045,22 @@ if __name__ == '__main__':
                     break
             else:
                 self.assertTrue(False)
+
+        def test_sub_vector_norm(self):
+            v = Vector()
+            v[0] = 2.0
+
+            w = Vector()
+            w[0] = 5.0
+            w[1] = 4.0
+
+            self.assertEqual(v.sub_vector_norm(v), 0.0)
+            self.assertEqual(w.sub_vector_norm(w), 0.0)
+            self.assertEqual(v.sub_vector_norm(w), 5.0)
+            self.assertEqual(w.sub_vector_norm(v), 5.0)
+
+            del v
+            del w
 
         def test_repr(self):
             v = Vector()

@@ -388,3 +388,26 @@ double vector_mul_vector(const struct vector *vector1, const struct vector *vect
 
     return product;
 }
+
+double vector_sub_vector_norm(const struct vector *vector1, const struct vector *vector2)
+{
+    struct entry1 *entry1, *entry2;
+    double norm = 0.0;
+    double weight;
+
+    VECTOR_FOR_EACH_ENTRY2(vector1, entry1, vector2, entry2)
+    {
+        if (entry1 && entry2)
+            weight = entry1->weight - entry2->weight;
+        else if (entry1)
+            weight = entry1->weight;
+        else if (entry2)
+            weight = entry2->weight;  /* skip the minus sign */
+        else
+            assert(0);
+
+        norm += weight * weight;
+    }
+
+    return sqrt(norm);
+}
