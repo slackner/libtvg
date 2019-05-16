@@ -76,6 +76,8 @@ const watchColorPicker = function (event) {
                 color: globalContext._privates.nodeColor,
                 flag,
             });
+
+            $('#loading').show();
         }, 250);
     }
 
@@ -111,6 +113,8 @@ const getDropdownContent = function (event) {
         cmd: 'change_node_weight',
         value: selectedVal,
     });
+
+    $('#loading').show();
 };
 
 const onOpen = function (content) {
