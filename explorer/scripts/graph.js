@@ -25,41 +25,6 @@ const times = new vis.DataSet([
     },
 ]);
 
-const settings = {
-    color: [
-        {
-            title: 'location',
-            flag: 'LOC',
-            class: 'mr-3 far fa-compass',
-            color: '#00ffff',
-        },
-        {
-            title: 'organisation',
-            flag: 'ORG',
-            class: 'mr-3 fas fa-globe',
-            color: '#0040ff',
-        },
-        {
-            title: 'actor',
-            flag: 'ACT',
-            class: 'mr-3 far fa-user-circle',
-            color: '#8000ff',
-        },
-        {
-            title: 'date',
-            flag: 'DAT',
-            class: 'mr-3 far fa-clock',
-            color: '#ff0080',
-        },
-        {
-            title: 'term',
-            flag: 'TER',
-            class: 'mr-3 fas fa-exclamation-circle',
-            color: '#80ff00',
-        },
-    ],
-};
-
 // const WebSocket = require('ws');
 
 
@@ -211,7 +176,7 @@ const onMessage = function (event) {
             console.log('set_context:');
             console.log(msg.context);
 
-            // FIXME: Apply context.
+            initColorPicker(msg.context);
             break;
 
         case 'network_set':
@@ -291,9 +256,14 @@ const initDateRangePicker = function () {
     });
 };
 
-const initColorPicker = function () {
+const initColorPicker = function (context) {
     const listElement = document.getElementById('colorizeList');
-    settings.color.forEach((element) => {
+
+    while (listElement.firstChild) {
+        listElement.removeChild(listElement.firstChild);
+    }
+
+    $.each(context.nodeTypes, (type, element) => {
         const divRow = document.createElement('div');
         divRow.classList.add('row');
 
@@ -307,18 +277,17 @@ const initColorPicker = function () {
         i.setAttribute('title', element.title);
 
         const input = document.createElement('input');
-        input.setAttribute('id', `nodeColor-${element.flag}`);
+        input.setAttribute('id', `nodeColor-${type}`);
         input.setAttribute('type', 'color');
         input.setAttribute('value', element.color);
         input.className = 'nodeColor';
-
 
         listElement.appendChild(divRow);
         divRow.appendChild(divCol);
         divCol.appendChild(i);
         divCol.appendChild(input);
 
-        const node = document.querySelector(`#nodeColor-${element.flag}`);
+        const node = document.querySelector(`#nodeColor-${type}`);
         node.addEventListener('change', watchColorPicker, false);
     });
 };
@@ -455,7 +424,6 @@ const initTimeline = function () {
 
 const init = function () {
     initDateRangePicker();
-    initColorPicker();
     initNetwork();
     initTimeline();
 

@@ -15,12 +15,32 @@ import pytvg
 
 clients = []
 default_context = {
-    'colorMap': {
-        'LOC': '#bf8080', # Location
-        'ORG': '#b3a6c1', # Organisation
-        'ACT': '#80b2e5', # Actor
-        'DAT': '#80c7bf', # Date
-        'TER': '#cbcbcb', # Term - everything except LOAD
+    'nodeTypes': {
+        'LOC': {
+            'title': 'location',
+            'color': '#bf8080',
+            'class': 'mr-3 far fa-compass',
+        },
+        'ORG': {
+            'title': 'organisation',
+            'color': '#b3a6c1',
+            'class': 'mr-3 fas fa-globe',
+        },
+        'ACT': {
+            'title': 'actor',
+            'color': '#80b2e5',
+            'class': 'mr-3 far fa-user-circle',
+        },
+        'DAT': {
+            'title': 'date',
+            'color': '#80c7bf',
+            'class': 'mr-3 far fa-clock',
+        },
+        'TER': {
+            'title': 'term',
+            'color': '#cbcbcb',
+            'class': 'mr-3 fas fa-exclamation-circle',
+        },
     },
     'defaultColor': '#bf8080',
     'nodeWeight': 'eigenvector',
@@ -208,7 +228,7 @@ class Client(WebSocket):
 
             try:
                 ne = node['NE']
-                color = self.context['colorMap'][ne]
+                color = self.context['nodeTypes'][ne]['color']
             except KeyError:
                 color = self.context['defaultColor']
 
@@ -261,7 +281,7 @@ class Client(WebSocket):
 
         elif msg['cmd'] == 'recolor_graph_nodes':
             if 'flag' in msg:
-                context['colorMap'][msg['flag']] = msg['color']
+                context['nodeTypes'][msg['flag']]['color'] = msg['color']
             else:
                 context['defaultColor'] = msg['color']
 
