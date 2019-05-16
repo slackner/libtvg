@@ -132,10 +132,22 @@ class Client(WebSocket):
         # to a sparse subgraph of about ~40 nodes.
         subgraph = self.edges.result.sparse_subgraph()
 
+        # rescale the values of selected nodes to [0.2, 1.0]
+        temp_values = {}
+        for i in subgraph.nodes():
+            value = values[i]
+            temp_values[i] = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
+
+        min_value = min(temp_values.values())
+        max_value = max(temp_values.values())
+
+        values = {}
+        for i in subgraph.nodes():
+            values[i] = 0.2 + 0.8 * (temp_values[i] - min_value) / (max_value - min_value)
+
         nodes = []
         for i in subgraph.nodes():
             value = values[i]
-            value = max(math.log(value) + 10.0, 1.0) if value > 0.0 else 1.0
 
             try:
                 node = dataset_tvg.node_by_index(i)
@@ -157,7 +169,7 @@ class Client(WebSocket):
             except KeyError:
                 color = self.context['defaultColor']
 
-            nodes.append({'id': i, 'value': value, 'label': label, 'color': color})
+            nodes.append({'id': i, 'value': value, 'label': label, 'color': color, 'font': { 'size': value * 40 }})
 
         edges = []
         for i, w in zip(*subgraph.edges()):
