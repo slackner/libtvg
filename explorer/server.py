@@ -137,6 +137,10 @@ class Client(WebSocket):
                 values[i] = -values[i]
             log_scale = False
 
+        elif self.context['nodeWeight'] == 'entropy':
+            values = self.nodes.metric_entropy(ts, self.window.width * 3)
+            log_scale = False
+
         else:
             print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
             raise NotImplementedError
