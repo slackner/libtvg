@@ -464,6 +464,7 @@ const initNetwork = function () {
                 gravitationalConstant: -10000,
                 springConstant: 0.002,
                 springLength: 150,
+                avoidOverlap: 1,
             },
         },
     };
