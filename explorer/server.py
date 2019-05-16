@@ -23,7 +23,7 @@ default_context = {
         'TER': '#cbcbcb', # Term - everything except LOAD
     },
     'defaultColor': '#bf8080',
-    'nodeWeight': 'power_iteration',
+    'nodeWeight': 'eigenvector',
 }
 
 class ComplexEncoder(json.JSONEncoder):
@@ -119,7 +119,7 @@ class Client(WebSocket):
         elif context['nodeWeight'] == 'weight_anomalies':
             values = graph.weight_anomalies()
 
-        elif context['nodeWeight'] == 'power_iteration':
+        elif context['nodeWeight'] == 'eigenvector':
             values, _ = graph.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
         else:
