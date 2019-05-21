@@ -55,7 +55,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->revision    = 0;
     graph->eps         = 0.0;
     graph->ts          = 0.0;
-    graph->id          = ~0ULL;
+    objectid_init(&graph->objectid);
     graph->tvg         = NULL;
     list_init(&graph->entry);
     graph->cache       = 0;
@@ -106,7 +106,7 @@ void unlink_graph(struct graph *graph)
     if (!graph || !(tvg = graph->tvg))
         return;
 
-    if (graph->id != ~0ULL)  /* we have to reload later */
+    if (!objectid_empty(&graph->objectid))  /* we have to reload later */
         graph->flags |= (TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV);
 
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
@@ -143,10 +143,11 @@ void graph_refresh_cache(struct graph *graph)
 void graph_debug(struct graph *graph)
 {
     struct entry2 *edge;
+    char objectid_str[32];
 
-    fprintf(stderr, "Graph %p (ts %llu, id %llu, revision %llu)\n", graph,
-            (long long unsigned int)graph->ts,
-            (long long unsigned int)graph->id,
+    objectid_to_str(&graph->objectid, objectid_str);
+    fprintf(stderr, "Graph %p (ts %llu, objectid %s, revision %llu)\n", graph,
+            (long long unsigned int)graph->ts, objectid_str,
             (long long unsigned int)graph->revision);
 
     GRAPH_FOR_EACH_EDGE(graph, edge)

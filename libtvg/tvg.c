@@ -91,14 +91,15 @@ void free_tvg(struct tvg *tvg)
 void tvg_debug(struct tvg *tvg)
 {
     struct graph *graph;
+    char objectid_str[32];
 
     fprintf(stderr, "TVG %p\n", tvg);
 
     LIST_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
     {
-        fprintf(stderr, "-> Graph %p (ts %llu, id %llu, revision %llu) %s%s\n", graph,
-                (long long unsigned int)graph->ts,
-                (long long unsigned int)graph->id,
+        objectid_to_str(&graph->objectid, objectid_str);
+        fprintf(stderr, "-> Graph %p (ts %llu, objectid %s, revision %llu) %s%s\n", graph,
+                (long long unsigned int)graph->ts, objectid_str,
                 (long long unsigned int)graph->revision,
                 (graph->flags & TVG_FLAGS_LOAD_PREV) ? "load_prev " : "",
                 (graph->flags & TVG_FLAGS_LOAD_NEXT) ? "load_next " : "");
@@ -124,7 +125,7 @@ uint64_t tvg_memory_usage(struct tvg *tvg)
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
 {
     struct graph *other_graph;
-    uint64_t id = graph->id;
+    struct objectid *objectid = &graph->objectid;
     int res;
 
     if (graph->tvg)
@@ -138,8 +139,8 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
     LIST_FOR_EACH_REV(other_graph, &tvg->graphs, struct graph, entry)
     {
         assert(other_graph->tvg == tvg);
-        if ((res = compare_graph_ts_id(other_graph, ts, id)) < 0) break;
-        if (!res && id != ~0ULL) return 0;  /* MongoDB graphs can only be added once */
+        if ((res = compare_graph_ts_objectid(other_graph, ts, objectid)) < 0) break;
+        if (!res && !objectid_empty(objectid)) return 0;  /* MongoDB graphs can only be added once */
     }
 
     /* FIXME: Inherit flags of neighboring graphs. */

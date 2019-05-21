@@ -12,11 +12,34 @@
 #include "tvg.h"
 #include "internal.h"
 
+/* bson_oid_to_objectid and objectid_to_bson_oid relies on this */
+C_ASSERT(sizeof(struct objectid) == sizeof(bson_oid_t));
+
 struct occurrence
 {
     uint64_t sen;
     uint64_t ent;
 };
+
+static inline void bson_oid_to_objectid(const bson_oid_t *oid, struct objectid *objectid)
+{
+    const char *src = (const char *)oid + sizeof(*oid);
+    char *dst = (char *)objectid;
+    int i;
+
+    for (i = 0; i < sizeof(*objectid); i++)
+        *dst++ = *--src;  /* swap byte order */
+}
+
+static inline void objectid_to_bson_oid(const struct objectid *objectid, bson_oid_t *oid)
+{
+    const char *src = (const char *)objectid + sizeof(*objectid);
+    char *dst = (char *)oid;
+    int i;
+
+    for (i = 0; i < sizeof(*objectid); i++)
+        *dst++ = *--src;  /* swap byte order */
+}
 
 static void free_mongodb_config(struct mongodb_config *config)
 {
@@ -59,9 +82,10 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->entity_doc   = strdup(orig->entity_doc)))   goto error;
     if (!(config->entity_sen   = strdup(orig->entity_sen)))   goto error;
     if (!(config->entity_ent   = strdup(orig->entity_ent)))   goto error;
-    config->use_pool     = orig->use_pool;
-    config->load_nodes   = orig->load_nodes;
-    config->max_distance = orig->max_distance;
+    config->use_pool        = orig->use_pool;
+    config->use_objectids   = orig->use_objectids;
+    config->load_nodes      = orig->load_nodes;
+    config->max_distance    = orig->max_distance;
     return config;
 
 error:
@@ -203,8 +227,6 @@ void free_mongodb(struct mongodb *mongodb)
 static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *value)
 {
     bson_iter_t iter;
-    const char *str;
-    uint32_t len;
 
     if (!bson_iter_init_find(&iter, doc, field))
         return 0;
@@ -225,6 +247,16 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
         return 1;
     }
 
+    return 0;
+}
+
+static int bson_parse_datetime(const bson_t *doc, const char *field, uint64_t *value)
+{
+    bson_iter_t iter;
+
+    if (!bson_iter_init_find(&iter, doc, field))
+        return 0;
+
     if (BSON_ITER_HOLDS_DATE_TIME(&iter))
     {
         int64_t v = bson_iter_date_time(&iter);
@@ -233,27 +265,46 @@ static int bson_parse_integer(const bson_t *doc, const char *field, uint64_t *va
         return 1;
     }
 
-    if (BSON_ITER_HOLDS_UTF8(&iter))
+    if (BSON_ITER_HOLDS_INT32(&iter))
     {
-        str = bson_iter_utf8(&iter, &len);
-        if (!bson_utf8_validate(str, len, false))
-            return 0;
+        int32_t v = bson_iter_int32(&iter);
+        if (v < 0) return 0;
+        *value = (uint64_t)v;
+        return 1;
+    }
 
-        for (; *str; str++)
-            if (*str >= '0' && *str <= '9') break;
-
-        if (!*str)
-            return 0;
-
-        *value = strtoul(str, (char **)&str, 0);
-
-        for (; *str; str++)
-            if (*str >= '0' && *str <= '9') return 0;
-
+    if (BSON_ITER_HOLDS_INT64(&iter))
+    {
+        int64_t v = bson_iter_int64(&iter);
+        if (v < 0) return 0;
+        *value = (uint64_t)v;
         return 1;
     }
 
     return 0;
+}
+
+static int bson_parse_article_objectid(const bson_t *doc, const char *field, struct objectid *objectid)
+{
+    bson_iter_t iter;
+
+    if (!bson_iter_init_find(&iter, doc, field))
+        return 0;
+
+    if (BSON_ITER_HOLDS_OID(&iter))
+    {
+        const bson_oid_t *oid = bson_iter_oid(&iter);
+        bson_oid_to_objectid(oid, objectid);
+        return 1;
+    }
+
+    return 0;
+}
+
+static int bson_parse_article_integer(const bson_t *doc, const char *field, struct objectid *objectid)
+{
+    objectid->hi = 0;
+    return bson_parse_integer(doc, field, &objectid->lo);
 }
 
 /* Replacement for bson_iter_init_find_w_len, which only exists
@@ -277,8 +328,7 @@ static int bson_iter_init_find_key(bson_iter_t *iter, const bson_t *bson, const 
     return 0;
 }
 
-static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
-                             struct mongodb_config *config, uint64_t *value)
+static int bson_parse_entity_multi(struct tvg *tvg, const bson_t *doc, const char *field, uint64_t *entity)
 {
     struct node *other_node;
     struct node *node;
@@ -290,16 +340,13 @@ static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
     uint32_t len;
     int ret = 0;
 
-    if (!config->load_nodes)
-        return bson_parse_integer(doc, config->entity_ent, value);
-
     if (!tvg)
         return 0;
 
     if (!(node = alloc_node()))
         return 0;
 
-    key = config->entity_ent;
+    key = field;
     for (;;)
     {
         next = strchr(key, ';');
@@ -329,7 +376,7 @@ static int bson_parse_entity(struct tvg *tvg, const bson_t *doc,
         if (!(node = other_node)) goto error;
     }
 
-    *value = node->index;
+    *entity = node->index;
     ret = 1;
 
 error:
@@ -337,8 +384,14 @@ error:
     return ret;
 }
 
-struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags)
+static int bson_parse_entity_integer(struct tvg *tvg, const bson_t *doc, const char *field, uint64_t *entity)
 {
+    return bson_parse_integer(doc, field, entity);
+}
+
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struct objectid *objectid, uint32_t flags)
+{
+    int (*bson_parse_entity)(struct tvg *, const bson_t *, const char *, uint64_t *);
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
     mongoc_collection_t *entities;
@@ -346,15 +399,35 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint6
     mongoc_client_t *client;
     mongoc_cursor_t *cursor;
     bson_t *filter, *opts;
+    char objectid_str[32];
     struct graph *graph = NULL;
     struct queue *queue = NULL;
     bson_error_t error;
     const bson_t *doc;
+    bson_oid_t oid;
     float weight;
     int ret = 0;
     size_t i;
 
-    filter = BCON_NEW(config->entity_doc, BCON_INT64((int64_t)id));
+    bson_parse_entity = config->load_nodes ? bson_parse_entity_multi :
+                                             bson_parse_entity_integer;
+
+    if (config->use_objectids && !objectid_empty(objectid))
+    {
+        objectid_to_bson_oid(objectid, &oid);
+        filter = BCON_NEW(config->entity_doc, BCON_OID(&oid));
+    }
+    else if (!objectid->hi && (int64_t)objectid->lo >= 0)
+    {
+        filter = BCON_NEW(config->entity_doc, BCON_INT64((int64_t)objectid->lo));
+    }
+    else
+    {
+        objectid_to_str(objectid, objectid_str);
+        fprintf(stderr, "%s: Objectid %s is not valid\n", __func__, objectid_str);
+        return NULL;
+    }
+
     if (!filter)
         return NULL;
 
@@ -405,9 +478,9 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint6
             fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->entity_sen);
             continue;
         }
-        if (!bson_parse_entity(tvg, doc, config, &new_entry.ent))
+        if (!bson_parse_entity(tvg, doc, config->entity_ent, &new_entry.ent))
         {
-            fprintf(stderr, "%s: %s field not found or not the correct type\n", __func__, config->entity_ent);
+            fprintf(stderr, "%s: %s field not found or not an entity\n", __func__, config->entity_ent);
             continue;
         }
 
@@ -465,17 +538,23 @@ error:
 
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 {
+    int (*bson_parse_article)(const bson_t *, const char *, struct objectid *);
     struct mongodb_config *config = mongodb->config;
     bson_t *opts, filter = BSON_INITIALIZER;
     mongoc_collection_t *articles;
+    struct objectid objectid;
     mongoc_client_t *client;
     mongoc_cursor_t *cursor;
+    char objectid_str[32];
     uint32_t graph_flags;
     struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
-    uint64_t id, ts;
+    uint64_t ts;
     int ret = 0;
+
+    bson_parse_article = config->use_objectids ? bson_parse_article_objectid :
+                                                 bson_parse_article_integer;
 
     opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1),
                                  config->article_id,   BCON_INT32(1), "}");
@@ -512,24 +591,25 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 
     while (mongoc_cursor_next(cursor, &doc))
     {
-        if (!bson_parse_integer(doc, config->article_id, &id))
+        if (!bson_parse_article(doc, config->article_id, &objectid))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_id);
+            fprintf(stderr, "%s: %s field not found or not an objectid\n", __func__, config->article_id);
             continue;
         }
-        if (!bson_parse_integer(doc, config->article_time, &ts))
+        if (!bson_parse_datetime(doc, config->article_time, &ts))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_time);
+            fprintf(stderr, "%s: %s field not found or not a date/time\n", __func__, config->article_time);
             continue;
         }
 
-        if (!(graph = mongodb_load_graph(tvg, mongodb, id, graph_flags)))
+        if (!(graph = mongodb_load_graph(tvg, mongodb, &objectid, graph_flags)))
         {
-            fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
+            objectid_to_str(&objectid, objectid_str);
+            fprintf(stderr, "%s: Failed to load document %s\n", __func__, objectid_str);
             goto error;
         }
 
-        graph->id = id;
+        graph->objectid = objectid;
         if (!tvg_link_graph(tvg, graph, ts))
         {
             free_graph(graph);
@@ -558,25 +638,31 @@ error:
 static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_graph,
                                         bson_t *filter, int direction, int jump)
 {
+    int (*bson_parse_article)(const bson_t *, const char *, struct objectid *);
     struct mongodb *mongodb = tvg->mongodb;
     struct mongodb_config *config = mongodb->config;
     mongoc_collection_t *articles;
+    struct objectid objectid;
     struct graph *next_graph;
     mongoc_client_t *client;
     mongoc_cursor_t *cursor;
     uint64_t cache_reserve = 0;
+    char objectid_str[32];
     uint32_t graph_flags;
     struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
     struct list todo;
-    uint64_t id, ts;
     uint64_t count;
+    uint64_t ts;
     bson_t *opts;
     int first;
     int res;
 
     assert(direction == 1 || direction == -1);
+
+    bson_parse_article = config->use_objectids ? bson_parse_article_objectid :
+                                                 bson_parse_article_integer;
 
     if (!other_graph)
         other_graph = LIST_ENTRY(&tvg->graphs, struct graph, entry);
@@ -616,14 +702,14 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
     list_init(&todo);
     for (count = 0; mongoc_cursor_next(cursor, &doc); count++)
     {
-        if (!bson_parse_integer(doc, config->article_id, &id))
+        if (!bson_parse_article(doc, config->article_id, &objectid))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_id);
+            fprintf(stderr, "%s: %s field not found or not an objectid\n", __func__, config->article_id);
             continue;
         }
-        if (!bson_parse_integer(doc, config->article_time, &ts))
+        if (!bson_parse_datetime(doc, config->article_time, &ts))
         {
-            fprintf(stderr, "%s: %s field not found or not an integer\n", __func__, config->article_time);
+            fprintf(stderr, "%s: %s field not found or not a date/time\n", __func__, config->article_time);
             continue;
         }
 
@@ -633,7 +719,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             first = 1;
             while (&other_graph->entry != &tvg->graphs)
             {
-                if ((res = compare_graph_ts_id(other_graph, ts, id)) >= 0) break;
+                if ((res = compare_graph_ts_objectid(other_graph, ts, &objectid)) >= 0) break;
                 if (!jump)
                 {
                     if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
@@ -648,7 +734,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             first = 1;
             while (&other_graph->entry != &tvg->graphs)
             {
-                if ((res = compare_graph_ts_id(other_graph, ts, id)) <= 0) break;
+                if ((res = compare_graph_ts_objectid(other_graph, ts, &objectid)) <= 0) break;
                 if (!jump)
                 {
                     if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
@@ -680,16 +766,17 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             continue;
         }
 
-        if (!(graph = mongodb_load_graph(tvg, mongodb, id, graph_flags)))
+        if (!(graph = mongodb_load_graph(tvg, mongodb, &objectid, graph_flags)))
         {
-            fprintf(stderr, "%s: Failed to load document %llu\n", __func__, (long long unsigned int)id);
+            objectid_to_str(&objectid, objectid_str);
+            fprintf(stderr, "%s: Failed to load document %s\n", __func__, objectid_str);
             goto error;
         }
 
         /* Keep in sync with tvg_link_graph! */
         assert(!graph->tvg);
         graph->ts  = ts;
-        graph->id  = id;
+        graph->objectid = objectid;
         graph->tvg = tvg;
 
         if (direction > 0)
@@ -697,7 +784,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             if (jump) graph->flags |= TVG_FLAGS_LOAD_PREV;
             graph->flags |= TVG_FLAGS_LOAD_NEXT;  /* will be cleared later */
             if (&other_graph->entry != &tvg->graphs)
-                assert(compare_graph_ts_id(other_graph, ts, id) > 0);
+                assert(compare_graph_ts_objectid(other_graph, ts, &objectid) > 0);
             list_add_before(&other_graph->entry, &graph->entry);
         }
         else
@@ -705,7 +792,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             if (jump) graph->flags |= TVG_FLAGS_LOAD_NEXT;
             graph->flags |= TVG_FLAGS_LOAD_PREV;  /* will be cleared later */
             if (&other_graph->entry != &tvg->graphs)
-                assert(compare_graph_ts_id(other_graph, ts, id) < 0);
+                assert(compare_graph_ts_objectid(other_graph, ts, &objectid) < 0);
             list_add_after(&other_graph->entry, &graph->entry);
         }
 
@@ -779,6 +866,7 @@ error:
 void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
 {
     struct mongodb_config *config;
+    bson_oid_t oid;
     bson_t *filter;
 
     assert(&graph->entry != &tvg->graphs);
@@ -789,15 +877,23 @@ void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
     }
 
     config = tvg->mongodb->config;
-    if ((int64_t)graph->id < 0)
+
+    if (config->use_objectids && !objectid_empty(&graph->objectid))
     {
-        filter = BCON_NEW(config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}");
+        objectid_to_bson_oid(&graph->objectid, &oid);
+        filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
+                                      "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
+                                           config->article_id,   "{", "$gt", BCON_OID(&oid), "}", "}", "]");
     }
-    else
+    else if (!graph->objectid.hi && (int64_t)graph->objectid.lo >= 0)
     {
         filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
                                       "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
-                                           config->article_id,   "{", "$gt", BCON_INT64((int64_t)graph->id), "}", "}", "]");
+                                           config->article_id,   "{", "$gt", BCON_INT64((int64_t)graph->objectid.lo), "}", "}", "]");
+    }
+    else
+    {
+        filter = BCON_NEW(config->article_time, "{", "$gt", BCON_DATE_TIME((int64_t)graph->ts), "}");
     }
 
     if (!filter)
@@ -813,6 +909,7 @@ void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
 void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
 {
     struct mongodb_config *config;
+    bson_oid_t oid;
     bson_t *filter;
 
     assert(&graph->entry != &tvg->graphs);
@@ -823,15 +920,23 @@ void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
     }
 
     config = tvg->mongodb->config;
-    if ((int64_t)graph->id < 0)
+
+    if (config->use_objectids && !objectid_empty(&graph->objectid))
     {
-        filter = BCON_NEW(config->article_time, "{", "$lte", BCON_DATE_TIME((int64_t)graph->ts), "}");
+        objectid_to_bson_oid(&graph->objectid, &oid);
+        filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$lt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
+                                      "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
+                                           config->article_id,   "{", "$lt", BCON_OID(&oid), "}", "}", "]");
     }
-    else
+    else if (!graph->objectid.hi && (int64_t)graph->objectid.lo >= 0)
     {
         filter = BCON_NEW("$or", "[", "{", config->article_time, "{", "$lt", BCON_DATE_TIME((int64_t)graph->ts), "}", "}",
                                       "{", config->article_time,             BCON_DATE_TIME((int64_t)graph->ts),
-                                           config->article_id,   "{", "$lt", BCON_INT64((int64_t)graph->id), "}", "}", "]");
+                                           config->article_id,   "{", "$lt", BCON_INT64((int64_t)graph->objectid.lo), "}", "}", "]");
+    }
+    else
+    {
+        filter = BCON_NEW(config->article_time, "{", "$lte", BCON_DATE_TIME((int64_t)graph->ts), "}");
     }
 
     if (!filter)
@@ -920,7 +1025,7 @@ void free_mongodb(struct mongodb *mongodb)
     assert(!mongodb);
 }
 
-struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags)
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struct objectid *objectid, uint32_t flags)
 {
     return NULL;
 }

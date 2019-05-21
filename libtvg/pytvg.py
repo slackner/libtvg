@@ -25,7 +25,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000005
+LIBTVG_API_VERSION  = 0x00000006
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -34,6 +34,11 @@ TVG_FLAGS_STREAMING = 0x00000008
 
 TVG_FLAGS_LOAD_NEXT = 0x00010000
 TVG_FLAGS_LOAD_PREV = 0x00020000
+
+class c_objectid(Structure):
+    _pack_   = 4
+    _fields_ = [("lo",       c_uint64),
+                ("hi",       c_uint)]
 
 class c_vector(Structure):
     _fields_ = [("refcount", c_uint64),
@@ -47,7 +52,7 @@ class c_graph(Structure):
                 ("revision", c_uint64),
                 ("eps",      c_float),
                 ("ts",       c_uint64),
-                ("id",       c_uint64)]
+                ("objectid", c_objectid)]
 
 class c_node(Structure):
     _fields_ = [("refcount", c_uint64),
@@ -67,7 +72,6 @@ class c_window(Structure):
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
                 ("database",     c_char_p),
-                ("use_pool",     c_int),
                 ("col_articles", c_char_p),
                 ("article_id",   c_char_p),
                 ("article_time", c_char_p),
@@ -75,6 +79,8 @@ class c_mongodb_config(Structure):
                 ("entity_doc",   c_char_p),
                 ("entity_sen",   c_char_p),
                 ("entity_ent",   c_char_p),
+                ("use_pool",     c_int),
+                ("use_objectids", c_int),
                 ("load_nodes",   c_int),
                 ("max_distance", c_uint)]
 
@@ -96,6 +102,7 @@ def or_null(t):
     return wrap()
 
 c_double_p       = POINTER(c_double)
+c_objectid_p     = POINTER(c_objectid)
 c_vector_p       = POINTER(c_vector)
 c_graph_p        = POINTER(c_graph)
 c_node_p         = POINTER(c_node)
@@ -356,7 +363,7 @@ lib.alloc_mongodb.restype = c_mongodb_p
 
 lib.free_mongodb.argtypes = (c_mongodb_p,)
 
-lib.mongodb_load_graph.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint)
+lib.mongodb_load_graph.argtypes = (c_tvg_p, c_mongodb_p, c_objectid_p, c_uint)
 lib.mongodb_load_graph.restype = c_graph_p
 
 lib.tvg_load_graphs_from_mongodb.argtypes = (c_tvg_p, c_mongodb_p)
@@ -803,17 +810,22 @@ class Graph(object):
         Load a single graph from a MongoDB database.
 
         # Arguments
-        id: Identifier of the document to load
+        id: Identifier (numeric or objectid) of the document to load
         nonzero: Enforce that all entries must be non-zero.
         positive: Enforce that all entries must be positive.
         directed: Create a directed graph.
         """
 
+        objectid = c_objectid()
+        objectid.lo = id
+        objectid.hi = id >> 64
+
         flags = 0
         flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
         flags |= (TVG_FLAGS_POSITIVE if positive else 0)
         flags |= (TVG_FLAGS_DIRECTED if directed else 0)
-        obj = lib.mongodb_load_graph(None, mongodb._obj, id, flags)
+
+        obj = lib.mongodb_load_graph(None, mongodb._obj, objectid, flags)
         return Graph(obj=obj) if obj else None
 
     def unlink(self):
@@ -1757,29 +1769,31 @@ class MongoDB(object):
     entity_sen: Name of the entity sen key.
     entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
-    load_nodes: Load node attributes.
-    max_distance: Maximum distance of mentions.
-
     use_pool: Use a connection pool to access MongoDB.
+    use_objectids: Use MongoDB ObjectIDs to identify articles.
+    load_nodes: Load node attributes.
+
+    max_distance: Maximum distance of mentions.
     """
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
-                 col_entities, entity_doc, entity_sen, entity_ent, load_nodes,
-                 max_distance, use_pool=True, obj=None):
+                 col_entities, entity_doc, entity_sen, entity_ent, use_pool=True,
+                 use_objectids=False, load_nodes=False, max_distance=5, obj=None):
         if obj is None:
             config = c_mongodb_config()
-            config.uri          = uri.encode("utf-8")
-            config.database     = database.encode("utf-8")
-            config.use_pool     = use_pool
-            config.col_articles = col_articles.encode("utf-8")
-            config.article_id   = article_id.encode("utf-8")
-            config.article_time = article_time.encode("utf-8")
-            config.col_entities = col_entities.encode("utf-8")
-            config.entity_doc   = entity_doc.encode("utf-8")
-            config.entity_sen   = entity_sen.encode("utf-8")
-            config.entity_ent   = entity_ent.encode("utf-8")
-            config.load_nodes   = load_nodes
-            config.max_distance = max_distance
+            config.uri           = uri.encode("utf-8")
+            config.database      = database.encode("utf-8")
+            config.col_articles  = col_articles.encode("utf-8")
+            config.article_id    = article_id.encode("utf-8")
+            config.article_time  = article_time.encode("utf-8")
+            config.col_entities  = col_entities.encode("utf-8")
+            config.entity_doc    = entity_doc.encode("utf-8")
+            config.entity_sen    = entity_sen.encode("utf-8")
+            config.entity_ent    = entity_ent.encode("utf-8")
+            config.use_pool      = use_pool
+            config.use_objectids = use_objectids
+            config.load_nodes    = load_nodes
+            config.max_distance  = max_distance
             obj = lib.alloc_mongodb(config)
 
         self._obj = obj
@@ -1801,6 +1815,7 @@ if __name__ == '__main__':
     import unittest
     import mockupdb
     import tempfile
+    import bson
     import gc
 
     class VectorTests(unittest.TestCase):
@@ -3050,7 +3065,7 @@ if __name__ == '__main__':
 
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
                                  "_id", "time", "col_entities", "doc", "sen", "ent",
-                                 False, 5, False)
+                                 use_pool=False)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
@@ -3077,7 +3092,7 @@ if __name__ == '__main__':
         def test_invalid(self):
             with self.assertRaises(MemoryError):
                 MongoDB("http://localhost", "database", "col_articles",
-                        "_id", "time", "col_entities", "doc", "sen", "ent", False, 5)
+                        "_id", "time", "col_entities", "doc", "sen", "ent")
 
         def test_selfloop(self):
             occurrences = []
@@ -3103,14 +3118,13 @@ if __name__ == '__main__':
         def test_weight_sum(self):
             for i in range(10):
                 occurrences = [{'sen': 1,     'ent': 1    },
-                               {'sen': 1,     'ent': "Q1" },
                                {'sen': 1 + i, 'ent': 2    },
                                {              'ent': 1    }, # no sen
                                {'sen': 1                  }] # no ent
                 g = self.load_from_occurrences(occurrences)
                 if i <= 5:
                     self.assertEqual(g.num_edges, 1)
-                    self.assertTrue(abs(g[1, 2]/(2.0 * math.exp(-i)) - 1.0) < 1e-7)
+                    self.assertTrue(abs(g[1, 2]/math.exp(-i) - 1.0) < 1e-7)
                 else:
                     self.assertEqual(g.num_edges, 0)
 
@@ -3286,6 +3300,53 @@ if __name__ == '__main__':
                 self.assertEqual(g[1, 2 + i], 1.0)
 
             tvg.disable_mongodb_sync()
+            del tvg
+
+        def test_objectid(self):
+            future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
+                                 "_id", "time", "col_entities", "doc", "sen", "ent",
+                                 use_pool=False, use_objectids=True)
+
+            request = self.s.receives("isMaster")
+            request.replies({'ok': 1, 'maxWireVersion': 5})
+
+            request = self.s.receives("ping")
+            request.replies({'ok': 1})
+
+            self.db = future()
+
+            future = mockupdb.go(TVG.load, self.db, primary_key="dummy")
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
+            documents = [{'_id': bson.ObjectId('123456781234567812345678'),
+                          'time': datetime.datetime.utcfromtimestamp(1546300800)},
+                         {'_id': bson.ObjectId('123456781234567812345679'),
+                          'time': datetime.datetime.utcfromtimestamp(1546387200)},
+                         {'_id': bson.ObjectId('12345678123456781234567a'),
+                          'time': datetime.datetime.utcfromtimestamp(1546473600)},
+                         {'time': datetime.datetime.utcfromtimestamp(1546560000)}, # no id
+                         {'_id': bson.ObjectId('12345678123456781234567c')}]       # no time
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            for i in range(3):
+                request = self.s.receives()
+                print (request)
+                self.assertEqual(request["find"], "col_entities")
+                self.assertEqual(request["filter"], {'doc': [bson.ObjectId('123456781234567812345678'),
+                                                             bson.ObjectId('123456781234567812345679'),
+                                                             bson.ObjectId('12345678123456781234567a')][i]})
+                self.assertEqual(request["sort"], {'sen': 1})
+                occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 2 + i}]
+                request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            tvg = future()
+            for i, g in enumerate(tvg):
+                self.assertEqual(g.revision, 0)
+                self.assertEqual(g.ts, 1546300800000 + i * 86400000)
+                self.assertEqual(g[1, 2 + i], 1.0)
             del tvg
 
     # Run the unit tests

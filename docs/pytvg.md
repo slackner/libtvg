@@ -2,6 +2,18 @@
 # pytvg
 
 
+## c_objectid
+```python
+c_objectid(*args, **kwargs)
+```
+
+
+### hi
+Structure/Union member
+
+### lo
+Structure/Union member
+
 ## c_vector
 ```python
 c_vector(*args, **kwargs)
@@ -32,7 +44,7 @@ Structure/Union member
 ### flags
 Structure/Union member
 
-### id
+### objectid
 Structure/Union member
 
 ### refcount
@@ -126,6 +138,9 @@ Structure/Union member
 Structure/Union member
 
 ### uri
+Structure/Union member
+
+### use_objectids
 Structure/Union member
 
 ### use_pool
@@ -303,6 +318,12 @@ Vector.mul_vector(other)
 ```
 Compute the scalar product of the current vector with a second vector `other`.
 
+### sub_vector_norm
+```python
+Vector.sub_vector_norm(other)
+```
+Compute L2 norm of (self - other).
+
 ### as_dict
 ```python
 Vector.as_dict()
@@ -373,7 +394,7 @@ Load a single graph from a MongoDB database.
 
 __Arguments__
 
-- __id__: Identifier of the document to load
+- __id__: Identifier (numeric or objectid) of the document to load
 - __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed graph.
@@ -557,14 +578,19 @@ Compute and return a vector of weight anomalies.
 
 ### power_iteration
 ```python
-Graph.power_iteration(num_iterations=0, ret_eigenvalue=True)
+Graph.power_iteration(initial_guess=None,
+                      num_iterations=0,
+                      tolerance=0.0,
+                      ret_eigenvalue=True)
 ```
 
 Compute and return the eigenvector (and optionally the eigenvalue).
 
 __Arguments__
 
+- __initial_guess__: Initial guess for the solver.
 - __num_iterations__: Number of iterations.
+- __tolerance__: Desired tolerance.
 - __ret_eigenvalue__: Also return the eigenvalue. This requires one more iteration.
 
 __Returns__
@@ -998,9 +1024,10 @@ MongoDB(uri,
         entity_doc,
         entity_sen,
         entity_ent,
-        load_nodes,
-        max_distance,
         use_pool=True,
+        use_objectids=False,
+        load_nodes=False,
+        max_distance=5,
         obj=None)
 ```
 
@@ -1020,8 +1047,9 @@ entity_doc: Name of the entity doc key.
 entity_sen: Name of the entity sen key.
 entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
-load_nodes: Load node attributes.
-max_distance: Maximum distance of mentions.
-
 use_pool: Use a connection pool to access MongoDB.
+use_objectids: Use MongoDB ObjectIDs to identify articles.
+load_nodes: Load node attributes.
+
+max_distance: Maximum distance of mentions.
 

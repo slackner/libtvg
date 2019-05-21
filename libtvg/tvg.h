@@ -17,7 +17,7 @@
 
 #include "list.h"
 
-#define LIBTVG_API_VERSION  0x00000005ULL
+#define LIBTVG_API_VERSION  0x00000006ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -26,6 +26,17 @@
 
 #define TVG_FLAGS_LOAD_NEXT 0x00010000U
 #define TVG_FLAGS_LOAD_PREV 0x00020000U
+
+/* Note: In contrast to bson_oid_t, we internally swap the byte order, such
+ * that comparison works the same for integers and MongoDB identifiers. */
+
+#pragma pack(push, 4)
+struct objectid
+{
+    uint64_t    lo;
+    uint32_t    hi;
+};
+#pragma pack(pop)
 
 struct entry1
 {
@@ -81,7 +92,7 @@ struct graph
     uint64_t    revision;
     float       eps;
     uint64_t    ts;
-    uint64_t    id;
+    struct objectid objectid;
 
     /* private: */
     struct tvg *tvg;         /* NULL for disconnected graphs */
@@ -168,7 +179,6 @@ struct mongodb_config
 {
     char       *uri;
     char       *database;
-    int        use_pool;
 
     char       *col_articles;
     char       *article_id;     /* document id */
@@ -179,7 +189,10 @@ struct mongodb_config
     char       *entity_sen;     /* sentence id */
     char       *entity_ent;     /* entity id */
 
+    int         use_pool;       /* use connection pool */
+    int         use_objectids;  /* use 96-bit MongoDB object identifiers */
     int         load_nodes;
+
     uint32_t    max_distance;
 };
 
@@ -1398,7 +1411,7 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config);
 struct mongodb *grab_mongodb(struct mongodb *mongodb);
 void free_mongodb(struct mongodb *mongodb);
 
-struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, uint64_t id, uint32_t flags);
+struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struct objectid *objectid, uint32_t flags);
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb);
 
 #endif /* _TVG_H_ */

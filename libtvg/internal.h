@@ -69,11 +69,40 @@ struct window_ops
     int       (*mov)(struct window *, uint64_t ts);
 };
 
-static inline int compare_graph_ts_id(struct graph *graph, uint64_t ts, uint64_t id)
+static inline void objectid_init(struct objectid *objectid)
+{
+    objectid->lo = ~0ULL;
+    objectid->hi = ~0U;
+}
+
+static inline int objectid_empty(struct objectid *objectid)
+{
+    return objectid->lo == ~0ULL && objectid->hi == ~0U;
+}
+
+static inline void objectid_to_str(struct objectid *objectid, char *str)
+{
+    if (objectid_empty(objectid))
+    {
+        strcpy(str, "(none)");
+    }
+    else if (!objectid->hi && (int64_t)objectid->lo >= 0)
+    {
+        sprintf(str, "%llu", (long long unsigned int)objectid->lo);
+    }
+    else
+    {
+        sprintf(str, "%08x%016llx", objectid->hi,
+                (long long unsigned int)objectid->lo);
+    }
+}
+
+static inline int compare_graph_ts_objectid(struct graph *graph, uint64_t ts, struct objectid *objectid)
 {
     int res;
     if ((res = COMPARE(graph->ts, ts))) return res;
-    return COMPARE(graph->id, id);
+    if ((res = COMPARE(graph->objectid.hi, objectid->hi))) return res;
+    return COMPARE(graph->objectid.lo, objectid->lo);
 }
 
 void progress(const char *format, ...) __attribute__((format (printf,1,2))) DECL_INTERNAL;
