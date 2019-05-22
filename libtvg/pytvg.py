@@ -3333,7 +3333,6 @@ if __name__ == '__main__':
 
             for i in range(3):
                 request = self.s.receives()
-                print (request)
                 self.assertEqual(request["find"], "col_entities")
                 self.assertEqual(request["filter"], {'doc': [bson.ObjectId('123456781234567812345678'),
                                                              bson.ObjectId('123456781234567812345679'),
