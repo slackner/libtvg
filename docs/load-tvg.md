@@ -100,6 +100,8 @@ db = pytvg.MongoDB("mongodb://localhost:27017", # URI
                    "EntitySentenceIndexColumn", # Column name / Key for sentence index
                    "EntityEntityIDColumn",      # Column name / Key for entity ID
 
+                   use_pool=True,               # Whether to use multiple connections
+                   use_objectids=False,         # Is article ID a MongoDB ObjectID?
                    load_nodes=True,             # Whether to load node attributes
                    max_distance=5)              # Maximum distance of sentences
 ```
@@ -117,6 +119,12 @@ dataset. In this case, the entity ID column can be a semicolon separated list
 of attributes to load for each node, e.g., `"attr1;attr2;attr3"`. Besides the
 attributes that form the primary key, this can also include additional keys
 that should be loaded from the dataset.
+
+With the latest update, it is also possible to use MongoDB ObjectIDs as article
+identifiers (instead of int32 or int64 data types). This option can be enabled
+by setting `use_objectids` to `True`. Note that different types should not be
+mixed, i.e., only ObjectIDs **or** integer values should be used to identify
+articles.
 
 Be aware that this method is still only suitable for small to medium sized
 collections, since the full dataset is kept in memory. Also, the generated graphs
