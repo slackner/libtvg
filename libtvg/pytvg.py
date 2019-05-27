@@ -1791,6 +1791,37 @@ class Window(object):
 
         return result
 
+    def sample_edges(self, ts, sample_width, sample_steps=9):
+        """
+        Collect edges starting at t = (ts - sample_width / 2) and continue up to
+        t = (ts + sample_width / 2). Each entry of the returned dictionary contains
+        sample_steps value collected at equidistant time steps.
+
+        # Arguments
+        ts: Timestamp of the window.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+
+        # Returns
+        Dictionary containing lists of collected values for each edge.
+        """
+
+        result = collections.defaultdict(list)
+
+        for step, ts in enumerate(np.linspace(ts - sample_width / 2, ts + sample_width / 2, sample_steps)):
+            graph = self.update(int(ts))
+
+            indices, weights = graph.edges()
+            for i, w in zip(indices, weights):
+                i = tuple(i)
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        for i in result.keys():
+            result[i] += [0.0] * (sample_steps - len(result[i]))
+
+        return result
+
 @libtvgobject
 class MongoDB(object):
     """
@@ -3122,6 +3153,28 @@ if __name__ == '__main__':
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
             self.assertEqual(values[2], [0.0, 0.0, 1.0])
+
+            del window
+            del tvg
+
+        def test_sample_edges(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = 1.0
+            g = tvg.Graph(200)
+            g[1, 1] = 2.0
+            g = tvg.Graph(300)
+            g[2, 2] = 3.0
+
+            window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            values = window.sample_edges(200, sample_width=200, sample_steps=3)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
+            self.assertEqual(values[2, 2], [0.0, 0.0, 3.0])
 
             del window
             del tvg

@@ -1041,6 +1041,26 @@ __Returns__
 Dictionary containing lists of collected values for each node.
 
 
+### sample_edges
+```python
+Window.sample_edges(ts, sample_width, sample_steps=9)
+```
+
+Collect edges starting at t = (ts - sample_width / 2) and continue up to
+t = (ts + sample_width / 2). Each entry of the returned dictionary contains
+sample_steps value collected at equidistant time steps.
+
+__Arguments__
+
+- __ts__: Timestamp of the window.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+
+__Returns__
+
+Dictionary containing lists of collected values for each edge.
+
+
 ## MongoDB
 ```python
 MongoDB(uri,
