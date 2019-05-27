@@ -1130,7 +1130,7 @@ class Graph(object):
         """ Compute and return a vector of weight anomalies. """
         return Vector(obj=lib.graph_weight_anomalies(self._obj))
 
-    def power_iteration(self, initial_guess=None, num_iterations=0, tolerance=0.0, ret_eigenvalue=True):
+    def power_iteration(self, initial_guess=None, num_iterations=0, tolerance=None, ret_eigenvalue=True):
         """
         Compute and return the eigenvector (and optionally the eigenvalue).
 
@@ -1143,6 +1143,9 @@ class Graph(object):
         # Returns
         `(eigenvector, eigenvalue)`
         """
+
+        if tolerance is None:
+            tolerance = 0.0
 
         eigenvalue = c_double() if ret_eigenvalue else None
         initial_guess = initial_guess._obj if initial_guess is not None else None
@@ -1752,6 +1755,41 @@ class Window(object):
         """
 
         return Graph(obj=lib.window_update(self._obj, ts))
+
+    def sample_power_iteration(self, ts, sample_width, sample_steps=9, tolerance=None):
+        """
+        Iterative power iteration algorithm to track eigenvectors of a graph over time.
+        Collection of eigenvectors starts at t = (ts - sample_width / 2) and continues
+        up to t = (ts + sample_width / 2). Each entry of the returned dictionary contains
+        sample_steps values collected at equidistant time steps.
+
+        # Arguments
+        ts: Timestamp of the window.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+        tolerance: Tolerance for the power_iteration algorithm.
+
+        # Returns
+        Dictionary containing lists of collected values for each node.
+        """
+
+        eigenvector = None
+        result = collections.defaultdict(list)
+
+        for step, ts in enumerate(np.linspace(ts - sample_width / 2, ts + sample_width / 2, sample_steps)):
+            graph = self.update(int(ts))
+            eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
+                                                   ret_eigenvalue=False)
+
+            indices, weights = eigenvector.entries()
+            for i, w in zip(indices, weights):
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        for i in result.keys():
+            result[i] += [0.0] * (sample_steps - len(result[i]))
+
+        return result
 
 @libtvgobject
 class MongoDB(object):
@@ -3065,6 +3103,28 @@ if __name__ == '__main__':
 
                 self.assertEqual(len(index_to_weight), 0)
                 ts += 50000
+
+        def test_sample_power_iteration(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = 1.0
+            g = tvg.Graph(200)
+            g[1, 1] = 2.0
+            g = tvg.Graph(300)
+            g[2, 2] = 3.0
+
+            window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            values = window.sample_power_iteration(200, sample_width=200, sample_steps=3)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1], [0.0, 1.0, 0.0])
+            self.assertEqual(values[2], [0.0, 0.0, 1.0])
+
+            del window
+            del tvg
 
     class MongoDBTests(unittest.TestCase):
         def setUp(self):

@@ -879,30 +879,24 @@ struct vector *graph_power_iteration(const struct graph *graph, struct vector *i
     struct vector *vector;
     struct vector *temp;
     struct entry2 *edge;
+    float value;
 
     if (!num_iterations)
         num_iterations = 100;
 
-    if (initial_guess)
-    {
-        /* Use initial guess if provided. We increment the refcount so
-         * that the object remains valid in the code path below. */
-        vector = grab_vector(initial_guess);
-    }
-    else
-    {
-        /* FIXME: Appropriate flags? */
-        if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
-            return NULL;
+    /* FIXME: Appropriate flags? */
+    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+        return NULL;
 
-        GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        if (vector_has_entry(vector, edge->target)) continue;
+        if (!initial_guess || !(value = vector_get_entry(initial_guess, edge->target)))
+            value = random_float();
+        if (!vector_add_entry(vector, edge->target, value))
         {
-            if (vector_has_entry(vector, edge->target)) continue;
-            if (!vector_add_entry(vector, edge->target, random_float()))
-            {
-                free_vector(vector);
-                return NULL;
-            }
+            free_vector(vector);
+            return NULL;
         }
     }
 

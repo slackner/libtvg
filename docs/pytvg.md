@@ -586,7 +586,7 @@ Compute and return a vector of weight anomalies.
 ```python
 Graph.power_iteration(initial_guess=None,
                       num_iterations=0,
-                      tolerance=0.0,
+                      tolerance=None,
                       ret_eigenvalue=True)
 ```
 
@@ -1017,6 +1017,28 @@ __Arguments__
 __Returns__
 
 Graph object.
+
+
+### sample_power_iteration
+```python
+Window.sample_power_iteration(ts, sample_width, sample_steps=9, tolerance=None)
+```
+
+Iterative power iteration algorithm to track eigenvectors of a graph over time.
+Collection of eigenvectors starts at t = (ts - sample_width / 2) and continues
+up to t = (ts + sample_width / 2). Each entry of the returned dictionary contains
+sample_steps values collected at equidistant time steps.
+
+__Arguments__
+
+- __ts__: Timestamp of the window.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+- __tolerance__: Tolerance for the power_iteration algorithm.
+
+__Returns__
+
+Dictionary containing lists of collected values for each node.
 
 
 ## MongoDB
