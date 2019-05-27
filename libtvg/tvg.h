@@ -184,6 +184,9 @@ struct mongodb_config
     char       *article_id;     /* document id */
     char       *article_time;   /* time stamp */
 
+    char       *filter_key;     /* article filter key */
+    char       *filter_value;   /* article filter value */
+
     char       *col_entities;
     char       *entity_doc;     /* document id */
     char       *entity_sen;     /* sentence id */

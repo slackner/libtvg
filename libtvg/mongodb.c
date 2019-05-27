@@ -48,6 +48,8 @@ static void free_mongodb_config(struct mongodb_config *config)
     free(config->col_articles);
     free(config->article_id);
     free(config->article_time);
+    free(config->filter_key);
+    free(config->filter_value);
     free(config->col_entities);
     free(config->entity_doc);
     free(config->entity_sen);
@@ -64,6 +66,8 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!orig->col_articles) return NULL;
     if (!orig->article_id)   return NULL;
     if (!orig->article_time) return NULL;
+    if (( orig->filter_key && !orig->filter_value) ||
+        (!orig->filter_key &&  orig->filter_value)) return NULL;
     if (!orig->col_entities) return NULL;
     if (!orig->entity_doc)   return NULL;
     if (!orig->entity_sen)   return NULL;
@@ -78,6 +82,11 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->col_articles = strdup(orig->col_articles))) goto error;
     if (!(config->article_id   = strdup(orig->article_id)))   goto error;
     if (!(config->article_time = strdup(orig->article_time))) goto error;
+    if (orig->filter_key && orig->filter_value)
+    {
+        if (!(config->filter_key   = strdup(orig->filter_key)))   goto error;
+        if (!(config->filter_value = strdup(orig->filter_value))) goto error;
+    }
     if (!(config->col_entities = strdup(orig->col_entities))) goto error;
     if (!(config->entity_doc   = strdup(orig->entity_doc)))   goto error;
     if (!(config->entity_sen   = strdup(orig->entity_sen)))   goto error;
@@ -179,6 +188,7 @@ struct mongodb *alloc_mongodb(const struct mongodb_config *config)
     command = BCON_NEW("ping", BCON_INT32(1));
     if (!command)
     {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
         free_mongodb(mongodb);
         return NULL;
     }
@@ -429,11 +439,15 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
     }
 
     if (!filter)
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
         return NULL;
+    }
 
     opts = BCON_NEW("sort", "{", config->entity_sen, BCON_INT32(1), "}");
     if (!opts)
     {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
         bson_destroy(filter);
         return NULL;
     }
@@ -536,6 +550,12 @@ error:
     return graph;
 }
 
+static int bson_append_filter(bson_t *bson, const char *key, const char *value)
+{
+    if (!key) return 1;  /* no filter */
+    return BSON_APPEND_UTF8(bson, key, value);
+}
+
 int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
 {
     int (*bson_parse_article)(const bson_t *, const char *, struct objectid *);
@@ -556,10 +576,18 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
     bson_parse_article = config->use_objectids ? bson_parse_article_objectid :
                                                  bson_parse_article_integer;
 
+    if (!bson_append_filter(&filter, config->filter_key, config->filter_value))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        bson_destroy(&filter);
+        return 0;
+    }
+
     opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(1),
                                  config->article_id,   BCON_INT32(1), "}");
     if (!opts)
     {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
         bson_destroy(&filter);
         return 0;
     }
@@ -902,6 +930,13 @@ void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
         return;
     }
 
+    if (!bson_append_filter(filter, config->filter_key, config->filter_value))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        bson_destroy(filter);
+        return;
+    }
+
     tvg_load_batch_from_mongodb(tvg, graph, filter, 1, 0);
     bson_destroy(filter);
 }
@@ -945,6 +980,13 @@ void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
         return;
     }
 
+    if (!bson_append_filter(filter, config->filter_key, config->filter_value))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        bson_destroy(filter);
+        return;
+    }
+
     tvg_load_batch_from_mongodb(tvg, graph, filter, -1, 0);
     bson_destroy(filter);
 }
@@ -967,6 +1009,13 @@ void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts)
     if (!filter)
     {
         fprintf(stderr, "%s: Out of memory!\n", __func__);
+        return;
+    }
+
+    if (!bson_append_filter(filter, config->filter_key, config->filter_value))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        bson_destroy(filter);
         return;
     }
 
@@ -999,8 +1048,15 @@ void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts)
         return;
     }
 
+    if (!bson_append_filter(filter, config->filter_key, config->filter_value))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        bson_destroy(filter);
+        return;
+    }
+
     tvg_load_batch_from_mongodb(tvg, graph, filter, -1, ((int64_t)(ts + 1) > 0));
-    if (filter != &empty_filter) bson_destroy(filter);
+    bson_destroy(filter);
 }
 
 #else   /* HAVE_LIBMONGOC */

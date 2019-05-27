@@ -75,6 +75,8 @@ class c_mongodb_config(Structure):
                 ("col_articles", c_char_p),
                 ("article_id",   c_char_p),
                 ("article_time", c_char_p),
+                ("filter_key",   c_char_p),
+                ("filter_value", c_char_p),
                 ("col_entities", c_char_p),
                 ("entity_doc",   c_char_p),
                 ("entity_sen",   c_char_p),
@@ -1764,6 +1766,9 @@ class MongoDB(object):
     article_id: Name of the article ID key.
     article_time: Name of the article time key.
 
+    filter_key: Filter articles by comparing the value of a given key.
+    filter_value: Expected value of filter key.
+
     col_entities: Name of the entities collection.
     entity_doc: Name of the entity doc key.
     entity_sen: Name of the entity sen key.
@@ -1778,7 +1783,8 @@ class MongoDB(object):
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, use_pool=True,
-                 use_objectids=False, load_nodes=False, max_distance=5, obj=None):
+                 use_objectids=False, load_nodes=False, max_distance=5,
+                 filter_key=None, filter_value=None, obj=None):
         if obj is None:
             config = c_mongodb_config()
             config.uri           = uri.encode("utf-8")
@@ -1786,6 +1792,8 @@ class MongoDB(object):
             config.col_articles  = col_articles.encode("utf-8")
             config.article_id    = article_id.encode("utf-8")
             config.article_time  = article_time.encode("utf-8")
+            config.filter_key    = filter_key.encode("utf-8")   if filter_key   is not None else None
+            config.filter_value  = filter_value.encode("utf-8") if filter_value is not None else None
             config.col_entities  = col_entities.encode("utf-8")
             config.entity_doc    = entity_doc.encode("utf-8")
             config.entity_sen    = entity_sen.encode("utf-8")
@@ -3065,7 +3073,7 @@ if __name__ == '__main__':
 
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
                                  "_id", "time", "col_entities", "doc", "sen", "ent",
-                                 use_pool=False)
+                                 use_pool=False, filter_key="fkey", filter_value="fvalue")
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
@@ -3133,7 +3141,7 @@ if __name__ == '__main__':
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
-            self.assertEqual(request["filter"], {})
+            self.assertEqual(request["filter"], {'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
             documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546300800)},
                          {'_id': 11, 'time': datetime.datetime.utcfromtimestamp(1546387200)},
@@ -3165,7 +3173,8 @@ if __name__ == '__main__':
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
-            self.assertEqual(request["filter"], {'time': {'$gte': datetime.datetime.utcfromtimestamp(0)}})
+            self.assertEqual(request["filter"], {'time': {'$gte': datetime.datetime.utcfromtimestamp(0)},
+                                                 'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
             self.assertEqual(request["limit"], 2)
             documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546300800)},
@@ -3197,7 +3206,8 @@ if __name__ == '__main__':
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
             self.assertEqual(request["filter"], {"$or": [{"time": {"$gt": datetime.datetime.utcfromtimestamp(1546387200)}},
-                                                         {"time": datetime.datetime.utcfromtimestamp(1546387200), "_id": {"$gt": 11}}]})
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546387200), "_id": {"$gt": 11}}],
+                                                 'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
             self.assertEqual(request["limit"], 2)
             documents = [{'_id': 12, 'time': datetime.datetime.utcfromtimestamp(1546473600)},
@@ -3228,7 +3238,8 @@ if __name__ == '__main__':
 
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
-            self.assertEqual(request["filter"], {'time': {'$lte': datetime.datetime.utcfromtimestamp(1546732800)}})
+            self.assertEqual(request["filter"], {'time': {'$lte': datetime.datetime.utcfromtimestamp(1546732800)},
+                                                 'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', -1), ('_id', -1)]))
             self.assertEqual(request["limit"], 2)
             documents = [{'_id': 15, 'time': datetime.datetime.utcfromtimestamp(1546732800)},
@@ -3260,7 +3271,8 @@ if __name__ == '__main__':
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
             self.assertEqual(request["filter"], {"$or": [{"time": {"$lt": datetime.datetime.utcfromtimestamp(1546646400)}},
-                                                         {"time": datetime.datetime.utcfromtimestamp(1546646400), "_id": {"$lt": 14}}]})
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546646400), "_id": {"$lt": 14}}],
+                                                 'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', -1), ('_id', -1)]))
             self.assertEqual(request["limit"], 2)
             documents = [{'_id': 13, 'time': datetime.datetime.utcfromtimestamp(1546560000)},
@@ -3284,7 +3296,8 @@ if __name__ == '__main__':
             request = self.s.receives()
             self.assertEqual(request["find"], "col_articles")
             self.assertEqual(request["filter"], {"$or": [{"time": {"$gt": datetime.datetime.utcfromtimestamp(1546732800)}},
-                                                         {"time": datetime.datetime.utcfromtimestamp(1546732800), "_id": {"$gt": 15}}]})
+                                                         {"time": datetime.datetime.utcfromtimestamp(1546732800), "_id": {"$gt": 15}}],
+                                                 'fkey': 'fvalue'})
             self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
             self.assertEqual(request["limit"], 2)
             documents = []
