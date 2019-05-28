@@ -1965,6 +1965,49 @@ class Window(object):
 
         return result
 
+    def metric_stability(self, ts, sample_width, sample_steps=9, tolerance=None):
+        """
+        Rate the stability of individual nodes by ranking their average and standard deviation.
+
+        # Arguments
+        ts: Timestamp of the window.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+        tolerance: Tolerance for the power_iteration algorithm.
+
+        # Returns
+        Dictionary containing the metric for each node.
+        """
+
+        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+
+        nodes = []
+        costs = []
+        for i in values.keys():
+            nodes.append(i)
+            costs.append([-np.mean(values[i]), np.std(values[i])])
+
+        nodes = np.array(nodes)
+        costs = np.array(costs)
+        rank = 1.0
+
+        result = {}
+        while len(nodes):
+            front = np.ones(costs.shape[0], dtype=bool)
+            for i, c in enumerate(costs):
+                if front[i]:
+                    front[front] = np.any(costs[front] < c, axis=1)
+                    front[i] = True
+
+            for i in np.where(front)[0]:
+                result[nodes[i]] = rank
+
+            nodes = nodes[~front]
+            costs = costs[~front]
+            rank += 1.0
+
+        return result
+
 @libtvgobject
 class MongoDB(object):
     """
@@ -3423,6 +3466,31 @@ if __name__ == '__main__':
             self.assertTrue(abs(values[0] + 0.288675129) < 1e-7)
             self.assertTrue(abs(values[1] + 0.288675129) < 1e-7)
             self.assertTrue(abs(values[2] - 0.211324870) < 1e-7)
+
+            del window
+            del tvg
+
+        def test_metric_stability(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = g[0, 1] = g[0, 2] = 1.0
+            g[1, 1] = g[1, 2] = 1.0
+            g[2, 2] = 1.0
+            g = tvg.Graph(200)
+            g[1, 1] = g[1, 2] = 2.0
+            g[2, 2] = 2.0
+            g = tvg.Graph(300)
+            g[2, 2] = 3.0
+
+            window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            values = window.metric_stability(200, sample_width=200, sample_steps=3)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[2], 1.0)
+            self.assertEqual(values[0], 2.0)
+            self.assertEqual(values[1], 2.0)
 
             del window
             del tvg

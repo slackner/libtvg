@@ -1152,6 +1152,25 @@ __Returns__
 Dictionary containing the metric for each node.
 
 
+### metric_stability
+```python
+Window.metric_stability(ts, sample_width, sample_steps=9, tolerance=None)
+```
+
+Rate the stability of individual nodes by ranking their average and standard deviation.
+
+__Arguments__
+
+- __ts__: Timestamp of the window.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+- __tolerance__: Tolerance for the power_iteration algorithm.
+
+__Returns__
+
+Dictionary containing the metric for each node.
+
+
 ## MongoDB
 ```python
 MongoDB(uri,
