@@ -1859,6 +1859,44 @@ class Window(object):
 
         return result
 
+    def metric_entropy_local(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
+        """
+        Like metric_entropy(), but train a separate model for each time step.
+
+        # Arguments
+        ts: Timestamp of the window.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+        tolerance: Tolerance for the power_iteration algorithm.
+        num_bins: Number of bins used to create the entropy model.
+
+        # Returns
+        Dictionary containing the metric for each node.
+        """
+
+        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+
+        result = collections.defaultdict(float)
+        for j in range(sample_steps):
+
+            data = []
+            for i in values.keys():
+                data.append(values[i][j])
+
+            prob, bin_edges = np.histogram(data, bins=num_bins)
+            prob = np.array(prob, dtype=float) / np.sum(prob)
+            entropy = (- np.ma.log(prob) * prob).filled(0)
+
+            def to_entropy(x):
+                index = np.searchsorted(bin_edges, x)
+                if index >= 1: index -= 1
+                return entropy[index]
+
+            for i in values.keys():
+                result[i] += to_entropy(values[i][j])
+
+        return result
+
 @libtvgobject
 class MongoDB(object):
     """
@@ -3238,6 +3276,34 @@ if __name__ == '__main__':
             self.assertEqual(values[0], - np.log(P[3]) * P[3] - np.log(P[0]) * P[0] - np.log(P[0]) * P[0])
             self.assertEqual(values[1], - np.log(P[3]) * P[3] - np.log(P[4]) * P[4] - np.log(P[0]) * P[0])
             self.assertEqual(values[2], - np.log(P[3]) * P[3] - np.log(P[4]) * P[4] - np.log(P[5]) * P[5])
+
+            del window
+            del tvg
+
+        def test_metric_entropy_local(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = g[0, 1] = g[0, 2] = 1.0
+            g[1, 1] = g[1, 2] = 1.0
+            g[2, 2] = 1.0
+            g = tvg.Graph(200)
+            g[1, 1] = g[1, 2] = 2.0
+            g[2, 2] = 2.0
+            g = tvg.Graph(300)
+            g[2, 2] = 3.0
+
+            window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            values = window.metric_entropy_local(200, sample_width=200, sample_steps=3, num_bins=2)
+            P0 = 1.0
+            P1 = np.array([1, 2]) / 3.0
+            P2 = np.array([2, 1]) / 3.0
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], - np.log(P0) * P0 - np.log(P1[0]) * P1[0] - np.log(P2[0]) * P2[0])
+            self.assertEqual(values[1], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[0]) * P2[0])
+            self.assertEqual(values[2], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[1]) * P2[1])
 
             del window
             del tvg
