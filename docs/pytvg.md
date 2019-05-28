@@ -1133,6 +1133,25 @@ __Returns__
 Dictionary containing the metric for each node.
 
 
+### metric_trend
+```python
+Window.metric_trend(ts, sample_width, sample_steps=9, tolerance=None)
+```
+
+Rate the importance / interestingness of individual nodes by their trend.
+
+__Arguments__
+
+- __ts__: Timestamp of the window.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+- __tolerance__: Tolerance for the power_iteration algorithm.
+
+__Returns__
+
+Dictionary containing the metric for each node.
+
+
 ## MongoDB
 ```python
 MongoDB(uri,
