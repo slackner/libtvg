@@ -131,6 +131,12 @@ Structure/Union member
 ### entity_sen
 Structure/Union member
 
+### filter_key
+Structure/Union member
+
+### filter_value
+Structure/Union member
+
 ### load_nodes
 Structure/Union member
 
@@ -1028,6 +1034,8 @@ MongoDB(uri,
         use_objectids=False,
         load_nodes=False,
         max_distance=5,
+        filter_key=None,
+        filter_value=None,
         obj=None)
 ```
 
@@ -1041,6 +1049,9 @@ __Arguments__
 col_articles: Name of the articles collection.
 article_id: Name of the article ID key.
 article_time: Name of the article time key.
+
+filter_key: Filter articles by comparing the value of a given key.
+filter_value: Expected value of filter key.
 
 col_entities: Name of the entities collection.
 entity_doc: Name of the entity doc key.
