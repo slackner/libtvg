@@ -1109,6 +1109,30 @@ __Returns__
 Dictionary containing the metric for each node.
 
 
+### metric_entropy_2d
+```python
+Window.metric_entropy_2d(ts,
+                         sample_width,
+                         sample_steps=9,
+                         tolerance=None,
+                         num_bins=50)
+```
+
+Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
+
+__Arguments__
+
+- __ts__: Timestamp of the window.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+- __tolerance__: Tolerance for the power_iteration algorithm.
+- __num_bins__: Number of bins used to create the entropy model.
+
+__Returns__
+
+Dictionary containing the metric for each node.
+
+
 ## MongoDB
 ```python
 MongoDB(uri,

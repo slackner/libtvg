@@ -1897,6 +1897,48 @@ class Window(object):
 
         return result
 
+    def metric_entropy_2d(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
+        """
+        Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
+
+        # Arguments
+        ts: Timestamp of the window.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+        tolerance: Tolerance for the power_iteration algorithm.
+        num_bins: Number of bins used to create the entropy model.
+
+        # Returns
+        Dictionary containing the metric for each node.
+        """
+
+        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+
+        data_x = []
+        data_y = []
+        for i in values.keys():
+            data_x += values[i][:-1]
+            data_y += values[i][1:]
+
+        prob, bin_edges_x, bin_edges_y = np.histogram2d(data_x, data_y, bins=num_bins)
+
+        prob = np.array(prob, dtype=float) / np.sum(prob)
+        entropy = (- np.ma.log(prob) * prob).filled(0)
+
+        @np.vectorize
+        def to_entropy(x, y):
+            index_x = np.searchsorted(bin_edges_x, x)
+            index_y = np.searchsorted(bin_edges_y, y)
+            if index_x >= 1: index_x -= 1
+            if index_y >= 1: index_y -= 1
+            return entropy[index_x, index_y]
+
+        result = {}
+        for i in values.keys():
+            result[i] = np.sum(to_entropy(values[i][:-1], values[i][1:]))
+
+        return result
+
 @libtvgobject
 class MongoDB(object):
     """
@@ -3304,6 +3346,32 @@ if __name__ == '__main__':
             self.assertEqual(values[0], - np.log(P0) * P0 - np.log(P1[0]) * P1[0] - np.log(P2[0]) * P2[0])
             self.assertEqual(values[1], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[0]) * P2[0])
             self.assertEqual(values[2], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[1]) * P2[1])
+
+            del window
+            del tvg
+
+        def test_metric_2d(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = g[0, 1] = g[0, 2] = 1.0
+            g[1, 1] = g[1, 2] = 1.0
+            g[2, 2] = 1.0
+            g = tvg.Graph(200)
+            g[1, 1] = g[1, 2] = 2.0
+            g[2, 2] = 2.0
+            g = tvg.Graph(300)
+            g[2, 2] = 3.0
+
+            window = tvg.WindowRect(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            values = window.metric_entropy_2d(200, sample_width=200, sample_steps=3, num_bins=2)
+            P = np.array([[1, 0], [2, 3]]) / 6.0
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], - np.log(P[1, 0]) * P[1, 0] - np.log(P[0, 0]) * P[0, 0])
+            self.assertEqual(values[1], - np.log(P[1, 1]) * P[1, 1] - np.log(P[1, 0]) * P[1, 0])
+            self.assertEqual(values[2], - np.log(P[1, 1]) * P[1, 1] - np.log(P[1, 1]) * P[1, 1])
 
             del window
             del tvg
