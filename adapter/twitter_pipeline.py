@@ -7,6 +7,7 @@ import functools
 import traceback
 import datetime
 import mockupdb
+import getpass
 import struct
 import spacy
 import time
@@ -14,7 +15,7 @@ import bson
 import sys
 import os
 
-nlp = spacy.load("de_core_news_sm")
+nlp = spacy.load("de_core_news_sm", disable=["parser"])
 article_cache = cachetools.TTLCache(maxsize=10240, ttl=1800)
 
 # Convert integer value to bson.ObjectId
@@ -210,9 +211,14 @@ if __name__ == '__main__':
 
     try:
         username = config.get('elasticsearch', 'username')
+    except (configparser.NoSectionError, configparser.NoOptionError):
+        username = getpass.getuser()
+        sys.stderr.write("Assuming elasticsearch username is %s\n" % username)
+
+    try:
         password = config.get('elasticsearch', 'password')
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
-        raise RuntimeError("Please set username and password in ~/.config/twitter_pipeline.conf")
+    except (configparser.NoSectionError, configparser.NoOptionError):
+        password = getpass.getpass()
 
     es = elasticsearch.Elasticsearch(['https://elastic-dbs.ifi.uni-heidelberg.de'],
                                      http_auth=(username, password), scheme='https', port=443)
