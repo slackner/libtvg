@@ -1782,9 +1782,9 @@ class Window(object):
     def sample_power_iteration(self, ts, sample_width, sample_steps=9, tolerance=None):
         """
         Iterative power iteration algorithm to track eigenvectors of a graph over time.
-        Collection of eigenvectors starts at t = (ts - sample_width / 2) and continues
-        up to t = (ts + sample_width / 2). Each entry of the returned dictionary contains
-        sample_steps values collected at equidistant time steps.
+        Collection of eigenvectors starts at t = (ts - sample_width) and continues up
+        to t = ts. Each entry of the returned dictionary contains sample_steps values
+        collected at equidistant time steps.
 
         # Arguments
         ts: Timestamp of the window.
@@ -1799,7 +1799,7 @@ class Window(object):
         eigenvector = None
         result = collections.defaultdict(list)
 
-        for step, ts in enumerate(np.linspace(ts - sample_width / 2, ts + sample_width / 2, sample_steps)):
+        for step, ts in enumerate(np.linspace(ts - sample_width, ts, sample_steps)):
             graph = self.update(int(ts))
             eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
                                                    ret_eigenvalue=False)
@@ -1816,9 +1816,9 @@ class Window(object):
 
     def sample_edges(self, ts, sample_width, sample_steps=9):
         """
-        Collect edges starting at t = (ts - sample_width / 2) and continue up to
-        t = (ts + sample_width / 2). Each entry of the returned dictionary contains
-        sample_steps value collected at equidistant time steps.
+        Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
+        Each entry of the returned dictionary contains sample_steps value collected
+        at equidistant time steps.
 
         # Arguments
         ts: Timestamp of the window.
@@ -1831,7 +1831,7 @@ class Window(object):
 
         result = collections.defaultdict(list)
 
-        for step, ts in enumerate(np.linspace(ts - sample_width / 2, ts + sample_width / 2, sample_steps)):
+        for step, ts in enumerate(np.linspace(ts - sample_width, ts, sample_steps)):
             graph = self.update(int(ts))
 
             indices, weights = graph.edges()
@@ -3355,7 +3355,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.sample_power_iteration(200, sample_width=200, sample_steps=3)
+            values = window.sample_power_iteration(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
@@ -3377,7 +3377,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.sample_edges(200, sample_width=200, sample_steps=3)
+            values = window.sample_edges(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
@@ -3402,7 +3402,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.metric_entropy(200, sample_width=200, sample_steps=3, num_bins=6)
+            values = window.metric_entropy(300, sample_width=200, sample_steps=3, num_bins=6)
             P = np.array([3, 0, 0, 3, 2, 1]) / 9.0
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], - np.log(P[3]) * P[3] - np.log(P[0]) * P[0] - np.log(P[0]) * P[0])
@@ -3428,7 +3428,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.metric_entropy_local(200, sample_width=200, sample_steps=3, num_bins=2)
+            values = window.metric_entropy_local(300, sample_width=200, sample_steps=3, num_bins=2)
             P0 = 1.0
             P1 = np.array([1, 2]) / 3.0
             P2 = np.array([2, 1]) / 3.0
@@ -3456,7 +3456,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.metric_entropy_2d(200, sample_width=200, sample_steps=3, num_bins=2)
+            values = window.metric_entropy_2d(300, sample_width=200, sample_steps=3, num_bins=2)
             P = np.array([[1, 0], [2, 3]]) / 6.0
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], - np.log(P[1, 0]) * P[1, 0] - np.log(P[0, 0]) * P[0, 0])
@@ -3482,7 +3482,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.metric_trend(200, sample_width=200, sample_steps=3)
+            values = window.metric_trend(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertTrue(abs(values[0] + 0.288675129) < 1e-7)
             self.assertTrue(abs(values[1] + 0.288675129) < 1e-7)
@@ -3507,7 +3507,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.metric_stability(200, sample_width=200, sample_steps=3)
+            values = window.metric_stability(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[2], 1.0)
             self.assertEqual(values[0], 2.0)
