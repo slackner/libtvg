@@ -217,7 +217,7 @@ if __name__ == '__main__':
     es = elasticsearch.Elasticsearch(['https://elastic-dbs.ifi.uni-heidelberg.de'],
                                      http_auth=(username, password), scheme='https', port=443)
 
-    server = mockupdb.MockupDB()
+    server = mockupdb.MockupDB(port=27022)
     responder = server.autoresponds(autoresponder)
     server.run()
 

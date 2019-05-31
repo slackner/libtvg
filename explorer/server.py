@@ -187,34 +187,50 @@ class Client(WebSocket):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TVG Explorer")
-
-    parser.add_argument("--database",     default="AmbiverseNewsAnnotated",       help="Name of the database")
-    parser.add_argument("--col_articles", default="c02_RawArticles",              help="Name of the articles collection")
-    parser.add_argument("--article_id",   default="_id",                          help="Name of the article ID key")
-    parser.add_argument("--article_time", default="pub",                          help="Name of the article time key")
-    parser.add_argument("--col_entities", default="c11_selectedDocumentEntities", help="Name of the entities collection")
-    parser.add_argument("--entity_doc",   default="docID",                        help="Name of the entity doc key")
-    parser.add_argument("--entity_sen",   default="senDocID",                     help="Name of the entity sen key")
-    parser.add_argument("--entity_ent",   default="NE;norm;label;covText",        help="Name of the entity ent key")
-    parser.add_argument("--max_distance", default=5, type=int,                    help="Maximum distance of mentions")
-    parser.add_argument("--primary_key",  default="NE;norm",                      help="Nodes primary key")
-
-    parser.add_argument("--nodes",  help="Path to nodes")
-    parser.add_argument("source",   help="Path/URI to a dataset")
+    parser.add_argument("config", help="Path to a configuration file")
     args = parser.parse_args()
 
-    if args.source.startswith("mongodb://") or args.source.startswith("mongodb+srv://"):
-        mongodb = pytvg.MongoDB(args.source, args.database, args.col_articles,
-                                args.article_id, args.article_time, args.col_entities,
-                                args.entity_doc, args.entity_sen, args.entity_ent,
-                                load_nodes=True, max_distance=args.max_distance)
+    with open(args.config) as fp:
+        config = json.load(fp)
+
+    source = config['source']
+
+    if 'uri' in source:
+        if 'database' not in source:
+            raise RuntimeError("No database specified")
+        if 'col_articles' not in source:
+            raise RuntimeError("Article collection not specified")
+        if 'article_id' not in source:
+            raise RuntimeError("Article ID key not specified")
+        if 'article_time' not in source:
+            raise RuntimeError("Article time key not specified")
+        if 'col_entities' not in source:
+            raise RuntimeError("Entities collection not specified")
+        if 'entity_doc' not in source:
+            raise RuntimeError("Entities doc key not specified")
+        if 'entity_sen' not in source:
+            raise RuntimeError("Entities sen key not specified")
+        if 'entity_ent' not in source:
+            raise RuntimeError("Entities ent key not specified")
+        if 'primary_key' not in source:
+            raise RuntimeError("Primary key not specified")
+
+        primary_key = source.pop('primary_key')
+        mongodb = pytvg.MongoDB(**source)
 
         dataset_tvg = pytvg.TVG(positive=True, streaming=True)
-        dataset_tvg.set_primary_key(args.primary_key)
+        dataset_tvg.set_primary_key(primary_key)
         dataset_tvg.enable_mongodb_sync(mongodb, batch_size=256, cache_size=0x10000000) # 256 MB
 
+    elif 'graph' in source:
+        if 'nodes' not in source:
+            source['nodes'] = None
+
+        dataset_tvg = pytvg.TVG.load(source['graph'], nodes=source['nodes'],
+                                     positive=True, streaming=True)
+
     else:
-        dataset_tvg    = pytvg.TVG.load(args.source, nodes=args.nodes, positive=True, streaming=True)
+        raise RuntimeError("Config does not have expected format")
 
     server = SimpleWebSocketServer('', 8000, Client)
     server.serveforever()
