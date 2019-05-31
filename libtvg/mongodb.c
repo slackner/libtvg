@@ -851,7 +851,8 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             while (&other_graph->entry != &tvg->graphs)
             {
                 if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
-                other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
+                if (!(tvg->flags & TVG_FLAGS_STREAMING) || other_graph->entry.next != &tvg->graphs)
+                    other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
                 other_graph = LIST_ENTRY(other_graph->entry.next, struct graph, entry);
                 first = 0;
             }
@@ -1060,7 +1061,8 @@ void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts)
         return;
     }
 
-    tvg_load_batch_from_mongodb(tvg, graph, filter, -1, ((int64_t)(ts + 1) > 0));
+    tvg_load_batch_from_mongodb(tvg, graph, filter, -1, ((int64_t)(ts + 1) > 0) ||
+                                (tvg->flags & TVG_FLAGS_STREAMING));
     bson_destroy(filter);
 }
 
