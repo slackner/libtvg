@@ -17,7 +17,7 @@
 
 #include "list.h"
 
-#define LIBTVG_API_VERSION  0x00000006ULL
+#define LIBTVG_API_VERSION  0x00000007ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -27,16 +27,19 @@
 #define TVG_FLAGS_LOAD_NEXT 0x00010000U
 #define TVG_FLAGS_LOAD_PREV 0x00020000U
 
+#define OBJECTID_NONE   0
+#define OBJECTID_INT    1
+#define OBJECTID_OID    2
+
 /* Note: In contrast to bson_oid_t, we internally swap the byte order, such
  * that comparison works the same for integers and MongoDB identifiers. */
 
-#pragma pack(push, 4)
 struct objectid
 {
     uint64_t    lo;
     uint32_t    hi;
+    uint32_t    type;
 };
-#pragma pack(pop)
 
 struct event
 {
@@ -210,7 +213,6 @@ struct mongodb_config
     char       *entity_ent;     /* entity id */
 
     int         use_pool;       /* use connection pool */
-    int         use_objectids;  /* use 96-bit MongoDB object identifiers */
     int         load_nodes;
 
     uint32_t    max_distance;

@@ -13,9 +13,11 @@ from ctypes.util import find_library
 import collections
 import functools
 import itertools
+import warnings
 import weakref
 import numpy as np
 import numpy.ctypeslib as npc
+import struct
 import math
 import sys
 import os
@@ -25,7 +27,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000006
+LIBTVG_API_VERSION  = 0x00000007
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -35,10 +37,14 @@ TVG_FLAGS_STREAMING = 0x00000008
 TVG_FLAGS_LOAD_NEXT = 0x00010000
 TVG_FLAGS_LOAD_PREV = 0x00020000
 
+OBJECTID_NONE   = 0
+OBJECTID_INT    = 1
+OBJECTID_OID    = 2
+
 class c_objectid(Structure):
-    _pack_   = 4
     _fields_ = [("lo",       c_uint64),
-                ("hi",       c_uint)]
+                ("hi",       c_uint),
+                ("type",     c_uint)]
 
 class c_vector(Structure):
     _fields_ = [("refcount", c_uint64),
@@ -82,7 +88,6 @@ class c_mongodb_config(Structure):
                 ("entity_sen",   c_char_p),
                 ("entity_ent",   c_char_p),
                 ("use_pool",     c_int),
-                ("use_objectids", c_int),
                 ("load_nodes",   c_int),
                 ("max_distance", c_uint)]
 
@@ -819,8 +824,26 @@ class Graph(object):
         """
 
         objectid = c_objectid()
-        objectid.lo = id
-        objectid.hi = id >> 64
+
+        if isinstance(id, int):
+            objectid.lo = id
+            objectid.hi = 0
+            objectid.type = OBJECTID_INT
+
+        elif isinstance(id, bytes) and len(id) == 12:
+            hi, lo = struct.unpack(">IQ", id)
+            objectid.lo = lo
+            objectid.hi = hi
+            objectid.type = OBJECTID_OID
+
+        elif isinstance(id, str) and len(id) == 24:
+            hi, lo = struct.unpack(">IQ", bytes.fromhex(id))
+            objectid.lo = lo
+            objectid.hi = hi
+            objectid.type = OBJECTID_OID
+
+        else:
+            raise ValueError("Objectid is not valid")
 
         flags = 0
         flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
@@ -2030,7 +2053,6 @@ class MongoDB(object):
     entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
     use_pool: Use a connection pool to access MongoDB.
-    use_objectids: Use MongoDB ObjectIDs to identify articles.
     load_nodes: Load node attributes.
 
     max_distance: Maximum distance of mentions.
@@ -2038,8 +2060,8 @@ class MongoDB(object):
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, use_pool=True,
-                 use_objectids=False, load_nodes=False, max_distance=5,
-                 filter_key=None, filter_value=None, obj=None):
+                 load_nodes=False, max_distance=5, filter_key=None,
+                 filter_value=None, use_objectids=None, obj=None):
         if obj is None:
             config = c_mongodb_config()
             config.uri           = uri.encode("utf-8")
@@ -2054,7 +2076,6 @@ class MongoDB(object):
             config.entity_sen    = entity_sen.encode("utf-8")
             config.entity_ent    = entity_ent.encode("utf-8")
             config.use_pool      = use_pool
-            config.use_objectids = use_objectids
             config.load_nodes    = load_nodes
             config.max_distance  = max_distance
             obj = lib.alloc_mongodb(config)
@@ -3747,7 +3768,7 @@ if __name__ == '__main__':
         def test_objectid(self):
             future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
                                  "_id", "time", "col_entities", "doc", "sen", "ent",
-                                 use_pool=False, use_objectids=True)
+                                 use_pool=False)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
@@ -3789,6 +3810,30 @@ if __name__ == '__main__':
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g[1, 2 + i], 1.0)
             del tvg
+
+            future = mockupdb.go(Graph.load_from_mongodb, self.db, '112233445566778899aabbcc')
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_entities")
+            self.assertEqual(request["filter"], {'doc': bson.ObjectId('112233445566778899aabbcc')})
+            self.assertEqual(request["sort"], {'sen': 1})
+            request.replies({'cursor': {'id': 0, 'firstBatch': []}})
+
+            g = future()
+            self.assertTrue(isinstance(g, Graph))
+            del g
+
+            future = mockupdb.go(Graph.load_from_mongodb, self.db, b'\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc')
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_entities")
+            self.assertEqual(request["filter"], {'doc': bson.ObjectId('112233445566778899aabbcc')})
+            self.assertEqual(request["sort"], {'sen': 1})
+            request.replies({'cursor': {'id': 0, 'firstBatch': []}})
+
+            g = future()
+            self.assertTrue(isinstance(g, Graph))
+            del g
 
     # Run the unit tests
     unittest.main()

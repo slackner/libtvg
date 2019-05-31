@@ -71,29 +71,31 @@ struct window_ops
 
 static inline void objectid_init(struct objectid *objectid)
 {
-    objectid->lo = ~0ULL;
-    objectid->hi = ~0U;
+    objectid->type = OBJECTID_NONE;
 }
 
 static inline int objectid_empty(struct objectid *objectid)
 {
-    return objectid->lo == ~0ULL && objectid->hi == ~0U;
+    return objectid->type == OBJECTID_NONE;
 }
 
 static inline void objectid_to_str(struct objectid *objectid, char *str)
 {
-    if (objectid_empty(objectid))
+    switch (objectid->type)
     {
-        strcpy(str, "(none)");
-    }
-    else if (!objectid->hi && (int64_t)objectid->lo >= 0)
-    {
-        sprintf(str, "%llu", (long long unsigned int)objectid->lo);
-    }
-    else
-    {
-        sprintf(str, "%08x%016llx", objectid->hi,
-                (long long unsigned int)objectid->lo);
+        case OBJECTID_INT:
+            sprintf(str, "%llu", (long long unsigned int)objectid->lo);
+            break;
+
+        case OBJECTID_OID:
+            sprintf(str, "%08x%016llx", objectid->hi,
+                    (long long unsigned int)objectid->lo);
+            break;
+
+        case OBJECTID_NONE:
+        default:
+            strcpy(str, "(none)");
+            break;
     }
 }
 
@@ -101,8 +103,21 @@ static inline int compare_graph_ts_objectid(struct graph *graph, uint64_t ts, st
 {
     int res;
     if ((res = COMPARE(graph->ts, ts))) return res;
-    if ((res = COMPARE(graph->objectid.hi, objectid->hi))) return res;
-    return COMPARE(graph->objectid.lo, objectid->lo);
+    if ((res = COMPARE(graph->objectid.type, objectid->type))) return res;
+
+    switch (objectid->type)
+    {
+        case OBJECTID_INT:
+            return COMPARE(graph->objectid.lo, objectid->lo);
+
+        case OBJECTID_OID:
+            if ((res = COMPARE(graph->objectid.hi, objectid->hi))) return res;
+            return COMPARE(graph->objectid.lo, objectid->lo);
+
+        case OBJECTID_NONE:
+        default:
+            return 0;
+    }
 }
 
 void progress(const char *format, ...) __attribute__((format (printf,1,2))) DECL_INTERNAL;
