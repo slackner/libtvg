@@ -363,6 +363,9 @@ lib.window_clear.argtypes = (c_window_p,)
 lib.window_update.argtypes = (c_window_p, c_uint64)
 lib.window_update.restype = c_graph_p
 
+lib.window_get_sources.argtypes = (c_window_p, POINTER(c_graph_p), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
+lib.window_get_sources.restype = c_uint64
+
 # MongoDB functions
 
 lib.alloc_mongodb.argtypes = (c_mongodb_config_p,)
@@ -1778,6 +1781,37 @@ class Window(object):
         """
 
         return Graph(obj=lib.window_update(self._obj, ts))
+
+    def sources(self, ret_graphs=True, ret_weights=True):
+        """
+        Return all graphs and/or weights of the current window.
+
+        # Arguments
+        ret_graphs: Return graphs, otherwise None.
+        ret_weights: Return weights, otherwise None.
+
+        # Returns
+        `(graphs, weights)`
+        """
+
+        num_sources = 100 # FIXME: Arbitrary limit.
+        while True:
+            max_sources = num_sources
+            graphs = (c_graph_p * max_sources)() if ret_graphs else None
+            weights = np.empty(shape=(max_sources,), dtype=np.float32, order='C') if ret_weights else None
+            num_sources = lib.window_get_sources(self._obj, graphs, weights, max_sources)
+            if num_sources <= max_sources:
+                break
+            for obj in graphs:
+                lib.free_graph(obj)
+            graphs = None
+
+        if graphs is not None:
+            graphs = [Graph(obj=obj) for obj in graphs[:num_sources]]
+        if weights is not None:
+            weights.resize((num_sources,), refcheck=False)
+
+        return graphs, weights
 
     def sample_power_iteration(self, ts, sample_width, sample_steps=9, tolerance=None):
         """
@@ -3514,6 +3548,59 @@ if __name__ == '__main__':
             self.assertEqual(values[1], 2.0)
 
             del window
+            del tvg
+
+        def test_sources(self):
+            tvg = TVG(positive=True)
+
+            for t in range(50):
+                g = tvg.Graph(t)
+                g[t, t] = 1.0
+
+            window = tvg.WindowRect(-1000, 0)
+            self.assertEqual(window.width, 1000)
+
+            g = window.update(999)
+            for t in range(50):
+                self.assertEqual(g[t, t], 1.0)
+            self.assertEqual(g[50, 50], 0.0)
+
+            graphs, weights = window.sources()
+            self.assertEqual(len(graphs), 50)
+            self.assertEqual(len(weights), 50)
+            for t, (g, w) in enumerate(zip(graphs, weights)):
+                self.assertEqual(g.ts, t)
+                self.assertEqual(g[t, t], 1.0)
+                self.assertEqual(w, 1.0)
+
+            graphs, _ = window.sources(ret_weights=False)
+            self.assertEqual(len(graphs), 50)
+            for t, g in enumerate(graphs):
+                self.assertEqual(g.ts, t)
+                self.assertEqual(g[t, t], 1.0)
+
+            _, weights = window.sources(ret_graphs=False)
+            self.assertEqual(len(weights), 50)
+            for t, w in enumerate(weights):
+                self.assertEqual(w, 1.0)
+
+            for t in range(50, 500):
+                g = tvg.Graph(t)
+                g[t, t] = 1.0
+
+            g = window.update(999)
+            for t in range(500):
+                self.assertEqual(g[t, t], 1.0)
+            self.assertEqual(g[500, 500], 0.0)
+
+            graphs, weights = window.sources()
+            self.assertEqual(len(graphs), 500)
+            self.assertEqual(len(weights), 500)
+            for t, (g, w) in enumerate(zip(graphs, weights)):
+                self.assertEqual(g.ts, t)
+                self.assertEqual(g[t, t], 1.0)
+                self.assertEqual(w, 1.0)
+
             del tvg
 
     class MongoDBTests(unittest.TestCase):

@@ -64,6 +64,7 @@ struct graph_ops
 
 struct window_ops
 {
+    float     (*weight)(struct window *, struct graph *);
     int       (*add)(struct window *, struct graph *);
     int       (*sub)(struct window *, struct graph *);
     int       (*mov)(struct window *, uint64_t ts);

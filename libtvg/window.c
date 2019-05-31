@@ -233,3 +233,24 @@ restart:
 
     return grab_graph(window->result);
 }
+
+uint64_t window_get_sources(struct window *window, struct graph **graphs, float *weights, uint64_t max_graphs)
+{
+    struct source *source;
+    uint64_t count = 0;
+
+    LIST_FOR_EACH(source, &window->sources, struct source, entry)
+    {
+        if (count++ >= max_graphs) continue;
+        if (graphs)
+        {
+            *graphs++ = grab_graph(source->graph);
+        }
+        if (weights)
+        {
+            *weights++ = window->ops->weight(window, source->graph);
+        }
+    }
+
+    return count;
+}

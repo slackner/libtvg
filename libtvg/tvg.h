@@ -1426,6 +1426,7 @@ void free_window(struct window *window);
 void window_set_eps(struct window *window, float eps);
 void window_clear(struct window *window);
 struct graph *window_update(struct window *window, uint64_t ts);
+uint64_t window_get_sources(struct window *window, struct graph **graphs, float *weights, uint64_t max_graphs);
 
 /* MongoDB functions */
 
