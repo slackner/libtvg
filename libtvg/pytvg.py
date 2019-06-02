@@ -396,6 +396,12 @@ lib.window_alloc_metric_count_edges.restype = c_metric_p
 lib.metric_count_edges_get_result.argtypes = (c_metric_p,)
 lib.metric_count_edges_get_result.restype = c_graph_p
 
+lib.window_alloc_metric_count_nodes.argtypes = (c_window_p,)
+lib.window_alloc_metric_count_nodes.restype = c_metric_p
+
+lib.metric_count_nodes_get_result.argtypes = (c_metric_p,)
+lib.metric_count_nodes_get_result.restype = c_vector_p
+
 lib.free_metric.argtypes = (c_metric_p,)
 
 lib.metric_reset.argtypes = (c_metric_p,)
@@ -1744,6 +1750,20 @@ class TVG(object):
         window = self.Window(window_l, window_r)
         return window.CountEdges()
 
+    def WindowCountNodes(self, window_l, window_r):
+        """
+        Create a new rectangular filter window to count nodes in a specific range
+        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+        considered.
+
+        # Arguments
+        window_l: Left boundary of the interval, relative to the timestamp.
+        window_r: Right boundary of the interval, relative to the timestamp.
+        """
+
+        window = self.Window(window_l, window_r)
+        return window.CountNodes()
+
     def lookup_ge(self, ts=0):
         """ Search for the first graph with timestamps `>= ts`. """
         if isinstance(ts, float):
@@ -2123,6 +2143,12 @@ class MetricCountEdges(MetricGraph):
         """ Get the current graph base on edge counts. """
         return Graph(obj=lib.metric_count_edges_get_result(self._obj))
 
+class MetricCountNodes(MetricGraph):
+    @property
+    def result(self):
+        """ Get the current graph base on node counts. """
+        return Vector(obj=lib.metric_count_nodes_get_result(self._obj))
+
 @libtvgobject
 class Window(object):
     """
@@ -2190,6 +2216,10 @@ class Window(object):
     def CountEdges(self):
         """ Create a new edge count metric. """
         return MetricCountEdges(obj=lib.window_alloc_metric_count_edges(self._obj))
+
+    def CountNodes(self):
+        """ Create a new node count metric. """
+        return MetricCountNodes(obj=lib.window_alloc_metric_count_nodes(self._obj))
 
     def reset(self):
         """"
@@ -3533,6 +3563,59 @@ if __name__ == '__main__':
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
+
+            del window
+            del tvg
+
+        def test_count_nodes(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = 1.0
+            g = tvg.Graph(200)
+            g[0, 1] = 2.0
+            g[1, 2] = 2.0
+            g = tvg.Graph(300)
+            g[0, 2] = 3.0
+
+            with self.assertRaises(MemoryError):
+                tvg.WindowCountNodes(0, 0)
+            with self.assertRaises(MemoryError):
+                tvg.WindowCountNodes(1, 0)
+
+            window = tvg.WindowCountNodes(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            v = window.update(100)
+            self.assertEqual(window.ts, 100)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 0.0)
+
+            v = window.update(200)
+            self.assertEqual(window.ts, 200)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 1.0)
+
+            v = window.update(300)
+            self.assertEqual(window.ts, 300)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 1.0)
+
+            # Clearing the window should not modify the last output graph.
+            window.reset()
+            v2 = window.update(100)
+            self.assertEqual(window.ts, 100)
+
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 1.0)
+
+            self.assertEqual(v2[0], 1.0)
+            self.assertEqual(v2[1], 0.0)
+            self.assertEqual(v2[2], 0.0)
 
             del window
             del tvg

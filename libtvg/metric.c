@@ -30,6 +30,40 @@ static int graph_add_count_edges(struct graph *out, struct graph *graph, float w
     return 1;
 }
 
+static int graph_add_count_nodes(struct vector *out, struct graph *graph, float weight)
+{
+    struct vector *visited;
+    struct entry2 *edge;
+    int ret = 0;
+
+    if (!(visited = alloc_vector(0)))
+        return 0;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!vector_has_entry(visited, edge->source))
+        {
+            if (!vector_add_entry(out, edge->source, weight))
+                goto error;
+            if (!vector_set_entry(visited, edge->source, 1))
+                goto error;
+        }
+        if (!vector_has_entry(visited, edge->target))
+        {
+            if (!vector_add_entry(out, edge->target, weight))
+                goto error;
+            if (!vector_set_entry(visited, edge->target, 1))
+                goto error;
+        }
+    }
+
+    ret = 1;
+
+error:
+    free_vector(visited);
+    return ret;
+}
+
 /* metric_rect functions */
 
 const struct metric_ops metric_rect_ops;
@@ -525,6 +559,112 @@ struct metric *window_alloc_metric_count_edges(struct window *window)
 struct graph *metric_count_edges_get_result(struct metric *metric)
 {
     return grab_graph(METRIC_COUNT_EDGES(metric)->result);
+}
+
+/* metric_count_nodes functions */
+
+const struct metric_ops metric_count_nodes_ops;
+
+static inline struct metric_count_nodes *METRIC_COUNT_NODES(struct metric *metric)
+{
+    assert(metric->ops == &metric_count_nodes_ops);
+    return CONTAINING_RECORD(metric, struct metric_count_nodes, metric);
+}
+
+static int metric_count_nodes_init(struct metric *metric)
+{
+    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
+    uint32_t vector_flags = TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
+
+    if (metric_count_nodes->result)
+        return 1;
+
+    if (!(metric_count_nodes->result = alloc_vector(vector_flags)))
+        return 0;
+
+    vector_set_eps(metric_count_nodes->result, 0.5);
+    return 1;
+}
+
+static void metric_count_nodes_free(struct metric *metric)
+{
+    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
+    free_vector(metric_count_nodes->result);
+    metric_count_nodes->result = NULL;
+}
+
+static int metric_count_nodes_valid(struct metric *metric)
+{
+    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
+    return (metric_count_nodes->result != NULL);
+}
+
+static int metric_count_nodes_clear(struct metric *metric)
+{
+    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
+
+    if (metric_count_nodes->result && vector_empty(metric_count_nodes->result))
+        return 1;
+
+    metric_count_nodes_free(metric);
+    return metric_count_nodes_init(metric);
+}
+
+static int metric_count_nodes_add(struct metric *metric, struct graph *graph)
+{
+    return graph_add_count_nodes(METRIC_COUNT_NODES(metric)->result, graph, 1.0);
+}
+
+static int metric_count_nodes_sub(struct metric *metric, struct graph *graph)
+{
+    return graph_add_count_nodes(METRIC_COUNT_NODES(metric)->result, graph, -1.0);
+}
+
+static int metric_count_nodes_move(struct metric *metric, uint64_t ts)
+{
+    /* nothing to do */
+    return 1;
+}
+
+const struct metric_ops metric_count_nodes_ops =
+{
+    metric_count_nodes_init,
+    metric_count_nodes_free,
+    metric_count_nodes_valid,
+    metric_count_nodes_clear,
+    metric_count_nodes_add,
+    metric_count_nodes_sub,
+    metric_count_nodes_move,
+};
+
+struct metric *window_alloc_metric_count_nodes(struct window *window)
+{
+    struct metric_count_nodes *metric_count_nodes;
+    struct metric *metric;
+
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+    {
+        if (metric->ops == &metric_count_nodes_ops)
+            return grab_metric(metric);
+    }
+
+    if (!(metric_count_nodes = malloc(sizeof(*metric_count_nodes))))
+        return NULL;
+
+    metric = &metric_count_nodes->metric;
+    metric->refcount = 1;
+    metric->window   = grab_window(window);
+    metric->ops      = &metric_count_nodes_ops;
+
+    metric_count_nodes->result = NULL;
+
+    list_add_tail(&window->metrics, &metric->entry);
+    return metric;
+}
+
+struct vector *metric_count_nodes_get_result(struct metric *metric)
+{
+    return grab_vector(METRIC_COUNT_NODES(metric)->result);
 }
 
 /* generic functions */
