@@ -3320,66 +3320,6 @@ if __name__ == '__main__':
             del window
             del tvg
 
-        def test_encode_visjs(self):
-            filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../datasets/example/example-tvg.graph")
-            tvg = TVG.load(filename, positive=True, streaming=True)
-            window = tvg.WindowDecay(600000, log_beta=np.log(0.93)/1000)
-            window.eps = 1e-6
-
-            ts = tvg.lookup_ge().ts
-            last_ts = tvg.lookup_le().ts + 600000.0
-
-            client_graph = None
-            client_nodes = set()
-
-            while ts < last_ts:
-                graph = window.update(ts)
-                visjs = graph.encode_visjs()
-
-                if visjs['cmd'] == 'network_set':
-                    client_nodes = set([node['id'] for node in visjs['nodes']])
-                    client_graph = Graph()
-                    for edge in visjs['edges']:
-                        self.assertEqual(edge['id'], "%d-%d" % (edge['from'], edge['to']))
-                        client_graph[edge['from'], edge['to']] = edge['value']
-
-                elif visjs['cmd'] == 'network_update':
-                    for edge in visjs['deleted_edges']:
-                        edge_from, edge_to = map(int, edge['id'].split("-"))
-                        del client_graph[edge_from, edge_to]
-                    for node in visjs['deleted_nodes']:
-                        try:
-                            client_nodes.remove(node['id'])
-                        except KeyError:
-                            pass # FIXME: Why can this happen?
-                    client_graph.mul_const(visjs['mul'])
-                    for node in visjs['nodes']:
-                        client_nodes.add(node['id'])
-                    for edge in visjs['edges']:
-                        self.assertEqual(edge['id'], "%d-%d" % (edge['from'], edge['to']))
-                        client_graph[edge['from'], edge['to']] = edge['value']
-
-                else:
-                    self.assertTrue(False)
-
-                self.assertEqual(client_nodes, set(graph.nodes()))
-                self.assertEqual(client_nodes, set(client_graph.nodes()))
-
-                indices, weights = client_graph.edges()
-                index_to_weight = {}
-                for i, w in zip(indices, weights):
-                    index_to_weight[tuple(i)] = w
-
-                indices, weights = graph.edges()
-                for i, w in zip(indices, weights):
-                    i = tuple(i)
-                    self.assertIn(i, index_to_weight)
-                    self.assertTrue(abs(index_to_weight[i] - w) < 1e-7)
-                    del index_to_weight[i]
-
-                self.assertEqual(len(index_to_weight), 0)
-                ts += 50000
-
         def test_sample_eigenvectors(self):
             tvg = TVG(positive=True)
 
