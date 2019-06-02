@@ -38,6 +38,15 @@
     }                                           \
     while (0)
 
+#ifdef __GNUC__
+# define CONTAINING_RECORD(address, type, field) ({     \
+   const typeof(((type *)0)->field) *__ptr = (address); \
+   (type *)((char *)__ptr - offsetof(type, field)); })
+#else
+# define CONTAINING_RECORD(address, type, field) \
+   ((type *)((char *)(address) - offsetof(type, field)))
+#endif
+
 #define LIKELY(x)   __builtin_expect((x), 1)
 #define UNLIKELY(x) __builtin_expect((x), 0)
 #define DECL_INTERNAL __attribute__((__visibility__("hidden")))
@@ -62,12 +71,15 @@ struct graph_ops
     void      (*mul_const)(struct graph *, float);
 };
 
-struct window_ops
+struct metric_ops
 {
-    float     (*weight)(struct window *, struct graph *);
-    int       (*add)(struct window *, struct graph *);
-    int       (*sub)(struct window *, struct graph *);
-    int       (*mov)(struct window *, uint64_t ts);
+    int       (*init)(struct metric *);
+    void      (*free)(struct metric *);
+    int       (*valid)(struct metric *);
+    int       (*clear)(struct metric *);
+    int       (*add)(struct metric *, struct graph *);
+    int       (*sub)(struct metric *, struct graph *);
+    int       (*move)(struct metric *, uint64_t ts);
 };
 
 static inline void objectid_init(struct objectid *objectid)
@@ -168,13 +180,6 @@ void bucket2_del_entry(struct bucket2 *bucket, struct entry2 *entry) DECL_INTERN
 extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
 extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
 extern const struct graph_ops graph_positive_ops DECL_INTERNAL;
-
-struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64_t window_l,
-                            int64_t window_r, float weight, float log_beta) DECL_INTERNAL;
-
-extern const struct window_ops window_rect_ops DECL_INTERNAL;
-extern const struct window_ops window_decay_ops DECL_INTERNAL;
-extern const struct window_ops window_smooth_ops DECL_INTERNAL;
 
 struct minheap *alloc_minheap(size_t entry_size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
 void free_minheap(struct minheap *h) DECL_INTERNAL;

@@ -607,10 +607,12 @@ static void test_extract(void)
 static void test_window_rect(void)
 {
     struct window *window;
+    struct metric *metric;
     struct graph *graph;
     struct tvg *tvg;
     uint32_t i;
     uint64_t ts;
+    int ret;
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
@@ -630,12 +632,16 @@ static void test_window_rect(void)
     graph_add_edge(graph, 0, 2, 3.0);
     free_graph(graph);
 
-    window = tvg_alloc_window_rect(tvg, -100, 100);
+    window = tvg_alloc_window(tvg, -100, 100);
     assert(window != NULL);
+    metric = window_alloc_metric_rect(window, 0.0);
+    assert(metric != NULL);
 
     for (ts = 0; ts <= 600; ts += 50)
     {
-        graph = window_update(window, ts);
+        ret = window_update(window, ts);
+        assert(ret);
+        graph = metric_rect_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 100 || ts >= 300) assert(!graph_has_edge(graph, 0, 0));
@@ -653,7 +659,9 @@ static void test_window_rect(void)
     for (i = 0; i < 10000; i++)
     {
         ts = random_uint64() % 700;
-        graph = window_update(window, ts);
+        ret = window_update(window, ts);
+        assert(ret);
+        graph = metric_rect_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 100 || ts >= 300) assert(!graph_has_edge(graph, 0, 0));
@@ -668,6 +676,7 @@ static void test_window_rect(void)
         free_graph(graph);
     }
 
+    free_metric(metric);
     free_window(window);
     free_tvg(tvg);
 }
@@ -676,10 +685,12 @@ static void test_window_decay(void)
 {
     static float beta = 0.9930924954370359;
     struct window *window;
+    struct metric *metric;
     struct graph *graph;
     struct tvg *tvg;
     uint64_t ts;
     uint32_t i;
+    int ret;
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
@@ -699,12 +710,16 @@ static void test_window_decay(void)
     graph_add_edge(graph, 0, 2, 3.0);
     free_graph(graph);
 
-    window = tvg_alloc_window_decay(tvg, 1000, log(beta));
+    window = tvg_alloc_window(tvg, -1000, 0);
     assert(window != NULL);
+    metric = window_alloc_metric_decay(window, log(beta), 0.0);
+    assert(metric != NULL);
 
     for (ts = 0; ts <= 600; ts += 50)
     {
-        graph = window_update(window, ts);
+        ret = window_update(window, ts);
+        assert(ret);
+        graph = metric_decay_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 200) assert(!graph_has_edge(graph, 0, 0));
@@ -725,7 +740,9 @@ static void test_window_decay(void)
     for (i = 0; i < 10000; i++)
     {
         ts = random_uint64() % 700;
-        graph = window_update(window, ts);
+        ret = window_update(window, ts);
+        assert(ret);
+        graph = metric_decay_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 200)
@@ -733,7 +750,7 @@ static void test_window_decay(void)
             if (graph_has_edge(graph, 0, 0))
             {
                 assert(fabs(graph_get_edge(graph, 0, 0)) < 1e-5);
-                graph_del_edge(window->result, 0, 0);
+                graph_del_edge(graph, 0, 0);
             }
         }
         else assert(fabs(graph_get_edge(graph, 0, 0) - 1.0 * pow(beta, ts - 200)) < 1e-6);
@@ -743,7 +760,7 @@ static void test_window_decay(void)
             if (graph_has_edge(graph, 0, 1))
             {
                 assert(fabs(graph_get_edge(graph, 0, 1)) < 1e-5);
-                graph_del_edge(window->result, 0, 1);
+                graph_del_edge(graph, 0, 1);
             }
         }
         else assert(fabs(graph_get_edge(graph, 0, 1) - 2.0 * pow(beta, ts - 300)) < 1e-6);
@@ -753,7 +770,7 @@ static void test_window_decay(void)
             if (graph_has_edge(graph, 0, 2))
             {
                 assert(fabs(graph_get_edge(graph, 0, 2)) < 1e-5);
-                graph_del_edge(window->result, 0, 2);
+                graph_del_edge(graph, 0, 2);
             }
         }
         else assert(fabs(graph_get_edge(graph, 0, 2) - 3.0 * pow(beta, ts - 400)) < 1e-6);
@@ -761,6 +778,7 @@ static void test_window_decay(void)
         free_graph(graph);
     }
 
+    free_metric(metric);
     free_window(window);
     free_tvg(tvg);
 }

@@ -8,7 +8,7 @@
 #include "tvg.h"
 #include "internal.h"
 
-struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64_t window_l, int64_t window_r, float weight, float log_beta)
+struct window *tvg_alloc_window(struct tvg *tvg, int64_t window_l, int64_t window_r)
 {
     struct window *window;
 
@@ -18,16 +18,12 @@ struct window *alloc_window(struct tvg *tvg, const struct window_ops *ops, int64
         return NULL;
 
     window->refcount    = 1;
-    window->eps         = 0.0;
     window->ts          = 0;
     window->window_l    = window_l;
     window->window_r    = window_r;
     window->tvg         = grab_tvg(tvg);
-    window->ops         = ops;
-    window->weight      = weight;
-    window->log_beta    = log_beta;
     list_init(&window->sources);
-    window->result      = NULL;
+    list_init(&window->metrics);
 
     return window;
 }
@@ -43,20 +39,17 @@ void free_window(struct window *window)
     if (!window) return;
     if (__sync_sub_and_fetch(&window->refcount, 1)) return;
 
-    window_clear(window);
+    window_reset(window);
+
+    assert(list_empty(&window->metrics));
     free_tvg(window->tvg);
     free(window);
 }
 
-void window_set_eps(struct window *window, float eps)
-{
-    window->eps = (float)fabs(eps);
-    window_clear(window);
-}
-
-void window_clear(struct window *window)
+void window_reset(struct window *window)
 {
     struct source *source, *next_source;
+    struct metric *metric;
 
     LIST_FOR_EACH_SAFE(source, next_source, &window->sources, struct source, entry)
     {
@@ -65,41 +58,37 @@ void window_clear(struct window *window)
         free(source);
     }
 
-    free_graph(window->result);
-    window->result = NULL;
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+    {
+        metric->ops->free(metric);
+    }
 }
 
-struct graph *window_update(struct window *window, uint64_t ts)
+int window_update(struct window *window, uint64_t ts)
 {
     struct source *source_cursor, *source;
     struct tvg *tvg = window->tvg;
-    uint32_t graph_flags;
+    struct metric *metric;
     uint64_t ts_window_l;
     uint64_t ts_window_r;
     struct graph *graph;
     struct list todo;
-    int update;
 
 restart:
-    if (!window->result)
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
-        graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-        graph_flags |= TVG_FLAGS_NONZERO;
-
-        if (!(window->result = alloc_graph(graph_flags)))
-            return NULL;
-
-        /* Output graph should inherit window->eps. */
-        graph_set_eps(window->result, window->eps);
-
-        window->ts     = ts;
-        assert(list_empty(&window->sources));
-        update = 0;
+        if (!metric->ops->valid(metric))
+        {
+            window_reset(window);
+            window->ts = ts;
+            break;
+        }
     }
-    else
+
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        update = (ts != window->ts);
+        if (!metric->ops->init(metric))
+            return 0;
     }
 
     list_init(&todo);
@@ -142,7 +131,7 @@ restart:
              * drop the existing graph and start from scratch. */
             if (source->revision != graph->revision)
             {
-                window_clear(window);
+                window_reset(window);
                 free_graph(graph);
                 goto restart;
             }
@@ -164,9 +153,9 @@ restart:
 
         if (!(source = malloc(sizeof(*source))))
         {
-            window_clear(window);
+            window_reset(window);
             free_graph(graph);
-            return NULL;
+            return 0;
         }
 
         source->graph    = grab_graph(graph);
@@ -187,14 +176,17 @@ restart:
         graph = source->graph;
         if (source->revision != graph->revision)
         {
-            window_clear(window);
+            window_reset(window);
             goto restart;
         }
 
-        if (!window->ops->sub(window, graph))
+        LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
         {
-            window_clear(window);
-            goto restart;
+            if (!metric->ops->sub(metric, graph))
+            {
+                window_reset(window);
+                goto restart;
+            }
         }
 
         list_remove(&source->entry);
@@ -202,19 +194,29 @@ restart:
         free(source);
     }
 
-    if (list_empty(&window->sources) && !graph_empty(window->result))
+    if (list_empty(&window->sources))
     {
-        /* FIXME: This could be made more efficiently. */
-        window_clear(window);
-        goto restart;
+        LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+        {
+            if (!metric->ops->clear(metric))
+            {
+                window_reset(window);
+                return 0;
+            }
+        }
+        window->ts = ts;
     }
 
-    if (update)
+    if (ts != window->ts)
     {
-        if (!window->ops->mov(window, ts))
+        LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
         {
-            window_clear(window);
-            goto restart;
+            if (!metric->ops->move(metric, ts))
+            {
+                window_reset(window);
+                window->ts = ts;
+                goto restart;
+            }
         }
         window->ts = ts;
     }
@@ -224,17 +226,20 @@ restart:
         graph = source->graph;
         assert(source->revision == graph->revision);
 
-        if (!window->ops->add(window, graph))
+        LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
         {
-            window_clear(window);
-            return NULL;
+            if (!metric->ops->add(metric, graph))
+            {
+                window_reset(window);
+                return 0;
+            }
         }
     }
 
-    return grab_graph(window->result);
+    return 1;
 }
 
-uint64_t window_get_sources(struct window *window, struct graph **graphs, float *weights, uint64_t max_graphs)
+uint64_t window_get_sources(struct window *window, struct graph **graphs, uint64_t max_graphs)
 {
     struct source *source;
     uint64_t count = 0;
@@ -245,10 +250,6 @@ uint64_t window_get_sources(struct window *window, struct graph **graphs, float 
         if (graphs)
         {
             *graphs++ = grab_graph(source->graph);
-        }
-        if (weights)
-        {
-            *weights++ = window->ops->weight(window, source->graph);
         }
     }
 

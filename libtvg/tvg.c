@@ -539,24 +539,6 @@ void tvg_disable_mongodb_sync(struct tvg *tvg)
     }
 }
 
-struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r)
-{
-    return alloc_window(tvg, &window_rect_ops, window_l, window_r, 0.0, 0.0);
-}
-
-struct window *tvg_alloc_window_decay(struct tvg *tvg, int64_t window, float log_beta)
-{
-    if (window <= 0) return NULL;
-    return alloc_window(tvg, &window_decay_ops, -window, 0, 0.0, log_beta);
-}
-
-struct window *tvg_alloc_window_smooth(struct tvg *tvg, int64_t window, float log_beta)
-{
-    float weight = -(float)expm1(log_beta);
-    if (window <= 0) return NULL;
-    return alloc_window(tvg, &window_smooth_ops, -window, 0, weight, log_beta);
-}
-
 static inline struct graph *grab_prev_graph(struct tvg *tvg, struct graph *graph)
 {
     struct graph *prev_graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);

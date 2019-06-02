@@ -176,23 +176,54 @@ struct source
     uint64_t    revision;
 };
 
-struct window_ops;
+struct metric_ops;
+
+struct metric
+{
+    uint64_t    refcount;
+
+    /* private: */
+    struct window *window;
+    struct list entry;
+
+    const struct metric_ops *ops;
+};
+
+struct metric_rect
+{
+    struct metric metric;
+    struct graph *result;
+    float       eps;
+};
+
+struct metric_decay
+{
+    struct metric metric;
+    struct graph *result;
+    float       log_beta;
+    float       eps;
+};
+
+struct metric_smooth
+{
+    struct metric metric;
+    struct graph *result;
+    float       weight;
+    float       log_beta;
+    float       eps;
+};
 
 struct window
 {
     uint64_t    refcount;
-    float       eps;
     uint64_t    ts;
     int64_t     window_l;
     int64_t     window_r;
 
     /* private: */
     struct tvg *tvg;
-    const struct window_ops *ops;
-    float       weight;
-    float       log_beta;
     struct list sources;
-    struct graph *result;
+    struct list metrics;
 };
 
 struct mongodb_config
@@ -1405,10 +1436,6 @@ int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
                             uint64_t batch_size, uint64_t cache_size);
 void tvg_disable_mongodb_sync(struct tvg *tvg);
 
-struct window *tvg_alloc_window_rect(struct tvg *tvg, int64_t window_l, int64_t window_r);
-struct window *tvg_alloc_window_decay(struct tvg *tvg, int64_t window, float log_beta);
-struct window *tvg_alloc_window_smooth(struct tvg *tvg, int64_t window, float log_beta);
-
 struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts);
@@ -1420,13 +1447,33 @@ struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(str
 
 /* window functions */
 
-/* alloc_window not exported */
+struct window *tvg_alloc_window(struct tvg *tvg, int64_t window_l, int64_t window_r);
 struct window *grab_window(struct window *window);
 void free_window(struct window *window);
-void window_set_eps(struct window *window, float eps);
-void window_clear(struct window *window);
-struct graph *window_update(struct window *window, uint64_t ts);
-uint64_t window_get_sources(struct window *window, struct graph **graphs, float *weights, uint64_t max_graphs);
+
+void window_reset(struct window *window);
+int window_update(struct window *window, uint64_t ts);
+uint64_t window_get_sources(struct window *window, struct graph **graphs, uint64_t max_graphs);
+
+/* metric functions */
+
+struct metric *window_alloc_metric_rect(struct window *window, float eps);
+float metric_rect_get_eps(struct metric *metric);
+struct graph *metric_rect_get_result(struct metric *metric);
+
+struct metric *window_alloc_metric_decay(struct window *window, float log_beta, float eps);
+float metric_decay_get_eps(struct metric *metric);
+struct graph *metric_decay_get_result(struct metric *metric);
+
+struct metric *window_alloc_metric_smooth(struct window *window, float log_beta, float eps);
+float metric_smooth_get_eps(struct metric *metric);
+struct graph *metric_smooth_get_result(struct metric *metric);
+
+struct metric *grab_metric(struct metric *metric);
+void free_metric(struct metric *metric);
+
+void metric_reset(struct metric *metric);
+struct window *metric_get_window(struct metric *metric);
 
 /* MongoDB functions */
 

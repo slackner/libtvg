@@ -68,9 +68,11 @@ class c_tvg(Structure):
     _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint)]
 
+class c_metric(Structure):
+    _fields_ = [("refcount", c_uint64)]
+
 class c_window(Structure):
     _fields_ = [("refcount", c_uint64),
-                ("eps",      c_float),
                 ("ts",       c_uint64),
                 ("window_l", c_int64),
                 ("window_r", c_int64)]
@@ -114,6 +116,7 @@ c_vector_p       = POINTER(c_vector)
 c_graph_p        = POINTER(c_graph)
 c_node_p         = POINTER(c_node)
 c_tvg_p          = POINTER(c_tvg)
+c_metric_p       = POINTER(c_metric)
 c_window_p       = POINTER(c_window)
 c_mongodb_config_p = POINTER(c_mongodb_config)
 c_mongodb_p      = POINTER(c_mongodb)
@@ -331,15 +334,6 @@ lib.tvg_enable_mongodb_sync.restype = c_int
 
 lib.tvg_disable_mongodb_sync.argtypes = (c_tvg_p,)
 
-lib.tvg_alloc_window_rect.argtypes = (c_tvg_p, c_int64, c_int64)
-lib.tvg_alloc_window_rect.restype = c_window_p
-
-lib.tvg_alloc_window_decay.argtypes = (c_tvg_p, c_int64, c_float)
-lib.tvg_alloc_window_decay.restype = c_window_p
-
-lib.tvg_alloc_window_smooth.argtypes = (c_tvg_p, c_int64, c_float)
-lib.tvg_alloc_window_smooth.restype = c_window_p
-
 lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
 
@@ -354,17 +348,54 @@ lib.tvg_compress.restype = c_int
 
 # window functions
 
+lib.tvg_alloc_window.argtypes = (c_tvg_p, c_int64, c_int64)
+lib.tvg_alloc_window.restype = c_window_p
+
 lib.free_window.argtypes = (c_window_p,)
 
-lib.window_set_eps.argtypes = (c_window_p, c_float)
-
-lib.window_clear.argtypes = (c_window_p,)
+lib.window_reset.argtypes = (c_window_p,)
 
 lib.window_update.argtypes = (c_window_p, c_uint64)
-lib.window_update.restype = c_graph_p
+lib.window_update.restype = c_int
 
-lib.window_get_sources.argtypes = (c_window_p, POINTER(c_graph_p), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
+lib.window_get_sources.argtypes = (c_window_p, POINTER(c_graph_p), c_uint64)
 lib.window_get_sources.restype = c_uint64
+
+# Metric functions
+
+lib.window_alloc_metric_rect.argtypes = (c_window_p, c_float)
+lib.window_alloc_metric_rect.restype = c_metric_p
+
+lib.metric_rect_get_eps.argtypes = (c_metric_p,)
+lib.metric_rect_get_eps.restype = c_float
+
+lib.metric_rect_get_result.argtypes = (c_metric_p,)
+lib.metric_rect_get_result.restype = c_graph_p
+
+lib.window_alloc_metric_decay.argtypes = (c_window_p, c_float, c_float)
+lib.window_alloc_metric_decay.restype = c_metric_p
+
+lib.metric_decay_get_eps.argtypes = (c_metric_p,)
+lib.metric_decay_get_eps.restype = c_float
+
+lib.metric_decay_get_result.argtypes = (c_metric_p,)
+lib.metric_decay_get_result.restype = c_graph_p
+
+lib.window_alloc_metric_smooth.argtypes = (c_window_p, c_float, c_float)
+lib.window_alloc_metric_smooth.restype = c_metric_p
+
+lib.metric_smooth_get_eps.argtypes = (c_metric_p,)
+lib.metric_smooth_get_eps.restype = c_float
+
+lib.metric_smooth_get_result.argtypes = (c_metric_p,)
+lib.metric_smooth_get_result.restype = c_graph_p
+
+lib.free_metric.argtypes = (c_metric_p,)
+
+lib.metric_reset.argtypes = (c_metric_p,)
+
+lib.metric_get_window.argtypes = (c_metric_p,)
+lib.metric_get_window.restype = c_graph_p
 
 # MongoDB functions
 
@@ -857,6 +888,7 @@ class Graph(object):
         return Graph(obj=obj) if obj else None
 
     def unlink(self):
+        """ Unlink a graph from the TVG object. """
         lib.unlink_graph(self._obj)
 
     @property
@@ -1635,7 +1667,24 @@ class TVG(object):
         """ Iterates (in reverse order) through all graphs of a time-varying graph object. """
         return GraphIterReversed(self.lookup_le())
 
-    def WindowRect(self, window_l, window_r):
+    def Window(self, window_l, window_r):
+        """
+        Create a new sliding window to aggregate data in a specific range around a
+        fixed timestmap. Only graphs in [ts + window_l, ts + window_r] are
+        considered.
+
+        # Arguments
+        window_l: Left boundary of the interval, relative to the timestamp.
+        window_r: Right boundary of the interval, relative to the timestamp.
+        """
+
+        if window_l < 0 and np.isinf(window_l):
+            window_l = -0x8000000000000000
+        if window_r > 0 and np.isinf(window_r):
+            window_r =  0x7fffffffffffffff
+        return Window(obj=lib.tvg_alloc_window(self._obj, window_l, window_r))
+
+    def WindowRect(self, window_l, window_r, eps=0.0):
         """
         Create a new rectangular filter window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
@@ -1646,9 +1695,10 @@ class TVG(object):
         window_r: Right boundary of the interval, relative to the timestamp.
         """
 
-        return Window(obj=lib.tvg_alloc_window_rect(self._obj, window_l, window_r))
+        window = self.Window(window_l, window_r)
+        return window.Rect(eps=eps)
 
-    def WindowDecay(self, window, beta=None, log_beta=None):
+    def WindowDecay(self, window, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential decay window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
@@ -1658,13 +1708,10 @@ class TVG(object):
         beta: Exponential decay constant.
         """
 
-        if np.isinf(window):
-            window = 0x7fffffffffffffff
-        if log_beta is None:
-            log_beta = math.log(beta)
-        return Window(obj=lib.tvg_alloc_window_decay(self._obj, window, log_beta))
+        window = self.Window(-window, 0)
+        return window.Decay(beta=beta, log_beta=log_beta, eps=eps)
 
-    def WindowSmooth(self, window, beta=None, log_beta=None):
+    def WindowSmooth(self, window, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential smoothing window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
@@ -1674,11 +1721,8 @@ class TVG(object):
         beta: Exponential decay constant.
         """
 
-        if np.isinf(window):
-            window = 0x7fffffffffffffff
-        if log_beta is None:
-            log_beta = math.log(beta)
-        return Window(obj=lib.tvg_alloc_window_smooth(self._obj, window, log_beta))
+        window = self.Window(-window, 0)
+        return window.Smooth(beta=beta, log_beta=log_beta, eps=eps)
 
     def lookup_ge(self, ts=0):
         """ Search for the first graph with timestamps `>= ts`. """
@@ -1703,20 +1747,14 @@ class TVG(object):
 
     def compress(self, step, offset=0):
         """ Compress the graph by aggregating timestamps differing by at most `step`. """
-        if np.isinf(step):
+        if step > 0 and np.isinf(step):
             step = 0
         res = lib.tvg_compress(self._obj, step, offset)
         if not res:
             raise MemoryError
 
 @libtvgobject
-class Window(object):
-    """
-    This object represents a sliding window, which can be used to extract and aggregate
-    data in a specific timeframe. Once the object has been created, most parameters can
-    not be changed anymore. Only the timestamp can be changed.
-    """
-
+class Metric(object):
     def __init__(self, obj=None):
         if obj is None:
             raise NotImplementedError
@@ -1725,94 +1763,51 @@ class Window(object):
         if not obj:
             raise MemoryError
 
+        self._window = Window(obj=lib.metric_get_window(self._obj))
+
     def __del__(self):
         if lib is None:
             return
         if self._obj:
-            lib.free_window(self._obj)
+            lib.free_metric(self._obj)
 
     def _get_obj(self):
-        lib.free_window(self._obj)
+        lib.free_metric(self._obj)
         return self
 
     @property
-    def eps(self):
-        """
-        Get/set the current value of epsilon. This is used to determine whether an
-        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
-        """
-        return self._obj.contents.eps
-
-    @eps.setter
-    def eps(self, value):
-        lib.window_set_eps(self._obj, value)
+    def window(self):
+        """ Get the associated window. """
+        return self._window
 
     @property
     def ts(self):
         """ Return the current timestamp of the window. """
-        return self._obj.contents.ts
+        return self._window.ts
 
     @property
     def width(self):
         """ Return the width of the window. """
-        return self._obj.contents.window_r - self._obj.contents.window_l
+        return self._window.width
 
-    def clear(self):
-        """"
-        Clear all additional data associated with the window, and force a full recompute
-        when the `update` function is used the next time.
-        """
+    @property
+    def result(self):
+        return None
 
-        lib.window_clear(self._obj)
+    def reset(self):
+        """ Clear all additional data associated with the metric. """
+        lib.metric_reset(self._obj)
 
     def update(self, ts):
-        """
-        Move the sliding window to a new timestamp. Whenever possible, the previous state
-        will be reused to speed up the computation. For rectangular windows, for example,
-        it is sufficient to add data points that are moved into the interval, and to remove
-        data points that are now outside of the interval. For exponential windows, it is
-        also necessary to perform a multiplication of the full graph.
+        """ Move the sliding window to a new timestamp. """
+        self._window.update(ts)
+        return self.result
 
-        # Arguments
-        ts: New timestamp of the window.
+    def sources(self):
+        """ Return all graphs of the current window. """
+        return self._window.sources()
 
-        # Returns
-        Graph object.
-        """
-
-        return Graph(obj=lib.window_update(self._obj, ts))
-
-    def sources(self, ret_graphs=True, ret_weights=True):
-        """
-        Return all graphs and/or weights of the current window.
-
-        # Arguments
-        ret_graphs: Return graphs, otherwise None.
-        ret_weights: Return weights, otherwise None.
-
-        # Returns
-        `(graphs, weights)`
-        """
-
-        num_sources = 100 # FIXME: Arbitrary limit.
-        while True:
-            max_sources = num_sources
-            graphs = (c_graph_p * max_sources)() if ret_graphs else None
-            weights = np.empty(shape=(max_sources,), dtype=np.float32, order='C') if ret_weights else None
-            num_sources = lib.window_get_sources(self._obj, graphs, weights, max_sources)
-            if num_sources <= max_sources:
-                break
-            for obj in graphs:
-                lib.free_graph(obj)
-            graphs = None
-
-        if graphs is not None:
-            graphs = [Graph(obj=obj) for obj in graphs[:num_sources]]
-        if weights is not None:
-            weights.resize((num_sources,), refcheck=False)
-
-        return graphs, weights
-
+class MetricGraph(Metric):
     def sample_eigenvectors(self, ts, sample_width, sample_steps=9, tolerance=None):
         """
         Iterative power iteration algorithm to track eigenvectors of a graph over time.
@@ -2068,6 +2063,146 @@ class Window(object):
             rank += 1.0
 
         return result
+
+class MetricRect(MetricGraph):
+    @property
+    def eps(self):
+        """ Get the current value of epsilon. """
+        return lib.metric_rect_get_eps(self._obj)
+
+    @property
+    def result(self):
+        """ Get the current graph based on the rectangle window. """
+        return Graph(obj=lib.metric_rect_get_result(self._obj))
+
+class MetricDecay(MetricGraph):
+    @property
+    def eps(self):
+        """ Get the current value of epsilon. """
+        return lib.metric_decay_get_eps(self._obj)
+
+    @property
+    def result(self):
+        """ Get the current graph based on the exponential decay window. """
+        return Graph(obj=lib.metric_decay_get_result(self._obj))
+
+class MetricSmooth(MetricGraph):
+    @property
+    def eps(self):
+        """ Get the current value of epsilon. """
+        return lib.metric_smooth_get_eps(self._obj)
+
+    @property
+    def result(self):
+        """ Get the current graph based on the exponential smoothing window. """
+        return Graph(obj=lib.metric_smooth_get_result(self._obj))
+
+@libtvgobject
+class Window(object):
+    """
+    This object represents a sliding window, which can be used to extract and aggregate
+    data in a specific timeframe. Once the object has been created, most parameters can
+    not be changed anymore. Only the timestamp can be changed.
+    """
+
+    def __init__(self, obj=None):
+        if obj is None:
+            raise NotImplementedError
+
+        self._obj = obj
+        if not obj:
+            raise MemoryError
+
+    def __del__(self):
+        if lib is None:
+            return
+        if self._obj:
+            lib.free_window(self._obj)
+
+    def _get_obj(self):
+        lib.free_window(self._obj)
+        return self
+
+    @property
+    def ts(self):
+        """ Return the current timestamp of the window. """
+        return self._obj.contents.ts
+
+    @property
+    def width(self):
+        """ Return the width of the window. """
+        return self._obj.contents.window_r - self._obj.contents.window_l
+
+    def Rect(self, eps=0.0):
+        """ Create a new rectangular filter metric. """
+        return MetricRect(obj=lib.window_alloc_metric_rect(self._obj, eps))
+
+    def Decay(self, beta=None, log_beta=None, eps=0.0):
+        """
+        Create a new exponential decay metric.
+
+        # Arguments
+        beta: Exponential decay constant.
+        """
+
+        if log_beta is None:
+            log_beta = math.log(beta)
+        return MetricDecay(obj=lib.window_alloc_metric_decay(self._obj, log_beta, eps))
+
+    def Smooth(self, beta=None, log_beta=None, eps=0.0):
+        """
+        Create a new exponential smoothing metric.
+
+        # Arguments
+        beta: Exponential decay constant.
+        """
+
+        if log_beta is None:
+            log_beta = math.log(beta)
+        return MetricSmooth(obj=lib.window_alloc_metric_smooth(self._obj, log_beta, eps))
+
+    def reset(self):
+        """"
+        Clear all additional data associated with the window, and force a full recompute
+        when the `update` function is used the next time.
+        """
+
+        lib.window_reset(self._obj)
+
+    def update(self, ts):
+        """
+        Move the sliding window to a new timestamp. Whenever possible, the previous state
+        will be reused to speed up the computation. For rectangular windows, for example,
+        it is sufficient to add data points that are moved into the interval, and to remove
+        data points that are now outside of the interval. For exponential windows, it is
+        also necessary to perform a multiplication of the full graph.
+
+        # Arguments
+        ts: New timestamp of the window.
+        """
+
+        res = lib.window_update(self._obj, ts)
+        if not res:
+            raise MemoryError
+
+    def sources(self):
+        """ Return all graphs of the current window. """
+
+        num_sources = 100 # FIXME: Arbitrary limit.
+        while True:
+            max_sources = num_sources
+            graphs = (c_graph_p * max_sources)()
+            num_sources = lib.window_get_sources(self._obj, graphs, max_sources)
+            if num_sources <= max_sources:
+                break
+            for obj in graphs:
+                lib.free_graph(obj)
+            graphs = None
+
+        if graphs is not None:
+            graphs = [Graph(obj=obj) for obj in graphs[:num_sources]]
+
+        return graphs
 
 @libtvgobject
 class MongoDB(object):
@@ -3248,7 +3383,7 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 2], 3.0)
 
             # Clearing the window should not modify the last output graph.
-            window.clear()
+            window.reset()
             g2 = window.update(100)
             self.assertEqual(window.ts, 100)
 
@@ -3509,24 +3644,11 @@ if __name__ == '__main__':
                 self.assertEqual(g[t, t], 1.0)
             self.assertEqual(g[50, 50], 0.0)
 
-            graphs, weights = window.sources()
-            self.assertEqual(len(graphs), 50)
-            self.assertEqual(len(weights), 50)
-            for t, (g, w) in enumerate(zip(graphs, weights)):
-                self.assertEqual(g.ts, t)
-                self.assertEqual(g[t, t], 1.0)
-                self.assertEqual(w, 1.0)
-
-            graphs, _ = window.sources(ret_weights=False)
+            graphs = window.sources()
             self.assertEqual(len(graphs), 50)
             for t, g in enumerate(graphs):
                 self.assertEqual(g.ts, t)
                 self.assertEqual(g[t, t], 1.0)
-
-            _, weights = window.sources(ret_graphs=False)
-            self.assertEqual(len(weights), 50)
-            for t, w in enumerate(weights):
-                self.assertEqual(w, 1.0)
 
             for t in range(50, 500):
                 g = tvg.Graph(t)
@@ -3537,13 +3659,11 @@ if __name__ == '__main__':
                 self.assertEqual(g[t, t], 1.0)
             self.assertEqual(g[500, 500], 0.0)
 
-            graphs, weights = window.sources()
+            graphs = window.sources()
             self.assertEqual(len(graphs), 500)
-            self.assertEqual(len(weights), 500)
-            for t, (g, w) in enumerate(zip(graphs, weights)):
+            for t, g in enumerate(graphs):
                 self.assertEqual(g.ts, t)
                 self.assertEqual(g[t, t], 1.0)
-                self.assertEqual(w, 1.0)
 
             del tvg
 
