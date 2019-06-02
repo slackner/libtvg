@@ -390,6 +390,12 @@ lib.metric_smooth_get_eps.restype = c_float
 lib.metric_smooth_get_result.argtypes = (c_metric_p,)
 lib.metric_smooth_get_result.restype = c_graph_p
 
+lib.window_alloc_metric_count_edges.argtypes = (c_window_p,)
+lib.window_alloc_metric_count_edges.restype = c_metric_p
+
+lib.metric_count_edges_get_result.argtypes = (c_metric_p,)
+lib.metric_count_edges_get_result.restype = c_graph_p
+
 lib.free_metric.argtypes = (c_metric_p,)
 
 lib.metric_reset.argtypes = (c_metric_p,)
@@ -1724,6 +1730,20 @@ class TVG(object):
         window = self.Window(-window, 0)
         return window.Smooth(beta=beta, log_beta=log_beta, eps=eps)
 
+    def WindowCountEdges(self, window_l, window_r):
+        """
+        Create a new rectangular filter window to count edges in a specific range
+        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+        considered.
+
+        # Arguments
+        window_l: Left boundary of the interval, relative to the timestamp.
+        window_r: Right boundary of the interval, relative to the timestamp.
+        """
+
+        window = self.Window(window_l, window_r)
+        return window.CountEdges()
+
     def lookup_ge(self, ts=0):
         """ Search for the first graph with timestamps `>= ts`. """
         if isinstance(ts, float):
@@ -2097,6 +2117,12 @@ class MetricSmooth(MetricGraph):
         """ Get the current graph based on the exponential smoothing window. """
         return Graph(obj=lib.metric_smooth_get_result(self._obj))
 
+class MetricCountEdges(MetricGraph):
+    @property
+    def result(self):
+        """ Get the current graph base on edge counts. """
+        return Graph(obj=lib.metric_count_edges_get_result(self._obj))
+
 @libtvgobject
 class Window(object):
     """
@@ -2160,6 +2186,10 @@ class Window(object):
         if log_beta is None:
             log_beta = math.log(beta)
         return MetricSmooth(obj=lib.window_alloc_metric_smooth(self._obj, log_beta, eps))
+
+    def CountEdges(self):
+        """ Create a new edge count metric. """
+        return MetricCountEdges(obj=lib.window_alloc_metric_count_edges(self._obj))
 
     def reset(self):
         """"
@@ -3452,6 +3482,58 @@ if __name__ == '__main__':
                 self.assertEqual(window.ts, t)
                 expected = beta * expected + (1.0 - beta) * s
                 self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
+            del window
+            del tvg
+
+        def test_count_edges(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = 1.0
+            g = tvg.Graph(200)
+            g[0, 1] = 2.0
+            g = tvg.Graph(300)
+            g[0, 2] = 3.0
+
+            with self.assertRaises(MemoryError):
+                tvg.WindowCountEdges(0, 0)
+            with self.assertRaises(MemoryError):
+                tvg.WindowCountEdges(1, 0)
+
+            window = tvg.WindowCountEdges(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            g = window.update(100)
+            self.assertEqual(window.ts, 100)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+
+            g = window.update(200)
+            self.assertEqual(window.ts, 200)
+            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 1], 1.0)
+            self.assertEqual(g[0, 2], 0.0)
+
+            g = window.update(300)
+            self.assertEqual(window.ts, 300)
+            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 1.0)
+
+            # Clearing the window should not modify the last output graph.
+            window.reset()
+            g2 = window.update(100)
+            self.assertEqual(window.ts, 100)
+
+            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 1.0)
+
+            self.assertEqual(g2[0, 0], 1.0)
+            self.assertEqual(g2[0, 1], 0.0)
+            self.assertEqual(g2[0, 2], 0.0)
+
             del window
             del tvg
 

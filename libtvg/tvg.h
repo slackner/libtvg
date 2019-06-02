@@ -213,6 +213,12 @@ struct metric_smooth
     float       eps;
 };
 
+struct metric_count_edges
+{
+    struct metric metric;
+    struct graph *result;
+};
+
 struct window
 {
     uint64_t    refcount;
@@ -1468,6 +1474,9 @@ struct graph *metric_decay_get_result(struct metric *metric);
 struct metric *window_alloc_metric_smooth(struct window *window, float log_beta, float eps);
 float metric_smooth_get_eps(struct metric *metric);
 struct graph *metric_smooth_get_result(struct metric *metric);
+
+struct metric *window_alloc_metric_count_edges(struct window *window);
+struct graph *metric_count_get_result_edges(struct metric *metric);
 
 struct metric *grab_metric(struct metric *metric);
 void free_metric(struct metric *metric);

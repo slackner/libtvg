@@ -13,6 +13,23 @@ static inline double sub_uint64(uint64_t a, uint64_t b)
     return (a < b) ? -(double)(b - a) : (double)(a - b);
 }
 
+static int graph_add_count_edges(struct graph *out, struct graph *graph, float weight)
+{
+    struct entry2 *edge;
+
+    if ((out->flags ^ graph->flags) & TVG_FLAGS_DIRECTED)
+        return 0;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!graph_add_edge(out, edge->source, edge->target, weight))
+            return 0;
+    }
+
+    /* graph_add_edge already updated the revision */
+    return 1;
+}
+
 /* metric_rect functions */
 
 const struct metric_ops metric_rect_ops;
@@ -397,6 +414,117 @@ float metric_smooth_get_eps(struct metric *metric)
 struct graph *metric_smooth_get_result(struct metric *metric)
 {
     return grab_graph(METRIC_SMOOTH(metric)->result);
+}
+
+/* metric_count_edges functions */
+
+const struct metric_ops metric_count_edges_ops;
+
+static inline struct metric_count_edges *METRIC_COUNT_EDGES(struct metric *metric)
+{
+    assert(metric->ops == &metric_count_edges_ops);
+    return CONTAINING_RECORD(metric, struct metric_count_edges, metric);
+}
+
+static int metric_count_edges_init(struct metric *metric)
+{
+    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
+    struct tvg *tvg = metric->window->tvg;
+    uint32_t graph_flags;
+
+    if (metric_count_edges->result)
+        return 1;
+
+    /* Enforce TVG_FLAGS_POSITIVE and TVG_FLAGS_NONZERO, our update mechanism relies on it. */
+    graph_flags = tvg->flags & TVG_FLAGS_DIRECTED;
+    graph_flags |= TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
+
+    if (!(metric_count_edges->result = alloc_graph(graph_flags)))
+        return 0;
+
+    graph_set_eps(metric_count_edges->result, 0.5);
+    return 1;
+}
+
+static void metric_count_edges_free(struct metric *metric)
+{
+    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
+    free_graph(metric_count_edges->result);
+    metric_count_edges->result = NULL;
+}
+
+static int metric_count_edges_valid(struct metric *metric)
+{
+    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
+    return (metric_count_edges->result != NULL);
+}
+
+static int metric_count_edges_clear(struct metric *metric)
+{
+    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
+
+    if (metric_count_edges->result && graph_empty(metric_count_edges->result))
+        return 1;
+
+    metric_count_edges_free(metric);
+    return metric_count_edges_init(metric);
+}
+
+static int metric_count_edges_add(struct metric *metric, struct graph *graph)
+{
+    return graph_add_count_edges(METRIC_COUNT_EDGES(metric)->result, graph, 1.0);
+}
+
+static int metric_count_edges_sub(struct metric *metric, struct graph *graph)
+{
+    return graph_add_count_edges(METRIC_COUNT_EDGES(metric)->result, graph, -1.0);
+}
+
+static int metric_count_edges_move(struct metric *metric, uint64_t ts)
+{
+    /* nothing to do */
+    return 1;
+}
+
+const struct metric_ops metric_count_edges_ops =
+{
+    metric_count_edges_init,
+    metric_count_edges_free,
+    metric_count_edges_valid,
+    metric_count_edges_clear,
+    metric_count_edges_add,
+    metric_count_edges_sub,
+    metric_count_edges_move,
+};
+
+struct metric *window_alloc_metric_count_edges(struct window *window)
+{
+    struct metric_count_edges *metric_count_edges;
+    struct metric *metric;
+
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+    {
+        if (metric->ops == &metric_count_edges_ops)
+            return grab_metric(metric);
+    }
+
+    if (!(metric_count_edges = malloc(sizeof(*metric_count_edges))))
+        return NULL;
+
+    metric = &metric_count_edges->metric;
+    metric->refcount = 1;
+    metric->window   = grab_window(window);
+    metric->ops      = &metric_count_edges_ops;
+
+    metric_count_edges->result = NULL;
+
+    list_add_tail(&window->metrics, &metric->entry);
+    return metric;
+}
+
+struct graph *metric_count_edges_get_result(struct metric *metric)
+{
+    return grab_graph(METRIC_COUNT_EDGES(metric)->result);
 }
 
 /* generic functions */
