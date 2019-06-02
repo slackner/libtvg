@@ -3620,6 +3620,64 @@ if __name__ == '__main__':
             del window
             del tvg
 
+        def test_multi(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 0] = 1.0
+            g = tvg.Graph(200)
+            g[0, 1] = 2.0
+            g[1, 2] = 2.0
+            g = tvg.Graph(300)
+            g[0, 2] = 3.0
+
+            window = tvg.Window(-50, 50)
+            self.assertEqual(window.width, 100)
+            metric_edges = window.CountEdges()
+            metric_nodes = window.CountNodes()
+
+            window.update(100)
+            self.assertEqual(window.ts, 100)
+
+            g = metric_edges.result
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+
+            v = metric_nodes.result
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 0.0)
+
+            window.update(200)
+            self.assertEqual(window.ts, 200)
+
+            g = metric_edges.result
+            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 1], 1.0)
+            self.assertEqual(g[0, 2], 0.0)
+
+            v = metric_nodes.result
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 1.0)
+
+            window.update(300)
+            self.assertEqual(window.ts, 300)
+
+            g = metric_edges.result
+            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 1.0)
+
+            v = metric_nodes.result
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 1.0)
+
+            del window
+            del tvg
+
         def test_sample_eigenvectors(self):
             tvg = TVG(positive=True)
 
