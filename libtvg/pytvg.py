@@ -2016,9 +2016,13 @@ class Window(object):
         A[:, 0] = 1.0
         A[:, 1] = range(A.shape[0])
 
+        kwargs = {}
+        if np.lib.NumpyVersion(np.__version__) >= '1.14.0':
+            kwargs['rcond'] = None
+
         result = {}
         for i in values.keys():
-            result[i] = np.linalg.lstsq(A, values[i], rcond=None)[0][1]
+            result[i] = np.linalg.lstsq(A, values[i], **kwargs)[0][1]
 
         return result
 
