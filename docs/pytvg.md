@@ -14,6 +14,9 @@ Structure/Union member
 ### lo
 Structure/Union member
 
+### type
+Structure/Union member
+
 ## c_vector
 ```python
 c_vector(*args, **kwargs)
@@ -144,9 +147,6 @@ Structure/Union member
 Structure/Union member
 
 ### uri
-Structure/Union member
-
-### use_objectids
 Structure/Union member
 
 ### use_pool
@@ -1019,15 +1019,32 @@ __Returns__
 Graph object.
 
 
-### sample_power_iteration
+### sources
 ```python
-Window.sample_power_iteration(ts, sample_width, sample_steps=9, tolerance=None)
+Window.sources(ret_graphs=True, ret_weights=True)
+```
+
+Return all graphs and/or weights of the current window.
+
+__Arguments__
+
+- __ret_graphs__: Return graphs, otherwise None.
+- __ret_weights__: Return weights, otherwise None.
+
+__Returns__
+
+`(graphs, weights)`
+
+
+### sample_eigenvectors
+```python
+Window.sample_eigenvectors(ts, sample_width, sample_steps=9, tolerance=None)
 ```
 
 Iterative power iteration algorithm to track eigenvectors of a graph over time.
-Collection of eigenvectors starts at t = (ts - sample_width / 2) and continues
-up to t = (ts + sample_width / 2). Each entry of the returned dictionary contains
-sample_steps values collected at equidistant time steps.
+Collection of eigenvectors starts at t = (ts - sample_width) and continues up
+to t = ts. Each entry of the returned dictionary contains sample_steps values
+collected at equidistant time steps.
 
 __Arguments__
 
@@ -1046,9 +1063,9 @@ Dictionary containing lists of collected values for each node.
 Window.sample_edges(ts, sample_width, sample_steps=9)
 ```
 
-Collect edges starting at t = (ts - sample_width / 2) and continue up to
-t = (ts + sample_width / 2). Each entry of the returned dictionary contains
-sample_steps value collected at equidistant time steps.
+Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
+Each entry of the returned dictionary contains sample_steps value collected
+at equidistant time steps.
 
 __Arguments__
 
@@ -1183,11 +1200,11 @@ MongoDB(uri,
         entity_sen,
         entity_ent,
         use_pool=True,
-        use_objectids=False,
         load_nodes=False,
         max_distance=5,
         filter_key=None,
         filter_value=None,
+        use_objectids=None,
         obj=None)
 ```
 
@@ -1211,7 +1228,6 @@ entity_sen: Name of the entity sen key.
 entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
 use_pool: Use a connection pool to access MongoDB.
-use_objectids: Use MongoDB ObjectIDs to identify articles.
 load_nodes: Load node attributes.
 
 max_distance: Maximum distance of mentions.
