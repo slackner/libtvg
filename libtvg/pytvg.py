@@ -1813,7 +1813,7 @@ class Window(object):
 
         return graphs, weights
 
-    def sample_power_iteration(self, ts, sample_width, sample_steps=9, tolerance=None):
+    def sample_eigenvectors(self, ts, sample_width, sample_steps=9, tolerance=None):
         """
         Iterative power iteration algorithm to track eigenvectors of a graph over time.
         Collection of eigenvectors starts at t = (ts - sample_width) and continues up
@@ -1894,7 +1894,7 @@ class Window(object):
         Dictionary containing the metric for each node.
         """
 
-        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
 
         data = []
         for i in values.keys():
@@ -1931,7 +1931,7 @@ class Window(object):
         Dictionary containing the metric for each node.
         """
 
-        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
 
         result = collections.defaultdict(float)
         for j in range(sample_steps):
@@ -1969,7 +1969,7 @@ class Window(object):
         Dictionary containing the metric for each node.
         """
 
-        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
 
         data_x = []
         data_y = []
@@ -2010,7 +2010,7 @@ class Window(object):
         Dictionary containing the metric for each node.
         """
 
-        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
 
         A = np.zeros((sample_steps, 2))
         A[:, 0] = 1.0
@@ -2040,7 +2040,7 @@ class Window(object):
         Dictionary containing the metric for each node.
         """
 
-        values = self.sample_power_iteration(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
+        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
 
         nodes = []
         costs = []
@@ -3380,7 +3380,7 @@ if __name__ == '__main__':
                 self.assertEqual(len(index_to_weight), 0)
                 ts += 50000
 
-        def test_sample_power_iteration(self):
+        def test_sample_eigenvectors(self):
             tvg = TVG(positive=True)
 
             g = tvg.Graph(100)
@@ -3393,7 +3393,7 @@ if __name__ == '__main__':
             window = tvg.WindowRect(-50, 50)
             self.assertEqual(window.width, 100)
 
-            values = window.sample_power_iteration(300, sample_width=200, sample_steps=3)
+            values = window.sample_eigenvectors(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
