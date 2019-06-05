@@ -372,14 +372,14 @@ lib.metric_sum_edges_get_eps.restype = c_float
 lib.metric_sum_edges_get_result.argtypes = (c_metric_p,)
 lib.metric_sum_edges_get_result.restype = c_graph_p
 
-lib.window_alloc_metric_decay.argtypes = (c_window_p, c_float, c_float)
-lib.window_alloc_metric_decay.restype = c_metric_p
+lib.window_alloc_metric_sum_edges_exp.argtypes = (c_window_p, c_float, c_float)
+lib.window_alloc_metric_sum_edges_exp.restype = c_metric_p
 
-lib.metric_decay_get_eps.argtypes = (c_metric_p,)
-lib.metric_decay_get_eps.restype = c_float
+lib.metric_sum_edges_exp_get_eps.argtypes = (c_metric_p,)
+lib.metric_sum_edges_exp_get_eps.restype = c_float
 
-lib.metric_decay_get_result.argtypes = (c_metric_p,)
-lib.metric_decay_get_result.restype = c_graph_p
+lib.metric_sum_edges_exp_get_result.argtypes = (c_metric_p,)
+lib.metric_sum_edges_exp_get_result.restype = c_graph_p
 
 lib.window_alloc_metric_smooth.argtypes = (c_window_p, c_float, c_float)
 lib.window_alloc_metric_smooth.restype = c_metric_p
@@ -1710,7 +1710,7 @@ class TVG(object):
         window = self.Window(window_l, window_r)
         return window.SumEdges(eps=eps)
 
-    def WindowDecay(self, window, beta=None, log_beta=None, eps=0.0):
+    def WindowSumEdgesExp(self, window, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential decay window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
@@ -1721,7 +1721,7 @@ class TVG(object):
         """
 
         window = self.Window(-window, 0)
-        return window.Decay(beta=beta, log_beta=log_beta, eps=eps)
+        return window.SumEdgesExp(beta=beta, log_beta=log_beta, eps=eps)
 
     def WindowSmooth(self, window, beta=None, log_beta=None, eps=0.0):
         """
@@ -2115,16 +2115,16 @@ class MetricSumEdges(MetricGraph):
         """ Get the current graph based on the rectangle window. """
         return Graph(obj=lib.metric_sum_edges_get_result(self._obj))
 
-class MetricDecay(MetricGraph):
+class MetricSumEdgesExp(MetricGraph):
     @property
     def eps(self):
         """ Get the current value of epsilon. """
-        return lib.metric_decay_get_eps(self._obj)
+        return lib.metric_sum_edges_exp_get_eps(self._obj)
 
     @property
     def result(self):
         """ Get the current graph based on the exponential decay window. """
-        return Graph(obj=lib.metric_decay_get_result(self._obj))
+        return Graph(obj=lib.metric_sum_edges_exp_get_result(self._obj))
 
 class MetricSmooth(MetricGraph):
     @property
@@ -2189,7 +2189,7 @@ class Window(object):
         """ Create a new rectangular filter metric. """
         return MetricSumEdges(obj=lib.window_alloc_metric_sum_edges(self._obj, eps))
 
-    def Decay(self, beta=None, log_beta=None, eps=0.0):
+    def SumEdgesExp(self, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential decay metric.
 
@@ -2199,7 +2199,7 @@ class Window(object):
 
         if log_beta is None:
             log_beta = math.log(beta)
-        return MetricDecay(obj=lib.window_alloc_metric_decay(self._obj, log_beta, eps))
+        return MetricSumEdgesExp(obj=lib.window_alloc_metric_sum_edges_exp(self._obj, log_beta, eps))
 
     def Smooth(self, beta=None, log_beta=None, eps=0.0):
         """
@@ -3458,7 +3458,7 @@ if __name__ == '__main__':
             del window
             del tvg
 
-        def test_decay_precision(self):
+        def test_sum_edges_exp_precision(self):
             tvg = TVG(positive=True)
             beta = 0.3
 
@@ -3466,11 +3466,11 @@ if __name__ == '__main__':
             g[0, 0] = 1.0
 
             with self.assertRaises(MemoryError):
-                tvg.WindowDecay(0, beta)
+                tvg.WindowSumEdgesExp(0, beta)
             with self.assertRaises(MemoryError):
-                tvg.WindowDecay(-1, beta)
+                tvg.WindowSumEdgesExp(-1, beta)
 
-            window = tvg.WindowDecay(np.inf, beta)
+            window = tvg.WindowSumEdgesExp(np.inf, beta)
 
             g = window.update(100)
             self.assertTrue(abs(g[0, 0] - math.pow(beta, 100.0)) < 1e-7)

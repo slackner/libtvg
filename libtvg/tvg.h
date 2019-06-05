@@ -196,7 +196,7 @@ struct metric_sum_edges
     float       eps;
 };
 
-struct metric_decay
+struct metric_sum_edges_exp
 {
     struct metric metric;
     struct graph *result;
@@ -1473,9 +1473,9 @@ struct metric *window_alloc_metric_sum_edges(struct window *window, float eps);
 float metric_sum_edges_get_eps(struct metric *metric);
 struct graph *metric_sum_edges_get_result(struct metric *metric);
 
-struct metric *window_alloc_metric_decay(struct window *window, float log_beta, float eps);
-float metric_decay_get_eps(struct metric *metric);
-struct graph *metric_decay_get_result(struct metric *metric);
+struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float log_beta, float eps);
+float metric_sum_edges_exp_get_eps(struct metric *metric);
+struct graph *metric_sum_edges_exp_get_result(struct metric *metric);
 
 struct metric *window_alloc_metric_smooth(struct window *window, float log_beta, float eps);
 float metric_smooth_get_eps(struct metric *metric);

@@ -183,78 +183,78 @@ struct graph *metric_sum_edges_get_result(struct metric *metric)
     return grab_graph(METRIC_SUM_EDGES(metric)->result);
 }
 
-/* metric_decay functions */
+/* metric_sum_edges_exp functions */
 
-const struct metric_ops metric_decay_ops;
+const struct metric_ops metric_sum_edges_exp_ops;
 
-static inline struct metric_decay *METRIC_DECAY(struct metric *metric)
+static inline struct metric_sum_edges_exp *METRIC_SUM_EDGES_EXP(struct metric *metric)
 {
-    assert(metric->ops == &metric_decay_ops);
-    return CONTAINING_RECORD(metric, struct metric_decay, metric);
+    assert(metric->ops == &metric_sum_edges_exp_ops);
+    return CONTAINING_RECORD(metric, struct metric_sum_edges_exp, metric);
 }
 
-static int metric_decay_init(struct metric *metric)
+static int metric_sum_edges_exp_init(struct metric *metric)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
     struct tvg *tvg = metric->window->tvg;
     uint32_t graph_flags;
 
-    if (metric_decay->result)
+    if (metric_sum_edges_exp->result)
         return 1;
 
     /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
     graph_flags |= TVG_FLAGS_NONZERO;
 
-    if (!(metric_decay->result = alloc_graph(graph_flags)))
+    if (!(metric_sum_edges_exp->result = alloc_graph(graph_flags)))
         return 0;
 
-    graph_set_eps(metric_decay->result, metric_decay->eps);
+    graph_set_eps(metric_sum_edges_exp->result, metric_sum_edges_exp->eps);
     return 1;
 }
 
-static void metric_decay_free(struct metric *metric)
+static void metric_sum_edges_exp_free(struct metric *metric)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
-    free_graph(metric_decay->result);
-    metric_decay->result = NULL;
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+    free_graph(metric_sum_edges_exp->result);
+    metric_sum_edges_exp->result = NULL;
 }
 
-static int metric_decay_valid(struct metric *metric)
+static int metric_sum_edges_exp_valid(struct metric *metric)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
-    return (metric_decay->result != NULL);
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+    return (metric_sum_edges_exp->result != NULL);
 }
 
-static int metric_decay_clear(struct metric *metric)
+static int metric_sum_edges_exp_clear(struct metric *metric)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
 
-    if (metric_decay->result && graph_empty(metric_decay->result))
+    if (metric_sum_edges_exp->result && graph_empty(metric_sum_edges_exp->result))
         return 1;
 
-    metric_decay_free(metric);
-    return metric_decay_init(metric);
+    metric_sum_edges_exp_free(metric);
+    return metric_sum_edges_exp_init(metric);
 }
 
-static int metric_decay_add(struct metric *metric, struct graph *graph)
+static int metric_sum_edges_exp_add(struct metric *metric, struct graph *graph)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
-    float weight = (float)exp(metric_decay->log_beta * sub_uint64(metric->window->ts, graph->ts));
-    return graph_add_graph(metric_decay->result, graph, weight);
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+    float weight = (float)exp(metric_sum_edges_exp->log_beta * sub_uint64(metric->window->ts, graph->ts));
+    return graph_add_graph(metric_sum_edges_exp->result, graph, weight);
 }
 
-static int metric_decay_sub(struct metric *metric, struct graph *graph)
+static int metric_sum_edges_exp_sub(struct metric *metric, struct graph *graph)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
-    float weight = (float)exp(metric_decay->log_beta * sub_uint64(metric->window->ts, graph->ts));
-    return graph_sub_graph(metric_decay->result, graph, weight);
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+    float weight = (float)exp(metric_sum_edges_exp->log_beta * sub_uint64(metric->window->ts, graph->ts));
+    return graph_sub_graph(metric_sum_edges_exp->result, graph, weight);
 }
 
-static int metric_decay_move(struct metric *metric, uint64_t ts)
+static int metric_sum_edges_exp_move(struct metric *metric, uint64_t ts)
 {
-    struct metric_decay *metric_decay = METRIC_DECAY(metric);
-    float weight = (float)exp(metric_decay->log_beta * sub_uint64(ts, metric->window->ts));
+    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+    float weight = (float)exp(metric_sum_edges_exp->log_beta * sub_uint64(ts, metric->window->ts));
 
     /* If ts << window->ts the update formula is not numerically stable:
      * \delta w_new ~ \delta w_old * pow(window->beta, ts - window->ts).
@@ -263,58 +263,58 @@ static int metric_decay_move(struct metric *metric, uint64_t ts)
     if (weight >= 1000.0)  /* FIXME: Arbitrary limit. */
         return 0;
 
-    graph_mul_const(metric_decay->result, weight);
+    graph_mul_const(metric_sum_edges_exp->result, weight);
     return 1;
 }
 
-const struct metric_ops metric_decay_ops =
+const struct metric_ops metric_sum_edges_exp_ops =
 {
-    metric_decay_init,
-    metric_decay_free,
-    metric_decay_valid,
-    metric_decay_clear,
-    metric_decay_add,
-    metric_decay_sub,
-    metric_decay_move,
+    metric_sum_edges_exp_init,
+    metric_sum_edges_exp_free,
+    metric_sum_edges_exp_valid,
+    metric_sum_edges_exp_clear,
+    metric_sum_edges_exp_add,
+    metric_sum_edges_exp_sub,
+    metric_sum_edges_exp_move,
 };
 
-struct metric *window_alloc_metric_decay(struct window *window, float log_beta, float eps)
+struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float log_beta, float eps)
 {
-    struct metric_decay *metric_decay;
+    struct metric_sum_edges_exp *metric_sum_edges_exp;
     struct metric *metric;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        if (metric->ops != &metric_decay_ops) continue;
-        metric_decay = METRIC_DECAY(metric);
-        if (metric_decay->log_beta == log_beta && metric_decay->eps == eps)
+        if (metric->ops != &metric_sum_edges_exp_ops) continue;
+        metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
+        if (metric_sum_edges_exp->log_beta == log_beta && metric_sum_edges_exp->eps == eps)
             return grab_metric(metric);
     }
 
-    if (!(metric_decay = malloc(sizeof(*metric_decay))))
+    if (!(metric_sum_edges_exp = malloc(sizeof(*metric_sum_edges_exp))))
         return NULL;
 
-    metric = &metric_decay->metric;
+    metric = &metric_sum_edges_exp->metric;
     metric->refcount = 1;
     metric->window   = grab_window(window);
-    metric->ops      = &metric_decay_ops;
+    metric->ops      = &metric_sum_edges_exp_ops;
 
-    metric_decay->result    = NULL;
-    metric_decay->log_beta  = log_beta;
-    metric_decay->eps       = eps;
+    metric_sum_edges_exp->result    = NULL;
+    metric_sum_edges_exp->log_beta  = log_beta;
+    metric_sum_edges_exp->eps       = eps;
 
     list_add_tail(&window->metrics, &metric->entry);
     return metric;
 }
 
-float metric_decay_get_eps(struct metric *metric)
+float metric_sum_edges_exp_get_eps(struct metric *metric)
 {
-    return METRIC_DECAY(metric)->eps;
+    return METRIC_SUM_EDGES_EXP(metric)->eps;
 }
 
-struct graph *metric_decay_get_result(struct metric *metric)
+struct graph *metric_sum_edges_exp_get_result(struct metric *metric)
 {
-    return grab_graph(METRIC_DECAY(metric)->result);
+    return grab_graph(METRIC_SUM_EDGES_EXP(metric)->result);
 }
 
 /* metric_smooth functions */

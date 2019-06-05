@@ -145,8 +145,8 @@ class Client(WebSocket):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
 
-        self.window = dataset_tvg.WindowDecay(self.context['windowWidth'], log_beta=np.log(0.93) / 1000.0)
-        self.window.eps = 1e-6
+        self.window = dataset_tvg.WindowSumEdgesExp(self.context['windowWidth'],
+                                                    log_beta=np.log(0.93) / 1000.0, eps=1e-6)
         self.ts = None
 
         # Set timeline min/max. The client can then seek to any position.

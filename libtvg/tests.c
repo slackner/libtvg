@@ -681,7 +681,7 @@ static void test_window_sum_edges(void)
     free_tvg(tvg);
 }
 
-static void test_window_decay(void)
+static void test_window_sum_edges_exp(void)
 {
     static float beta = 0.9930924954370359;
     struct window *window;
@@ -712,14 +712,14 @@ static void test_window_decay(void)
 
     window = tvg_alloc_window(tvg, -1000, 0);
     assert(window != NULL);
-    metric = window_alloc_metric_decay(window, log(beta), 0.0);
+    metric = window_alloc_metric_sum_edges_exp(window, log(beta), 0.0);
     assert(metric != NULL);
 
     for (ts = 0; ts <= 600; ts += 50)
     {
         ret = window_update(window, ts);
         assert(ret);
-        graph = metric_decay_get_result(metric);
+        graph = metric_sum_edges_exp_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 200) assert(!graph_has_edge(graph, 0, 0));
@@ -742,7 +742,7 @@ static void test_window_decay(void)
         ts = random_uint64() % 700;
         ret = window_update(window, ts);
         assert(ret);
-        graph = metric_decay_get_result(metric);
+        graph = metric_sum_edges_exp_get_result(metric);
         assert(graph != NULL);
 
         if (ts < 200)
@@ -1173,7 +1173,7 @@ int main(void)
     test_vector_optimize();
     test_extract();
     test_window_sum_edges();
-    test_window_decay();
+    test_window_sum_edges_exp();
     test_graph_mul_vector();
     test_graph_vector_for_each_entry();
     test_power_iteration();
