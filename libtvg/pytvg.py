@@ -375,6 +375,12 @@ lib.metric_sum_edges_get_result.restype = c_graph_p
 lib.window_alloc_metric_sum_edges_exp.argtypes = (c_window_p, c_float, c_float, c_float)
 lib.window_alloc_metric_sum_edges_exp.restype = c_metric_p
 
+lib.metric_sum_edges_exp_get_weight.argtypes = (c_metric_p,)
+lib.metric_sum_edges_exp_get_weight.restype = c_float
+
+lib.metric_sum_edges_exp_get_log_beta.argtypes = (c_metric_p,)
+lib.metric_sum_edges_exp_get_log_beta.restype = c_float
+
 lib.metric_sum_edges_exp_get_eps.argtypes = (c_metric_p,)
 lib.metric_sum_edges_exp_get_eps.restype = c_float
 
@@ -2098,7 +2104,7 @@ class MetricGraph(Metric):
 class MetricSumEdges(MetricGraph):
     @property
     def eps(self):
-        """ Get the current value of epsilon. """
+        """ Get the epsilon parameter. """
         return lib.metric_sum_edges_get_eps(self._obj)
 
     @property
@@ -2108,8 +2114,18 @@ class MetricSumEdges(MetricGraph):
 
 class MetricSumEdgesExp(MetricGraph):
     @property
+    def weight(self):
+        """ Get the weight parameter. """
+        return lib.metric_sum_edges_exp_get_weight(self._obj)
+
+    @property
+    def log_beta(self):
+        """ Get the log_beta parameter. """
+        return lib.metric_sum_edges_exp_get_log_beta(self._obj)
+
+    @property
     def eps(self):
-        """ Get the current value of epsilon. """
+        """ Get the epsilon parameter. """
         return lib.metric_sum_edges_exp_get_eps(self._obj)
 
     @property
@@ -3401,8 +3417,9 @@ if __name__ == '__main__':
             with self.assertRaises(MemoryError):
                 tvg.WindowSumEdges(1, 0)
 
-            window = tvg.WindowSumEdges(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50, eps=0.5)
             self.assertEqual(window.width, 100)
+            self.assertEqual(window.eps, 0.5)
 
             g = window.update(100)
             self.assertEqual(window.ts, 100)
@@ -3451,6 +3468,9 @@ if __name__ == '__main__':
                 tvg.WindowSumEdgesExp(-1, beta)
 
             window = tvg.WindowSumEdgesExp(np.inf, beta)
+            self.assertEqual(window.weight, 1.0)
+            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
+            self.assertEqual(window.eps, 0.0)
 
             g = window.update(100)
             self.assertTrue(abs(g[0, 0] - math.pow(beta, 100.0)) < 1e-7)
@@ -3477,6 +3497,10 @@ if __name__ == '__main__':
                 tvg.WindowSumEdgesExpNorm(-1, beta)
 
             window = tvg.WindowSumEdgesExpNorm(np.inf, beta)
+            self.assertTrue(abs(window.weight + np.expm1(np.log(beta))) < 1e-7)
+            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
+            self.assertEqual(window.eps, 0.0)
+
             expected = 0.0
             for t, s in enumerate(source):
                 g = window.update(t)
@@ -3486,6 +3510,10 @@ if __name__ == '__main__':
             del window
 
             window = tvg.WindowSumEdgesExpNorm(np.inf, log_beta=math.log(beta))
+            self.assertTrue(abs(window.weight + np.expm1(np.log(beta))) < 1e-7)
+            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
+            self.assertEqual(window.eps, 0.0)
+
             expected = 0.0
             for t, s in enumerate(source):
                 g = window.update(t)

@@ -1466,6 +1466,8 @@ float metric_sum_edges_get_eps(struct metric *metric);
 struct graph *metric_sum_edges_get_result(struct metric *metric);
 
 struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float weight, float log_beta, float eps);
+float metric_sum_edges_exp_get_weight(struct metric *metric);
+float metric_sum_edges_exp_get_log_beta(struct metric *metric);
 float metric_sum_edges_exp_get_eps(struct metric *metric);
 struct graph *metric_sum_edges_exp_get_result(struct metric *metric);
 

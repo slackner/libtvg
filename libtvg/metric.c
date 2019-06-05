@@ -314,6 +314,16 @@ struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float we
     return metric;
 }
 
+float metric_sum_edges_exp_get_weight(struct metric *metric)
+{
+    return METRIC_SUM_EDGES_EXP(metric)->weight;
+}
+
+float metric_sum_edges_exp_get_log_beta(struct metric *metric)
+{
+    return METRIC_SUM_EDGES_EXP(metric)->log_beta;
+}
+
 float metric_sum_edges_exp_get_eps(struct metric *metric)
 {
     return METRIC_SUM_EDGES_EXP(metric)->eps;
