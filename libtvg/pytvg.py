@@ -372,7 +372,7 @@ lib.metric_sum_edges_get_eps.restype = c_float
 lib.metric_sum_edges_get_result.argtypes = (c_metric_p,)
 lib.metric_sum_edges_get_result.restype = c_graph_p
 
-lib.window_alloc_metric_sum_edges_exp.argtypes = (c_window_p, c_float, c_float)
+lib.window_alloc_metric_sum_edges_exp.argtypes = (c_window_p, c_float, c_float, c_float)
 lib.window_alloc_metric_sum_edges_exp.restype = c_metric_p
 
 lib.metric_sum_edges_exp_get_eps.argtypes = (c_metric_p,)
@@ -380,15 +380,6 @@ lib.metric_sum_edges_exp_get_eps.restype = c_float
 
 lib.metric_sum_edges_exp_get_result.argtypes = (c_metric_p,)
 lib.metric_sum_edges_exp_get_result.restype = c_graph_p
-
-lib.window_alloc_metric_smooth.argtypes = (c_window_p, c_float, c_float)
-lib.window_alloc_metric_smooth.restype = c_metric_p
-
-lib.metric_smooth_get_eps.argtypes = (c_metric_p,)
-lib.metric_smooth_get_eps.restype = c_float
-
-lib.metric_smooth_get_result.argtypes = (c_metric_p,)
-lib.metric_smooth_get_result.restype = c_graph_p
 
 lib.window_alloc_metric_count_edges.argtypes = (c_window_p,)
 lib.window_alloc_metric_count_edges.restype = c_metric_p
@@ -1723,7 +1714,7 @@ class TVG(object):
         window = self.Window(-window, 0)
         return window.SumEdgesExp(beta=beta, log_beta=log_beta, eps=eps)
 
-    def WindowSmooth(self, window, beta=None, log_beta=None, eps=0.0):
+    def WindowSumEdgesExpNorm(self, window, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential smoothing window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts - window, window] are considered.
@@ -1734,7 +1725,7 @@ class TVG(object):
         """
 
         window = self.Window(-window, 0)
-        return window.Smooth(beta=beta, log_beta=log_beta, eps=eps)
+        return window.SumEdgesExpNorm(beta=beta, log_beta=log_beta, eps=eps)
 
     def WindowCountEdges(self, window_l, window_r):
         """
@@ -2126,17 +2117,6 @@ class MetricSumEdgesExp(MetricGraph):
         """ Get the current graph based on the exponential decay window. """
         return Graph(obj=lib.metric_sum_edges_exp_get_result(self._obj))
 
-class MetricSmooth(MetricGraph):
-    @property
-    def eps(self):
-        """ Get the current value of epsilon. """
-        return lib.metric_smooth_get_eps(self._obj)
-
-    @property
-    def result(self):
-        """ Get the current graph based on the exponential smoothing window. """
-        return Graph(obj=lib.metric_smooth_get_result(self._obj))
-
 class MetricCountEdges(MetricGraph):
     @property
     def result(self):
@@ -2189,7 +2169,7 @@ class Window(object):
         """ Create a new rectangular filter metric. """
         return MetricSumEdges(obj=lib.window_alloc_metric_sum_edges(self._obj, eps))
 
-    def SumEdgesExp(self, beta=None, log_beta=None, eps=0.0):
+    def SumEdgesExp(self, weight=1.0, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential decay metric.
 
@@ -2199,9 +2179,9 @@ class Window(object):
 
         if log_beta is None:
             log_beta = math.log(beta)
-        return MetricSumEdgesExp(obj=lib.window_alloc_metric_sum_edges_exp(self._obj, log_beta, eps))
+        return MetricSumEdgesExp(obj=lib.window_alloc_metric_sum_edges_exp(self._obj, weight, log_beta, eps))
 
-    def Smooth(self, beta=None, log_beta=None, eps=0.0):
+    def SumEdgesExpNorm(self, beta=None, log_beta=None, eps=0.0):
         """
         Create a new exponential smoothing metric.
 
@@ -2211,7 +2191,7 @@ class Window(object):
 
         if log_beta is None:
             log_beta = math.log(beta)
-        return MetricSmooth(obj=lib.window_alloc_metric_smooth(self._obj, log_beta, eps))
+        return self.SumEdgesExp(weight=-np.expm1(log_beta), log_beta=log_beta, eps=eps)
 
     def CountEdges(self):
         """ Create a new edge count metric. """
@@ -3481,7 +3461,7 @@ if __name__ == '__main__':
             del window
             del g
 
-        def test_smooth(self):
+        def test_sum_edges_exp_norm(self):
             source = np.random.rand(100)
             beta = 0.3
 
@@ -3492,11 +3472,11 @@ if __name__ == '__main__':
                 g[0, 0] = s
 
             with self.assertRaises(MemoryError):
-                tvg.WindowSmooth(0, beta)
+                tvg.WindowSumEdgesExpNorm(0, beta)
             with self.assertRaises(MemoryError):
-                tvg.WindowSmooth(-1, beta)
+                tvg.WindowSumEdgesExpNorm(-1, beta)
 
-            window = tvg.WindowSmooth(np.inf, beta)
+            window = tvg.WindowSumEdgesExpNorm(np.inf, beta)
             expected = 0.0
             for t, s in enumerate(source):
                 g = window.update(t)
@@ -3505,7 +3485,7 @@ if __name__ == '__main__':
                 self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
             del window
 
-            window = tvg.WindowSmooth(np.inf, log_beta=math.log(beta))
+            window = tvg.WindowSumEdgesExpNorm(np.inf, log_beta=math.log(beta))
             expected = 0.0
             for t, s in enumerate(source):
                 g = window.update(t)

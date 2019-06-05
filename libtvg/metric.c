@@ -240,14 +240,16 @@ static int metric_sum_edges_exp_clear(struct metric *metric)
 static int metric_sum_edges_exp_add(struct metric *metric, struct graph *graph)
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-    float weight = (float)exp(metric_sum_edges_exp->log_beta * sub_uint64(metric->window->ts, graph->ts));
+    float weight = metric_sum_edges_exp->weight * (float)exp(metric_sum_edges_exp->log_beta *
+        sub_uint64(metric->window->ts, graph->ts));
     return graph_add_graph(metric_sum_edges_exp->result, graph, weight);
 }
 
 static int metric_sum_edges_exp_sub(struct metric *metric, struct graph *graph)
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-    float weight = (float)exp(metric_sum_edges_exp->log_beta * sub_uint64(metric->window->ts, graph->ts));
+    float weight = metric_sum_edges_exp->weight * (float)exp(metric_sum_edges_exp->log_beta *
+        sub_uint64(metric->window->ts, graph->ts));
     return graph_sub_graph(metric_sum_edges_exp->result, graph, weight);
 }
 
@@ -278,7 +280,7 @@ const struct metric_ops metric_sum_edges_exp_ops =
     metric_sum_edges_exp_move,
 };
 
-struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float log_beta, float eps)
+struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float weight, float log_beta, float eps)
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp;
     struct metric *metric;
@@ -287,8 +289,12 @@ struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float lo
     {
         if (metric->ops != &metric_sum_edges_exp_ops) continue;
         metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-        if (metric_sum_edges_exp->log_beta == log_beta && metric_sum_edges_exp->eps == eps)
+        if (metric_sum_edges_exp->weight == weight &&
+            metric_sum_edges_exp->log_beta == log_beta &&
+            metric_sum_edges_exp->eps == eps)
+        {
             return grab_metric(metric);
+        }
     }
 
     if (!(metric_sum_edges_exp = malloc(sizeof(*metric_sum_edges_exp))))
@@ -300,6 +306,7 @@ struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float lo
     metric->ops      = &metric_sum_edges_exp_ops;
 
     metric_sum_edges_exp->result    = NULL;
+    metric_sum_edges_exp->weight    = weight;
     metric_sum_edges_exp->log_beta  = log_beta;
     metric_sum_edges_exp->eps       = eps;
 
@@ -315,139 +322,6 @@ float metric_sum_edges_exp_get_eps(struct metric *metric)
 struct graph *metric_sum_edges_exp_get_result(struct metric *metric)
 {
     return grab_graph(METRIC_SUM_EDGES_EXP(metric)->result);
-}
-
-/* metric_smooth functions */
-
-const struct metric_ops metric_smooth_ops;
-
-static inline struct metric_smooth *METRIC_SMOOTH(struct metric *metric)
-{
-    assert(metric->ops == &metric_smooth_ops);
-    return CONTAINING_RECORD(metric, struct metric_smooth, metric);
-}
-
-static int metric_smooth_init(struct metric *metric)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    struct tvg *tvg = metric->window->tvg;
-    uint32_t graph_flags;
-
-    if (metric_smooth->result)
-        return 1;
-
-    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
-    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-    graph_flags |= TVG_FLAGS_NONZERO;
-
-    if (!(metric_smooth->result = alloc_graph(graph_flags)))
-        return 0;
-
-    graph_set_eps(metric_smooth->result, metric_smooth->eps);
-    return 1;
-}
-
-static void metric_smooth_free(struct metric *metric)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    free_graph(metric_smooth->result);
-    metric_smooth->result = NULL;
-}
-
-static int metric_smooth_valid(struct metric *metric)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    return (metric_smooth->result != NULL);
-}
-
-static int metric_smooth_clear(struct metric *metric)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-
-    if (metric_smooth->result && graph_empty(metric_smooth->result))
-        return 1;
-
-    metric_smooth_free(metric);
-    return metric_smooth_init(metric);
-}
-
-static int metric_smooth_add(struct metric *metric, struct graph *graph)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    float weight = metric_smooth->weight * (float)exp(metric_smooth->log_beta *
-        sub_uint64(metric->window->ts, graph->ts));
-    return graph_add_graph(metric_smooth->result, graph, weight);
-}
-
-static int metric_smooth_sub(struct metric *metric, struct graph *graph)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    float weight = metric_smooth->weight * (float)exp(metric_smooth->log_beta *
-        sub_uint64(metric->window->ts, graph->ts));
-    return graph_sub_graph(metric_smooth->result, graph, weight);
-}
-
-static int metric_smooth_move(struct metric *metric, uint64_t ts)
-{
-    struct metric_smooth *metric_smooth = METRIC_SMOOTH(metric);
-    float weight = (float)exp(metric_smooth->log_beta * sub_uint64(ts, metric->window->ts));
-
-    if (weight >= 1000.0)  /* FIXME: Arbitrary limit. */
-        return 0;
-
-    graph_mul_const(metric_smooth->result, weight);
-    return 1;
-}
-
-const struct metric_ops metric_smooth_ops =
-{
-    metric_smooth_init,
-    metric_smooth_free,
-    metric_smooth_valid,
-    metric_smooth_clear,
-    metric_smooth_add,
-    metric_smooth_sub,
-    metric_smooth_move,
-};
-
-struct metric *window_alloc_metric_smooth(struct window *window, float log_beta, float eps)
-{
-    struct metric_smooth *metric_smooth;
-    struct metric *metric;
-
-    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
-    {
-        if (metric->ops != &metric_smooth_ops) continue;
-        metric_smooth = METRIC_SMOOTH(metric);
-        if (metric_smooth->log_beta == log_beta && metric_smooth->eps == eps)
-            return grab_metric(metric);
-    }
-
-    if (!(metric_smooth = malloc(sizeof(*metric_smooth))))
-        return NULL;
-
-    metric = &metric_smooth->metric;
-    metric->refcount = 1;
-    metric->window   = grab_window(window);
-    metric->ops      = &metric_smooth_ops;
-
-    metric_smooth->result   = NULL;
-    metric_smooth->weight   = -(float)expm1(log_beta);
-    metric_smooth->log_beta = log_beta;
-    metric_smooth->eps      = eps;
-
-    list_add_tail(&window->metrics, &metric->entry);
-    return metric;
-}
-
-float metric_smooth_get_eps(struct metric *metric)
-{
-    return METRIC_SMOOTH(metric)->eps;
-}
-
-struct graph *metric_smooth_get_result(struct metric *metric)
-{
-    return grab_graph(METRIC_SMOOTH(metric)->result);
 }
 
 /* metric_count_edges functions */

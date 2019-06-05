@@ -712,7 +712,7 @@ static void test_window_sum_edges_exp(void)
 
     window = tvg_alloc_window(tvg, -1000, 0);
     assert(window != NULL);
-    metric = window_alloc_metric_sum_edges_exp(window, log(beta), 0.0);
+    metric = window_alloc_metric_sum_edges_exp(window, 1.0, log(beta), 0.0);
     assert(metric != NULL);
 
     for (ts = 0; ts <= 600; ts += 50)
