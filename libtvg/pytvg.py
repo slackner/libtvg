@@ -363,14 +363,14 @@ lib.window_get_sources.restype = c_uint64
 
 # Metric functions
 
-lib.window_alloc_metric_rect.argtypes = (c_window_p, c_float)
-lib.window_alloc_metric_rect.restype = c_metric_p
+lib.window_alloc_metric_sum_edges.argtypes = (c_window_p, c_float)
+lib.window_alloc_metric_sum_edges.restype = c_metric_p
 
-lib.metric_rect_get_eps.argtypes = (c_metric_p,)
-lib.metric_rect_get_eps.restype = c_float
+lib.metric_sum_edges_get_eps.argtypes = (c_metric_p,)
+lib.metric_sum_edges_get_eps.restype = c_float
 
-lib.metric_rect_get_result.argtypes = (c_metric_p,)
-lib.metric_rect_get_result.restype = c_graph_p
+lib.metric_sum_edges_get_result.argtypes = (c_metric_p,)
+lib.metric_sum_edges_get_result.restype = c_graph_p
 
 lib.window_alloc_metric_decay.argtypes = (c_window_p, c_float, c_float)
 lib.window_alloc_metric_decay.restype = c_metric_p
@@ -1696,7 +1696,7 @@ class TVG(object):
             window_r =  0x7fffffffffffffff
         return Window(obj=lib.tvg_alloc_window(self._obj, window_l, window_r))
 
-    def WindowRect(self, window_l, window_r, eps=0.0):
+    def WindowSumEdges(self, window_l, window_r, eps=0.0):
         """
         Create a new rectangular filter window to aggregate data in a specific range
         around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
@@ -1708,7 +1708,7 @@ class TVG(object):
         """
 
         window = self.Window(window_l, window_r)
-        return window.Rect(eps=eps)
+        return window.SumEdges(eps=eps)
 
     def WindowDecay(self, window, beta=None, log_beta=None, eps=0.0):
         """
@@ -2104,16 +2104,16 @@ class MetricGraph(Metric):
 
         return result
 
-class MetricRect(MetricGraph):
+class MetricSumEdges(MetricGraph):
     @property
     def eps(self):
         """ Get the current value of epsilon. """
-        return lib.metric_rect_get_eps(self._obj)
+        return lib.metric_sum_edges_get_eps(self._obj)
 
     @property
     def result(self):
         """ Get the current graph based on the rectangle window. """
-        return Graph(obj=lib.metric_rect_get_result(self._obj))
+        return Graph(obj=lib.metric_sum_edges_get_result(self._obj))
 
 class MetricDecay(MetricGraph):
     @property
@@ -2185,9 +2185,9 @@ class Window(object):
         """ Return the width of the window. """
         return self._obj.contents.window_r - self._obj.contents.window_l
 
-    def Rect(self, eps=0.0):
+    def SumEdges(self, eps=0.0):
         """ Create a new rectangular filter metric. """
-        return MetricRect(obj=lib.window_alloc_metric_rect(self._obj, eps))
+        return MetricSumEdges(obj=lib.window_alloc_metric_sum_edges(self._obj, eps))
 
     def Decay(self, beta=None, log_beta=None, eps=0.0):
         """
@@ -3406,7 +3406,7 @@ if __name__ == '__main__':
             del tvg
 
     class WindowTests(unittest.TestCase):
-        def test_rect(self):
+        def test_sum_edges(self):
             tvg = TVG(positive=True)
 
             g = tvg.Graph(100)
@@ -3417,11 +3417,11 @@ if __name__ == '__main__':
             g[0, 2] = 3.0
 
             with self.assertRaises(MemoryError):
-                tvg.WindowRect(0, 0)
+                tvg.WindowSumEdges(0, 0)
             with self.assertRaises(MemoryError):
-                tvg.WindowRect(1, 0)
+                tvg.WindowSumEdges(1, 0)
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             g = window.update(100)
@@ -3688,7 +3688,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.sample_eigenvectors(300, sample_width=200, sample_steps=3)
@@ -3710,7 +3710,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.sample_edges(300, sample_width=200, sample_steps=3)
@@ -3735,7 +3735,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.metric_entropy(300, sample_width=200, sample_steps=3, num_bins=6)
@@ -3761,7 +3761,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.metric_entropy_local(300, sample_width=200, sample_steps=3, num_bins=2)
@@ -3789,7 +3789,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.metric_entropy_2d(300, sample_width=200, sample_steps=3, num_bins=2)
@@ -3815,7 +3815,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.metric_trend(300, sample_width=200, sample_steps=3)
@@ -3840,7 +3840,7 @@ if __name__ == '__main__':
             g = tvg.Graph(300)
             g[2, 2] = 3.0
 
-            window = tvg.WindowRect(-50, 50)
+            window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
 
             values = window.metric_stability(300, sample_width=200, sample_steps=3)
@@ -3859,7 +3859,7 @@ if __name__ == '__main__':
                 g = tvg.Graph(t)
                 g[t, t] = 1.0
 
-            window = tvg.WindowRect(-1000, 0)
+            window = tvg.WindowSumEdges(-1000, 0)
             self.assertEqual(window.width, 1000)
 
             g = window.update(999)

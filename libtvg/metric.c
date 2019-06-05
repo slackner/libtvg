@@ -64,123 +64,123 @@ error:
     return ret;
 }
 
-/* metric_rect functions */
+/* metric_sum_edges functions */
 
-const struct metric_ops metric_rect_ops;
+const struct metric_ops metric_sum_edges_ops;
 
-static inline struct metric_rect *METRIC_RECT(struct metric *metric)
+static inline struct metric_sum_edges *METRIC_SUM_EDGES(struct metric *metric)
 {
-    assert(metric->ops == &metric_rect_ops);
-    return CONTAINING_RECORD(metric, struct metric_rect, metric);
+    assert(metric->ops == &metric_sum_edges_ops);
+    return CONTAINING_RECORD(metric, struct metric_sum_edges, metric);
 }
 
-static int metric_rect_init(struct metric *metric)
+static int metric_sum_edges_init(struct metric *metric)
 {
-    struct metric_rect *metric_rect = METRIC_RECT(metric);
+    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
     struct tvg *tvg = metric->window->tvg;
     uint32_t graph_flags;
 
-    if (metric_rect->result)
+    if (metric_sum_edges->result)
         return 1;
 
     /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
     graph_flags |= TVG_FLAGS_NONZERO;
 
-    if (!(metric_rect->result = alloc_graph(graph_flags)))
+    if (!(metric_sum_edges->result = alloc_graph(graph_flags)))
         return 0;
 
-    graph_set_eps(metric_rect->result, metric_rect->eps);
+    graph_set_eps(metric_sum_edges->result, metric_sum_edges->eps);
     return 1;
 }
 
-static void metric_rect_free(struct metric *metric)
+static void metric_sum_edges_free(struct metric *metric)
 {
-    struct metric_rect *metric_rect = METRIC_RECT(metric);
-    free_graph(metric_rect->result);
-    metric_rect->result = NULL;
+    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
+    free_graph(metric_sum_edges->result);
+    metric_sum_edges->result = NULL;
 }
 
-static int metric_rect_valid(struct metric *metric)
+static int metric_sum_edges_valid(struct metric *metric)
 {
-    struct metric_rect *metric_rect = METRIC_RECT(metric);
-    return (metric_rect->result != NULL);
+    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
+    return (metric_sum_edges->result != NULL);
 }
 
-static int metric_rect_clear(struct metric *metric)
+static int metric_sum_edges_clear(struct metric *metric)
 {
-    struct metric_rect *metric_rect = METRIC_RECT(metric);
+    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
 
-    if (metric_rect->result && graph_empty(metric_rect->result))
+    if (metric_sum_edges->result && graph_empty(metric_sum_edges->result))
         return 1;
 
-    metric_rect_free(metric);
-    return metric_rect_init(metric);
+    metric_sum_edges_free(metric);
+    return metric_sum_edges_init(metric);
 }
 
-static int metric_rect_add(struct metric *metric, struct graph *graph)
+static int metric_sum_edges_add(struct metric *metric, struct graph *graph)
 {
-    return graph_add_graph(METRIC_RECT(metric)->result, graph, 1.0);
+    return graph_add_graph(METRIC_SUM_EDGES(metric)->result, graph, 1.0);
 }
 
-static int metric_rect_sub(struct metric *metric, struct graph *graph)
+static int metric_sum_edges_sub(struct metric *metric, struct graph *graph)
 {
-    return graph_sub_graph(METRIC_RECT(metric)->result, graph, 1.0);
+    return graph_sub_graph(METRIC_SUM_EDGES(metric)->result, graph, 1.0);
 }
 
-static int metric_rect_move(struct metric *metric, uint64_t ts)
+static int metric_sum_edges_move(struct metric *metric, uint64_t ts)
 {
     /* nothing to do */
     return 1;
 }
 
-const struct metric_ops metric_rect_ops =
+const struct metric_ops metric_sum_edges_ops =
 {
-    metric_rect_init,
-    metric_rect_free,
-    metric_rect_valid,
-    metric_rect_clear,
-    metric_rect_add,
-    metric_rect_sub,
-    metric_rect_move,
+    metric_sum_edges_init,
+    metric_sum_edges_free,
+    metric_sum_edges_valid,
+    metric_sum_edges_clear,
+    metric_sum_edges_add,
+    metric_sum_edges_sub,
+    metric_sum_edges_move,
 };
 
-struct metric *window_alloc_metric_rect(struct window *window, float eps)
+struct metric *window_alloc_metric_sum_edges(struct window *window, float eps)
 {
-    struct metric_rect *metric_rect;
+    struct metric_sum_edges *metric_sum_edges;
     struct metric *metric;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        if (metric->ops != &metric_rect_ops) continue;
-        metric_rect = METRIC_RECT(metric);
-        if (metric_rect->eps == eps)
+        if (metric->ops != &metric_sum_edges_ops) continue;
+        metric_sum_edges = METRIC_SUM_EDGES(metric);
+        if (metric_sum_edges->eps == eps)
             return grab_metric(metric);
     }
 
-    if (!(metric_rect = malloc(sizeof(*metric_rect))))
+    if (!(metric_sum_edges = malloc(sizeof(*metric_sum_edges))))
         return NULL;
 
-    metric = &metric_rect->metric;
+    metric = &metric_sum_edges->metric;
     metric->refcount = 1;
     metric->window   = grab_window(window);
-    metric->ops      = &metric_rect_ops;
+    metric->ops      = &metric_sum_edges_ops;
 
-    metric_rect->result = NULL;
-    metric_rect->eps    = eps;
+    metric_sum_edges->result = NULL;
+    metric_sum_edges->eps    = eps;
 
     list_add_tail(&window->metrics, &metric->entry);
     return metric;
 }
 
-float metric_rect_get_eps(struct metric *metric)
+float metric_sum_edges_get_eps(struct metric *metric)
 {
-    return METRIC_RECT(metric)->eps;
+    return METRIC_SUM_EDGES(metric)->eps;
 }
 
-struct graph *metric_rect_get_result(struct metric *metric)
+struct graph *metric_sum_edges_get_result(struct metric *metric)
 {
-    return grab_graph(METRIC_RECT(metric)->result);
+    return grab_graph(METRIC_SUM_EDGES(metric)->result);
 }
 
 /* metric_decay functions */

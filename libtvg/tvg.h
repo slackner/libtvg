@@ -189,7 +189,7 @@ struct metric
     const struct metric_ops *ops;
 };
 
-struct metric_rect
+struct metric_sum_edges
 {
     struct metric metric;
     struct graph *result;
@@ -1469,9 +1469,9 @@ uint64_t window_get_sources(struct window *window, struct graph **graphs, uint64
 
 /* metric functions */
 
-struct metric *window_alloc_metric_rect(struct window *window, float eps);
-float metric_rect_get_eps(struct metric *metric);
-struct graph *metric_rect_get_result(struct metric *metric);
+struct metric *window_alloc_metric_sum_edges(struct window *window, float eps);
+float metric_sum_edges_get_eps(struct metric *metric);
+struct graph *metric_sum_edges_get_result(struct metric *metric);
 
 struct metric *window_alloc_metric_decay(struct window *window, float log_beta, float eps);
 float metric_decay_get_eps(struct metric *metric);
