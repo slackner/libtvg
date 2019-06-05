@@ -83,14 +83,20 @@ Structure/Union member
 ### refcount
 Structure/Union member
 
+## c_metric
+```python
+c_metric(*args, **kwargs)
+```
+
+
+### refcount
+Structure/Union member
+
 ## c_window
 ```python
 c_window(*args, **kwargs)
 ```
 
-
-### eps
-Structure/Union member
 
 ### refcount
 Structure/Union member
@@ -405,6 +411,12 @@ __Arguments__
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed graph.
 
+
+### unlink
+```python
+Graph.unlink()
+```
+Unlink a graph from the TVG object.
 
 ### empty
 ```python
@@ -901,9 +913,24 @@ TVG.disable_mongodb_sync()
 ```
 Disable synchronization with a MongoDB server.
 
-### WindowRect
+### Window
 ```python
-TVG.WindowRect(window_l, window_r)
+TVG.Window(window_l, window_r)
+```
+
+Create a new sliding window to aggregate data in a specific range around a
+fixed timestmap. Only graphs in [ts + window_l, ts + window_r] are
+considered.
+
+__Arguments__
+
+- __window_l__: Left boundary of the interval, relative to the timestamp.
+- __window_r__: Right boundary of the interval, relative to the timestamp.
+
+
+### WindowSumEdges
+```python
+TVG.WindowSumEdges(window_l, window_r, eps=0.0)
 ```
 
 Create a new rectangular filter window to aggregate data in a specific range
@@ -916,9 +943,9 @@ __Arguments__
 - __window_r__: Right boundary of the interval, relative to the timestamp.
 
 
-### WindowDecay
+### WindowSumEdgesExp
 ```python
-TVG.WindowDecay(window, beta=None, log_beta=None)
+TVG.WindowSumEdgesExp(window, beta=None, log_beta=None, eps=0.0)
 ```
 
 Create a new exponential decay window to aggregate data in a specific range
@@ -930,9 +957,9 @@ __Arguments__
 - __beta__: Exponential decay constant.
 
 
-### WindowSmooth
+### WindowSumEdgesExpNorm
 ```python
-TVG.WindowSmooth(window, beta=None, log_beta=None)
+TVG.WindowSumEdgesExpNorm(window, beta=None, log_beta=None, eps=0.0)
 ```
 
 Create a new exponential smoothing window to aggregate data in a specific range
@@ -942,6 +969,36 @@ __Arguments__
 
 - __window__: Amount of data in the past to consider.
 - __beta__: Exponential decay constant.
+
+
+### WindowCountEdges
+```python
+TVG.WindowCountEdges(window_l, window_r)
+```
+
+Create a new rectangular filter window to count edges in a specific range
+around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+considered.
+
+__Arguments__
+
+- __window_l__: Left boundary of the interval, relative to the timestamp.
+- __window_r__: Right boundary of the interval, relative to the timestamp.
+
+
+### WindowCountNodes
+```python
+TVG.WindowCountNodes(window_l, window_r)
+```
+
+Create a new rectangular filter window to count nodes in a specific range
+around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+considered.
+
+__Arguments__
+
+- __window_l__: Left boundary of the interval, relative to the timestamp.
+- __window_r__: Right boundary of the interval, relative to the timestamp.
 
 
 ### lookup_ge
@@ -968,20 +1025,10 @@ TVG.compress(step, offset=0)
 ```
 Compress the graph by aggregating timestamps differing by at most `step`.
 
-## Window
+## Metric
 ```python
-Window(obj=None)
+Metric(obj=None)
 ```
-
-This object represents a sliding window, which can be used to extract and aggregate
-data in a specific timeframe. Once the object has been created, most parameters can
-not be changed anymore. Only the timestamp can be changed.
-
-
-### eps
-
-Get/set the current value of epsilon. This is used to determine whether an
-entry is equal to zero. Whenever |x| < eps, it is treated as zero.
 
 
 ### ts
@@ -990,55 +1037,39 @@ Return the current timestamp of the window.
 ### width
 Return the width of the window.
 
-### clear
-```python
-Window.clear()
-```
-"
-Clear all additional data associated with the window, and force a full recompute
-when the `update` function is used the next time.
+### window
+Get the associated window.
 
+### reset
+```python
+Metric.reset()
+```
+Clear all additional data associated with the metric.
 
 ### update
 ```python
-Window.update(ts)
+Metric.update(ts)
 ```
-
-Move the sliding window to a new timestamp. Whenever possible, the previous state
-will be reused to speed up the computation. For rectangular windows, for example,
-it is sufficient to add data points that are moved into the interval, and to remove
-data points that are now outside of the interval. For exponential windows, it is
-also necessary to perform a multiplication of the full graph.
-
-__Arguments__
-
-- __ts__: New timestamp of the window.
-
-__Returns__
-
-Graph object.
-
+Move the sliding window to a new timestamp.
 
 ### sources
 ```python
-Window.sources(ret_graphs=True, ret_weights=True)
+Metric.sources()
 ```
+Return all graphs of the current window.
 
-Return all graphs and/or weights of the current window.
-
-__Arguments__
-
-- __ret_graphs__: Return graphs, otherwise None.
-- __ret_weights__: Return weights, otherwise None.
-
-__Returns__
-
-`(graphs, weights)`
+## MetricGraph
+```python
+MetricGraph(obj=None)
+```
 
 
 ### sample_eigenvectors
 ```python
-Window.sample_eigenvectors(ts, sample_width, sample_steps=9, tolerance=None)
+MetricGraph.sample_eigenvectors(ts,
+                                sample_width,
+                                sample_steps=9,
+                                tolerance=None)
 ```
 
 Iterative power iteration algorithm to track eigenvectors of a graph over time.
@@ -1060,7 +1091,7 @@ Dictionary containing lists of collected values for each node.
 
 ### sample_edges
 ```python
-Window.sample_edges(ts, sample_width, sample_steps=9)
+MetricGraph.sample_edges(ts, sample_width, sample_steps=9)
 ```
 
 Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
@@ -1080,11 +1111,11 @@ Dictionary containing lists of collected values for each edge.
 
 ### metric_entropy
 ```python
-Window.metric_entropy(ts,
-                      sample_width,
-                      sample_steps=9,
-                      tolerance=None,
-                      num_bins=50)
+MetricGraph.metric_entropy(ts,
+                           sample_width,
+                           sample_steps=9,
+                           tolerance=None,
+                           num_bins=50)
 ```
 
 Rate the importance / interestingness of individual nodes by their entropy.
@@ -1104,11 +1135,11 @@ Dictionary containing the metric for each node.
 
 ### metric_entropy_local
 ```python
-Window.metric_entropy_local(ts,
-                            sample_width,
-                            sample_steps=9,
-                            tolerance=None,
-                            num_bins=50)
+MetricGraph.metric_entropy_local(ts,
+                                 sample_width,
+                                 sample_steps=9,
+                                 tolerance=None,
+                                 num_bins=50)
 ```
 
 Like metric_entropy(), but train a separate model for each time step.
@@ -1128,11 +1159,11 @@ Dictionary containing the metric for each node.
 
 ### metric_entropy_2d
 ```python
-Window.metric_entropy_2d(ts,
-                         sample_width,
-                         sample_steps=9,
-                         tolerance=None,
-                         num_bins=50)
+MetricGraph.metric_entropy_2d(ts,
+                              sample_width,
+                              sample_steps=9,
+                              tolerance=None,
+                              num_bins=50)
 ```
 
 Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
@@ -1152,7 +1183,7 @@ Dictionary containing the metric for each node.
 
 ### metric_trend
 ```python
-Window.metric_trend(ts, sample_width, sample_steps=9, tolerance=None)
+MetricGraph.metric_trend(ts, sample_width, sample_steps=9, tolerance=None)
 ```
 
 Rate the importance / interestingness of individual nodes by their trend.
@@ -1171,7 +1202,7 @@ Dictionary containing the metric for each node.
 
 ### metric_stability
 ```python
-Window.metric_stability(ts, sample_width, sample_steps=9, tolerance=None)
+MetricGraph.metric_stability(ts, sample_width, sample_steps=9, tolerance=None)
 ```
 
 Rate the stability of individual nodes by ranking their average and standard deviation.
@@ -1187,6 +1218,143 @@ __Returns__
 
 Dictionary containing the metric for each node.
 
+
+## MetricSumEdges
+```python
+MetricSumEdges(obj=None)
+```
+
+
+### eps
+Get the epsilon parameter.
+
+### result
+Get the current graph based on the rectangle window.
+
+## MetricSumEdgesExp
+```python
+MetricSumEdgesExp(obj=None)
+```
+
+
+### eps
+Get the epsilon parameter.
+
+### log_beta
+Get the log_beta parameter.
+
+### result
+Get the current graph based on the exponential decay window.
+
+### weight
+Get the weight parameter.
+
+## MetricCountEdges
+```python
+MetricCountEdges(obj=None)
+```
+
+
+### result
+Get the current graph base on edge counts.
+
+## MetricCountNodes
+```python
+MetricCountNodes(obj=None)
+```
+
+
+### result
+Get the current graph base on node counts.
+
+## Window
+```python
+Window(obj=None)
+```
+
+This object represents a sliding window, which can be used to extract and aggregate
+data in a specific timeframe. Once the object has been created, most parameters can
+not be changed anymore. Only the timestamp can be changed.
+
+
+### ts
+Return the current timestamp of the window.
+
+### width
+Return the width of the window.
+
+### SumEdges
+```python
+Window.SumEdges(eps=0.0)
+```
+Create a new rectangular filter metric.
+
+### SumEdgesExp
+```python
+Window.SumEdgesExp(weight=1.0, beta=None, log_beta=None, eps=0.0)
+```
+
+Create a new exponential decay metric.
+
+__Arguments__
+
+- __beta__: Exponential decay constant.
+
+
+### SumEdgesExpNorm
+```python
+Window.SumEdgesExpNorm(beta=None, log_beta=None, eps=0.0)
+```
+
+Create a new exponential smoothing metric.
+
+__Arguments__
+
+- __beta__: Exponential decay constant.
+
+
+### CountEdges
+```python
+Window.CountEdges()
+```
+Create a new edge count metric.
+
+### CountNodes
+```python
+Window.CountNodes()
+```
+Create a new node count metric.
+
+### reset
+```python
+Window.reset()
+```
+"
+Clear all additional data associated with the window, and force a full recompute
+when the `update` function is used the next time.
+
+
+### update
+```python
+Window.update(ts)
+```
+
+Move the sliding window to a new timestamp. Whenever possible, the previous state
+will be reused to speed up the computation. For rectangular windows, for example,
+it is sufficient to add data points that are moved into the interval, and to remove
+data points that are now outside of the interval. For exponential windows, it is
+also necessary to perform a multiplication of the full graph.
+
+__Arguments__
+
+- __ts__: New timestamp of the window.
+
+
+### sources
+```python
+Window.sources()
+```
+Return all graphs of the current window.
 
 ## MongoDB
 ```python
