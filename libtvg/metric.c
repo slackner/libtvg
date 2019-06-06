@@ -74,48 +74,15 @@ static inline struct metric_sum_edges *METRIC_SUM_EDGES(struct metric *metric)
     return CONTAINING_RECORD(metric, struct metric_sum_edges, metric);
 }
 
-static int metric_sum_edges_init(struct metric *metric)
-{
-    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
-    struct tvg *tvg = metric->window->tvg;
-    uint32_t graph_flags;
-
-    if (metric_sum_edges->result)
-        return 1;
-
-    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
-    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-    graph_flags |= TVG_FLAGS_NONZERO;
-
-    if (!(metric_sum_edges->result = alloc_graph(graph_flags)))
-        return 0;
-
-    graph_set_eps(metric_sum_edges->result, metric_sum_edges->eps);
-    return 1;
-}
-
 static void metric_sum_edges_free(struct metric *metric)
 {
     struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
     free_graph(metric_sum_edges->result);
-    metric_sum_edges->result = NULL;
 }
 
-static int metric_sum_edges_valid(struct metric *metric)
+static void metric_sum_edges_reset(struct metric *metric)
 {
-    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
-    return (metric_sum_edges->result != NULL);
-}
-
-static int metric_sum_edges_reset(struct metric *metric)
-{
-    struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
-
-    if (metric_sum_edges->result && graph_empty(metric_sum_edges->result))
-        return 1;
-
-    metric_sum_edges_free(metric);
-    return metric_sum_edges_init(metric);
+    graph_clear(METRIC_SUM_EDGES(metric)->result);
 }
 
 static int metric_sum_edges_add(struct metric *metric, struct graph *graph)
@@ -130,15 +97,12 @@ static int metric_sum_edges_sub(struct metric *metric, struct graph *graph)
 
 static int metric_sum_edges_move(struct metric *metric, uint64_t ts)
 {
-    /* nothing to do */
-    return 1;
+    return 1;  /* nothing to do */
 }
 
 const struct metric_ops metric_sum_edges_ops =
 {
-    metric_sum_edges_init,
     metric_sum_edges_free,
-    metric_sum_edges_valid,
     metric_sum_edges_reset,
     metric_sum_edges_add,
     metric_sum_edges_sub,
@@ -149,6 +113,7 @@ struct metric *window_alloc_metric_sum_edges(struct window *window, float eps)
 {
     struct metric_sum_edges *metric_sum_edges;
     struct metric *metric;
+    uint32_t graph_flags;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
@@ -165,9 +130,21 @@ struct metric *window_alloc_metric_sum_edges(struct window *window, float eps)
     metric->refcount = 1;
     metric->window   = grab_window(window);
     metric->ops      = &metric_sum_edges_ops;
+    metric->valid    = 0;
 
-    metric_sum_edges->result = NULL;
-    metric_sum_edges->eps    = eps;
+    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
+    graph_flags = window->tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
+    graph_flags |= TVG_FLAGS_NONZERO;
+
+    if (!(metric_sum_edges->result = alloc_graph(graph_flags)))
+    {
+        free_window(metric->window);
+        free(metric_sum_edges);
+        return NULL;
+    }
+
+    graph_set_eps(metric_sum_edges->result, eps);
+    metric_sum_edges->eps = eps;
 
     list_add_tail(&window->metrics, &metric->entry);
     return metric;
@@ -180,6 +157,7 @@ float metric_sum_edges_get_eps(struct metric *metric)
 
 struct graph *metric_sum_edges_get_result(struct metric *metric)
 {
+    if (!metric->valid) return NULL;
     return grab_graph(METRIC_SUM_EDGES(metric)->result);
 }
 
@@ -193,48 +171,15 @@ static inline struct metric_sum_edges_exp *METRIC_SUM_EDGES_EXP(struct metric *m
     return CONTAINING_RECORD(metric, struct metric_sum_edges_exp, metric);
 }
 
-static int metric_sum_edges_exp_init(struct metric *metric)
-{
-    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-    struct tvg *tvg = metric->window->tvg;
-    uint32_t graph_flags;
-
-    if (metric_sum_edges_exp->result)
-        return 1;
-
-    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
-    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-    graph_flags |= TVG_FLAGS_NONZERO;
-
-    if (!(metric_sum_edges_exp->result = alloc_graph(graph_flags)))
-        return 0;
-
-    graph_set_eps(metric_sum_edges_exp->result, metric_sum_edges_exp->eps);
-    return 1;
-}
-
 static void metric_sum_edges_exp_free(struct metric *metric)
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
     free_graph(metric_sum_edges_exp->result);
-    metric_sum_edges_exp->result = NULL;
 }
 
-static int metric_sum_edges_exp_valid(struct metric *metric)
+static void metric_sum_edges_exp_reset(struct metric *metric)
 {
-    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-    return (metric_sum_edges_exp->result != NULL);
-}
-
-static int metric_sum_edges_exp_reset(struct metric *metric)
-{
-    struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
-
-    if (metric_sum_edges_exp->result && graph_empty(metric_sum_edges_exp->result))
-        return 1;
-
-    metric_sum_edges_exp_free(metric);
-    return metric_sum_edges_exp_init(metric);
+    graph_clear(METRIC_SUM_EDGES_EXP(metric)->result);
 }
 
 static int metric_sum_edges_exp_add(struct metric *metric, struct graph *graph)
@@ -271,9 +216,7 @@ static int metric_sum_edges_exp_move(struct metric *metric, uint64_t ts)
 
 const struct metric_ops metric_sum_edges_exp_ops =
 {
-    metric_sum_edges_exp_init,
     metric_sum_edges_exp_free,
-    metric_sum_edges_exp_valid,
     metric_sum_edges_exp_reset,
     metric_sum_edges_exp_add,
     metric_sum_edges_exp_sub,
@@ -284,6 +227,7 @@ struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float we
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp;
     struct metric *metric;
+    uint32_t graph_flags;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
@@ -304,8 +248,20 @@ struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float we
     metric->refcount = 1;
     metric->window   = grab_window(window);
     metric->ops      = &metric_sum_edges_exp_ops;
+    metric->valid    = 0;
 
-    metric_sum_edges_exp->result    = NULL;
+    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
+    graph_flags = window->tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
+    graph_flags |= TVG_FLAGS_NONZERO;
+
+    if (!(metric_sum_edges_exp->result = alloc_graph(graph_flags)))
+    {
+        free_window(metric->window);
+        free(metric_sum_edges_exp);
+        return NULL;
+    }
+
+    graph_set_eps(metric_sum_edges_exp->result, eps);
     metric_sum_edges_exp->weight    = weight;
     metric_sum_edges_exp->log_beta  = log_beta;
     metric_sum_edges_exp->eps       = eps;
@@ -331,6 +287,7 @@ float metric_sum_edges_exp_get_eps(struct metric *metric)
 
 struct graph *metric_sum_edges_exp_get_result(struct metric *metric)
 {
+    if (!metric->valid) return NULL;
     return grab_graph(METRIC_SUM_EDGES_EXP(metric)->result);
 }
 
@@ -344,48 +301,15 @@ static inline struct metric_count_edges *METRIC_COUNT_EDGES(struct metric *metri
     return CONTAINING_RECORD(metric, struct metric_count_edges, metric);
 }
 
-static int metric_count_edges_init(struct metric *metric)
-{
-    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
-    struct tvg *tvg = metric->window->tvg;
-    uint32_t graph_flags;
-
-    if (metric_count_edges->result)
-        return 1;
-
-    /* Enforce TVG_FLAGS_POSITIVE and TVG_FLAGS_NONZERO, our update mechanism relies on it. */
-    graph_flags = tvg->flags & TVG_FLAGS_DIRECTED;
-    graph_flags |= TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
-
-    if (!(metric_count_edges->result = alloc_graph(graph_flags)))
-        return 0;
-
-    graph_set_eps(metric_count_edges->result, 0.5);
-    return 1;
-}
-
 static void metric_count_edges_free(struct metric *metric)
 {
     struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
     free_graph(metric_count_edges->result);
-    metric_count_edges->result = NULL;
 }
 
-static int metric_count_edges_valid(struct metric *metric)
+static void metric_count_edges_reset(struct metric *metric)
 {
-    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
-    return (metric_count_edges->result != NULL);
-}
-
-static int metric_count_edges_reset(struct metric *metric)
-{
-    struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
-
-    if (metric_count_edges->result && graph_empty(metric_count_edges->result))
-        return 1;
-
-    metric_count_edges_free(metric);
-    return metric_count_edges_init(metric);
+    graph_clear(METRIC_COUNT_EDGES(metric)->result);
 }
 
 static int metric_count_edges_add(struct metric *metric, struct graph *graph)
@@ -400,15 +324,12 @@ static int metric_count_edges_sub(struct metric *metric, struct graph *graph)
 
 static int metric_count_edges_move(struct metric *metric, uint64_t ts)
 {
-    /* nothing to do */
-    return 1;
+    return 1;  /* nothing to do */
 }
 
 const struct metric_ops metric_count_edges_ops =
 {
-    metric_count_edges_init,
     metric_count_edges_free,
-    metric_count_edges_valid,
     metric_count_edges_reset,
     metric_count_edges_add,
     metric_count_edges_sub,
@@ -419,6 +340,7 @@ struct metric *window_alloc_metric_count_edges(struct window *window)
 {
     struct metric_count_edges *metric_count_edges;
     struct metric *metric;
+    uint32_t graph_flags;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
@@ -433,15 +355,27 @@ struct metric *window_alloc_metric_count_edges(struct window *window)
     metric->refcount = 1;
     metric->window   = grab_window(window);
     metric->ops      = &metric_count_edges_ops;
+    metric->valid    = 0;
 
-    metric_count_edges->result = NULL;
+    /* Enforce TVG_FLAGS_POSITIVE and TVG_FLAGS_NONZERO, our update mechanism relies on it. */
+    graph_flags = window->tvg->flags & TVG_FLAGS_DIRECTED;
+    graph_flags |= TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
 
+    if (!(metric_count_edges->result = alloc_graph(graph_flags)))
+    {
+        free_window(metric->window);
+        free(metric_count_edges);
+        return NULL;
+    }
+
+    graph_set_eps(metric_count_edges->result, 0.5);
     list_add_tail(&window->metrics, &metric->entry);
     return metric;
 }
 
 struct graph *metric_count_edges_get_result(struct metric *metric)
 {
+    if (!metric->valid) return NULL;
     return grab_graph(METRIC_COUNT_EDGES(metric)->result);
 }
 
@@ -455,43 +389,15 @@ static inline struct metric_count_nodes *METRIC_COUNT_NODES(struct metric *metri
     return CONTAINING_RECORD(metric, struct metric_count_nodes, metric);
 }
 
-static int metric_count_nodes_init(struct metric *metric)
-{
-    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
-    uint32_t vector_flags = TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
-
-    if (metric_count_nodes->result)
-        return 1;
-
-    if (!(metric_count_nodes->result = alloc_vector(vector_flags)))
-        return 0;
-
-    vector_set_eps(metric_count_nodes->result, 0.5);
-    return 1;
-}
-
 static void metric_count_nodes_free(struct metric *metric)
 {
     struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
     free_vector(metric_count_nodes->result);
-    metric_count_nodes->result = NULL;
 }
 
-static int metric_count_nodes_valid(struct metric *metric)
+static void metric_count_nodes_reset(struct metric *metric)
 {
-    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
-    return (metric_count_nodes->result != NULL);
-}
-
-static int metric_count_nodes_reset(struct metric *metric)
-{
-    struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
-
-    if (metric_count_nodes->result && vector_empty(metric_count_nodes->result))
-        return 1;
-
-    metric_count_nodes_free(metric);
-    return metric_count_nodes_init(metric);
+    vector_clear(METRIC_COUNT_NODES(metric)->result);
 }
 
 static int metric_count_nodes_add(struct metric *metric, struct graph *graph)
@@ -506,15 +412,12 @@ static int metric_count_nodes_sub(struct metric *metric, struct graph *graph)
 
 static int metric_count_nodes_move(struct metric *metric, uint64_t ts)
 {
-    /* nothing to do */
-    return 1;
+    return 1;  /* nothing to do */
 }
 
 const struct metric_ops metric_count_nodes_ops =
 {
-    metric_count_nodes_init,
     metric_count_nodes_free,
-    metric_count_nodes_valid,
     metric_count_nodes_reset,
     metric_count_nodes_add,
     metric_count_nodes_sub,
@@ -525,6 +428,7 @@ struct metric *window_alloc_metric_count_nodes(struct window *window)
 {
     struct metric_count_nodes *metric_count_nodes;
     struct metric *metric;
+    uint32_t vector_flags = TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
@@ -539,15 +443,23 @@ struct metric *window_alloc_metric_count_nodes(struct window *window)
     metric->refcount = 1;
     metric->window   = grab_window(window);
     metric->ops      = &metric_count_nodes_ops;
+    metric->valid    = 0;
 
-    metric_count_nodes->result = NULL;
+    if (!(metric_count_nodes->result = alloc_vector(vector_flags)))
+    {
+        free_window(metric->window);
+        free(metric_count_nodes);
+        return NULL;
+    }
 
+    vector_set_eps(metric_count_nodes->result, 0.5);
     list_add_tail(&window->metrics, &metric->entry);
     return metric;
 }
 
 struct vector *metric_count_nodes_get_result(struct metric *metric)
 {
+    if (!metric->valid) return NULL;
     return grab_vector(METRIC_COUNT_NODES(metric)->result);
 }
 
@@ -573,6 +485,7 @@ void free_metric(struct metric *metric)
 void metric_reset(struct metric *metric)
 {
     metric->ops->reset(metric);
+    metric->valid = 0;
 }
 
 struct window *metric_get_window(struct metric *metric)

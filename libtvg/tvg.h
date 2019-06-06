@@ -187,6 +187,7 @@ struct metric
     struct list entry;
 
     const struct metric_ops *ops;
+    int         valid;
 };
 
 struct metric_sum_edges

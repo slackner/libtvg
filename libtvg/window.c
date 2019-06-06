@@ -60,7 +60,7 @@ void window_reset(struct window *window)
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        metric->ops->reset(metric);
+        metric_reset(metric);
     }
 }
 
@@ -77,18 +77,12 @@ int window_update(struct window *window, uint64_t ts)
 restart:
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        if (!metric->ops->valid(metric))
+        if (!metric->valid)
         {
             window_reset(window);
             window->ts = ts;
             break;
         }
-    }
-
-    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
-    {
-        if (!metric->ops->init(metric))
-            return 0;
     }
 
     list_init(&todo);
@@ -198,11 +192,7 @@ restart:
     {
         LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
         {
-            if (!metric->ops->reset(metric))
-            {
-                window_reset(window);
-                return 0;
-            }
+            metric->ops->reset(metric);
         }
         window->ts = ts;
     }
@@ -234,6 +224,11 @@ restart:
                 return 0;
             }
         }
+    }
+
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+    {
+        metric->valid = 1;
     }
 
     return 1;

@@ -3482,18 +3482,12 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 3.0)
 
-            # Clearing the window should not modify the last output graph.
             window.reset()
-            g2 = window.update(100)
+            g = window.update(100)
             self.assertEqual(window.ts, 100)
-
-            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 3.0)
-
-            self.assertEqual(g2[0, 0], 1.0)
-            self.assertEqual(g2[0, 1], 0.0)
-            self.assertEqual(g2[0, 2], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
 
             del window
             del tvg
@@ -3602,18 +3596,12 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 1.0)
 
-            # Clearing the window should not modify the last output graph.
             window.reset()
-            g2 = window.update(100)
+            g = window.update(100)
             self.assertEqual(window.ts, 100)
-
-            self.assertEqual(g[0, 0], 0.0)
+            self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 1.0)
-
-            self.assertEqual(g2[0, 0], 1.0)
-            self.assertEqual(g2[0, 1], 0.0)
-            self.assertEqual(g2[0, 2], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
 
             del window
             del tvg
@@ -3655,18 +3643,12 @@ if __name__ == '__main__':
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 1.0)
 
-            # Clearing the window should not modify the last output graph.
             window.reset()
-            v2 = window.update(100)
+            v = window.update(100)
             self.assertEqual(window.ts, 100)
-
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
-            self.assertEqual(v[2], 1.0)
-
-            self.assertEqual(v2[0], 1.0)
-            self.assertEqual(v2[1], 0.0)
-            self.assertEqual(v2[2], 0.0)
+            self.assertEqual(v[2], 0.0)
 
             del window
             del tvg
