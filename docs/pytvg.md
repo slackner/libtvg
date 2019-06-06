@@ -152,6 +152,9 @@ Structure/Union member
 ### max_distance
 Structure/Union member
 
+### sum_weights
+Structure/Union member
+
 ### uri
 Structure/Union member
 
@@ -1369,6 +1372,7 @@ MongoDB(uri,
         entity_ent,
         use_pool=True,
         load_nodes=False,
+        sum_weights=True,
         max_distance=None,
         filter_key=None,
         filter_value=None,
@@ -1397,6 +1401,7 @@ entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 
 use_pool: Use a connection pool to access MongoDB.
 load_nodes: Load node attributes.
+sum_weights: Compute edge weights as the sum of co-occurrence weights.
 
 max_distance: Maximum distance of mentions.
 

@@ -97,6 +97,7 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     if (!(config->entity_ent   = strdup(orig->entity_ent)))   goto error;
     config->use_pool        = orig->use_pool;
     config->load_nodes      = orig->load_nodes;
+    config->sum_weights     = orig->sum_weights;
     config->max_distance    = orig->max_distance;
     return config;
 
@@ -414,9 +415,19 @@ static int bson_parse_entity_integer(struct tvg *tvg, const bson_t *doc, const c
     return bson_parse_integer(doc, field, entity);
 }
 
+static int graph_max_edge(struct graph *graph, uint64_t source, uint64_t target, float weight)
+{
+    /* FIXME: This could be optimized a lot. */
+    if (graph_has_edge(graph, source, target) &&
+        graph_get_edge(graph, source, target) >= weight) return 1;
+
+    return graph_set_edge(graph, source, target, weight);
+}
+
 struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struct objectid *objectid, uint32_t flags)
 {
     int (*bson_parse_entity)(struct tvg *, const bson_t *, const char *, uint64_t *);
+    int (*process_edge)(struct graph *, uint64_t, uint64_t, float);
     struct mongodb_config *config = mongodb->config;
     const struct occurrence *entry;
     mongoc_collection_t *entities;
@@ -435,6 +446,9 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
 
     bson_parse_entity = config->load_nodes ? bson_parse_entity_multi :
                                              bson_parse_entity_integer;
+
+    process_edge = config->sum_weights ? graph_add_edge :
+                                         graph_max_edge;
 
     if (objectid->type == OBJECTID_OID)
     {
@@ -525,7 +539,7 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
                 continue;  /* unexpected, entries are not sorted! */
 
             weight = (float)exp(-(double)(new_entry.sen - entry->sen));
-            if (!graph_add_edge(graph, entry->ent, new_entry.ent, weight))
+            if (!process_edge(graph, entry->ent, new_entry.ent, weight))
             {
                 fprintf(stderr, "%s: Out of memory!\n", __func__);
                 goto error;

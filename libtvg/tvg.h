@@ -249,6 +249,7 @@ struct mongodb_config
 
     int         use_pool;       /* use connection pool */
     int         load_nodes;
+    int         sum_weights;
 
     uint64_t    max_distance;
 };

@@ -91,6 +91,7 @@ class c_mongodb_config(Structure):
                 ("entity_ent",   c_char_p),
                 ("use_pool",     c_int),
                 ("load_nodes",   c_int),
+                ("sum_weights",  c_int),
                 ("max_distance", c_uint64)]
 
 class c_mongodb(Structure):
@@ -2283,13 +2284,14 @@ class MongoDB(object):
 
     use_pool: Use a connection pool to access MongoDB.
     load_nodes: Load node attributes.
+    sum_weights: Compute edge weights as the sum of co-occurrence weights.
 
     max_distance: Maximum distance of mentions.
     """
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, use_pool=True,
-                 load_nodes=False, max_distance=None, filter_key=None,
+                 load_nodes=False, sum_weights=True, max_distance=None, filter_key=None,
                  filter_value=None, use_objectids=None, obj=None):
         if obj is None:
             config = c_mongodb_config()
@@ -2306,6 +2308,7 @@ class MongoDB(object):
             config.entity_ent    = entity_ent.encode("utf-8")
             config.use_pool      = use_pool
             config.load_nodes    = load_nodes
+            config.sum_weights   = sum_weights
             config.max_distance  = max_distance if max_distance is not None else 0xffffffffffffffff
             obj = lib.alloc_mongodb(config)
 
@@ -4316,6 +4319,35 @@ if __name__ == '__main__':
             g = self.load_from_occurrences(occurrences)
             self.assertTrue(g.has_edge((1, 2)))
             self.assertEqual(g[1, 2], 0.0)
+            del g
+
+        def test_sum_weights(self):
+            occurrences1 = [{'sen': 1, 'ent': 1},
+                            {'sen': 2, 'ent': 2},
+                            {'sen': 4, 'ent': 1}]
+
+            occurrences2 = [{'sen': 1, 'ent': 1},
+                            {'sen': 3, 'ent': 2},
+                            {'sen': 4, 'ent': 1}]
+
+            g = self.load_from_occurrences(occurrences1)
+            self.assertTrue(abs(g[1, 2]/(math.exp(-1.0) + np.exp(-2.0)) - 1.0) < 1e-7)
+            del g
+
+            g = self.load_from_occurrences(occurrences1)
+            self.assertTrue(abs(g[1, 2]/(math.exp(-1.0) + np.exp(-2.0)) - 1.0) < 1e-7)
+            del g
+
+            self.db = self.MongoDB(self.s.uri, "database", "col_articles",
+                                   "_id", "time", "col_entities", "doc", "sen", "ent",
+                                   use_pool=False, sum_weights=False)
+
+            g = self.load_from_occurrences(occurrences1)
+            self.assertTrue(abs(g[1, 2]/math.exp(-1.0) - 1.0) < 1e-7)
+            del g
+
+            g = self.load_from_occurrences(occurrences2)
+            self.assertTrue(abs(g[1, 2]/math.exp(-1.0) - 1.0) < 1e-7)
             del g
 
     # Run the unit tests
