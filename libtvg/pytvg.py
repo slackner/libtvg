@@ -91,7 +91,7 @@ class c_mongodb_config(Structure):
                 ("entity_ent",   c_char_p),
                 ("use_pool",     c_int),
                 ("load_nodes",   c_int),
-                ("max_distance", c_uint)]
+                ("max_distance", c_uint64)]
 
 class c_mongodb(Structure):
     _fields_ = [("refcount", c_uint64)]
@@ -2289,7 +2289,7 @@ class MongoDB(object):
 
     def __init__(self, uri, database, col_articles, article_id, article_time,
                  col_entities, entity_doc, entity_sen, entity_ent, use_pool=True,
-                 load_nodes=False, max_distance=5, filter_key=None,
+                 load_nodes=False, max_distance=None, filter_key=None,
                  filter_value=None, use_objectids=None, obj=None):
         if obj is None:
             config = c_mongodb_config()
@@ -2306,7 +2306,7 @@ class MongoDB(object):
             config.entity_ent    = entity_ent.encode("utf-8")
             config.use_pool      = use_pool
             config.load_nodes    = load_nodes
-            config.max_distance  = max_distance
+            config.max_distance  = max_distance if max_distance is not None else 0xffffffffffffffff
             obj = lib.alloc_mongodb(config)
 
         self._obj = obj
@@ -3899,13 +3899,8 @@ if __name__ == '__main__':
             del tvg
 
     class MongoDBTests(unittest.TestCase):
-        def setUp(self):
-            self.s = mockupdb.MockupDB()
-            self.s.run()
-
-            future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
-                                 "_id", "time", "col_entities", "doc", "sen", "ent",
-                                 use_pool=False, filter_key="fkey", filter_value="fvalue")
+        def MongoDB(self, *args, **kwargs):
+            future = mockupdb.go(MongoDB, *args, **kwargs)
 
             request = self.s.receives("isMaster")
             request.replies({'ok': 1, 'maxWireVersion': 5})
@@ -3913,7 +3908,16 @@ if __name__ == '__main__':
             request = self.s.receives("ping")
             request.replies({'ok': 1})
 
-            self.db = future()
+            return future()
+
+        def setUp(self):
+            self.s = mockupdb.MockupDB()
+            self.s.run()
+
+            self.db = self.MongoDB(self.s.uri, "database", "col_articles",
+                                   "_id", "time", "col_entities", "doc", "sen", "ent",
+                                   use_pool=False, max_distance=5, filter_key="fkey",
+                                   filter_value="fvalue")
 
         def tearDown(self):
             self.s.stop()
@@ -4236,17 +4240,9 @@ if __name__ == '__main__':
             del tvg
 
         def test_objectid(self):
-            future = mockupdb.go(MongoDB, self.s.uri, "database", "col_articles",
-                                 "_id", "time", "col_entities", "doc", "sen", "ent",
-                                 use_pool=False)
-
-            request = self.s.receives("isMaster")
-            request.replies({'ok': 1, 'maxWireVersion': 5})
-
-            request = self.s.receives("ping")
-            request.replies({'ok': 1})
-
-            self.db = future()
+            self.db = self.MongoDB(self.s.uri, "database", "col_articles",
+                                   "_id", "time", "col_entities", "doc", "sen", "ent",
+                                   use_pool=False, max_distance=5)
 
             future = mockupdb.go(TVG.load, self.db, primary_key="dummy")
 
@@ -4303,6 +4299,23 @@ if __name__ == '__main__':
 
             g = future()
             self.assertTrue(isinstance(g, Graph))
+            del g
+
+        def test_max_distance(self):
+            occurrences = [{'sen': 0, 'ent': 1 },
+                           {'sen': 0x7fffffffffffffff, 'ent': 2 }]
+
+            g = self.load_from_occurrences(occurrences)
+            self.assertFalse(g.has_edge((1, 2)))
+            del g
+
+            self.db = self.MongoDB(self.s.uri, "database", "col_articles",
+                                   "_id", "time", "col_entities", "doc", "sen", "ent",
+                                   use_pool=False, max_distance=None)
+
+            g = self.load_from_occurrences(occurrences)
+            self.assertTrue(g.has_edge((1, 2)))
+            self.assertEqual(g[1, 2], 0.0)
             del g
 
     # Run the unit tests

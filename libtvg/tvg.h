@@ -250,7 +250,7 @@ struct mongodb_config
     int         use_pool;       /* use connection pool */
     int         load_nodes;
 
-    uint32_t    max_distance;
+    uint64_t    max_distance;
 };
 
 struct mongodb
