@@ -136,6 +136,8 @@ lib.alloc_vector.restype = c_vector_p
 
 lib.free_vector.argtypes = (c_vector_p,)
 
+lib.vector_clear.argtypes = (c_vector_p,)
+
 lib.vector_set_eps.argtypes = (c_vector_p, c_float)
 
 lib.vector_empty.argtypes = (c_vector_p,)
@@ -191,6 +193,8 @@ lib.alloc_graph.restype = c_graph_p
 lib.free_graph.argtypes = (c_graph_p,)
 
 lib.unlink_graph.argtypes = (c_graph_p,)
+
+lib.graph_clear.argtypes = (c_graph_p,)
 
 lib.graph_memory_usage.argtypes = (c_graph_p,)
 lib.graph_memory_usage.restype = c_uint64
@@ -548,6 +552,10 @@ class Vector(object):
     def empty(self):
         """ Check if a vector is empty, i.e., if it does not have any entries. """
         return lib.vector_empty(self._obj)
+
+    def clear(self):
+        """ Clear all entries of the vector object. """
+        lib.vector_clear(self._obj)
 
     def has_entry(self, index):
         """ Check if a vector has an entry with index `index`. """
@@ -923,6 +931,10 @@ class Graph(object):
     def empty(self):
         """ Check if the graph is empty, i.e., it does not have any edges. """
         return lib.graph_empty(self._obj)
+
+    def clear(self):
+        """ Clear all edges of the graph object. """
+        lib.graph_clear(self._obj)
 
     def has_edge(self, indices):
         """ Check if the graph has edge `(source, target)`. """
@@ -2379,6 +2391,19 @@ if __name__ == '__main__':
             self.assertNotIn(v.revision, revisions)
             del v
 
+        def test_clear(self):
+            v = Vector()
+            self.assertTrue(v.empty())
+            for i in range(10):
+                v[i] = i * i
+            self.assertFalse(v.empty())
+            v.clear()
+            self.assertTrue(v.empty())
+            for i in range(10):
+                v[i] = i * i
+            self.assertFalse(v.empty())
+            del v
+
         def test_batch(self):
             test_indices = np.array([0, 1, 2])
             test_weights = np.array([1.0, 2.0, 3.0])
@@ -2666,6 +2691,21 @@ if __name__ == '__main__':
 
             self.assertTrue(g.empty())
             self.assertNotIn(g.revision, revisions)
+            del g
+
+        def test_clear(self):
+            g = Graph(directed=True)
+            self.assertTrue(g.empty())
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = i
+            self.assertFalse(g.empty())
+            g.clear()
+            self.assertTrue(g.empty())
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = i
+            self.assertFalse(g.empty())
             del g
 
         def test_power_iteration(self):

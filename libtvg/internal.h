@@ -159,6 +159,7 @@ float random_float(void) DECL_INTERNAL;
 
 void init_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
 void free_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
+void bucket1_clear(struct bucket1 *bucket) DECL_INTERNAL;
 void bucket1_compress(struct bucket1 *bucket) DECL_INTERNAL;
 int bucket1_split(struct bucket1 *bucket1, struct bucket1 *bucket2, uint64_t mask) DECL_INTERNAL;
 int bucket1_merge(struct bucket1 *bucket1, struct bucket1 *bucket2) DECL_INTERNAL;
@@ -171,6 +172,7 @@ extern const struct vector_ops vector_positive_ops DECL_INTERNAL;
 
 void init_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 void free_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
+void bucket2_clear(struct bucket2 *bucket) DECL_INTERNAL;
 void bucket2_compress(struct bucket2 *bucket) DECL_INTERNAL;
 int bucket2_split(struct bucket2 *bucket1, struct bucket2 *bucket2, uint64_t source_mask, uint64_t target_mask) DECL_INTERNAL;
 int bucket2_merge(struct bucket2 *bucket1, struct bucket2 *bucket2) DECL_INTERNAL;

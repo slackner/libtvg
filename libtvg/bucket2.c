@@ -22,6 +22,11 @@ void free_bucket2(struct bucket2 *bucket)
     init_bucket2(bucket);
 }
 
+void bucket2_clear(struct bucket2 *bucket)
+{
+    bucket->num_entries = 0;
+}
+
 void bucket2_compress(struct bucket2 *bucket)
 {
     struct entry2 *entries;

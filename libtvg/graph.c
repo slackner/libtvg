@@ -497,6 +497,19 @@ int graph_empty(struct graph *graph)
     return 1;
 }
 
+void graph_clear(struct graph *graph)
+{
+    uint64_t i, num_buckets;
+
+    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+    for (i = 0; i < num_buckets; i++)
+        bucket2_clear(&graph->buckets[i]);
+
+    graph->revision++;
+    if (!--graph->optimize)
+        graph_optimize(graph);
+}
+
 int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target)
 {
     uint32_t i;

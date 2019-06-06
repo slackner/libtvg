@@ -226,6 +226,12 @@ Vector.empty()
 ```
 Check if a vector is empty, i.e., if it does not have any entries.
 
+### clear
+```python
+Vector.clear()
+```
+Clear all entries of the vector object.
+
 ### has_entry
 ```python
 Vector.has_entry(index)
@@ -426,6 +432,12 @@ Unlink a graph from the TVG object.
 Graph.empty()
 ```
 Check if the graph is empty, i.e., it does not have any edges.
+
+### clear
+```python
+Graph.clear()
+```
+Clear all edges of the graph object.
 
 ### has_edge
 ```python
