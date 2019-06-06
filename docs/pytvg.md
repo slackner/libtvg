@@ -659,7 +659,25 @@ part of the subset specified by the `nodes` parameter.
 
 __Arguments__
 
-- __nodes__: Vector or list of nodes to preserve
+- __nodes__: Vector, list or set of nodes to preserve
+
+__Returns__
+
+Resulting graph.
+
+
+### sparse_subgraph
+```python
+Graph.sparse_subgraph(num_seeds=8, num_neighbors=3)
+```
+
+Create a sparse subgraph by seleting a few seed edges, and then
+using 'triangular growth' to add additional neighbors.
+
+__Arguments__
+
+- __num_seeds__: Number of seed edges to select
+- __num_neighbors__: Number of neighbors to add per seed node
 
 __Returns__
 

@@ -1273,11 +1273,14 @@ class Graph(object):
         part of the subset specified by the `nodes` parameter.
 
         # Arguments
-        nodes: Vector or list of nodes to preserve
+        nodes: Vector, list or set of nodes to preserve
 
         # Returns
         Resulting graph.
         """
+
+        if isinstance(nodes, set):
+            nodes = list(nodes)
 
         if not isinstance(nodes, Vector):
             vector = Vector()
@@ -1285,6 +1288,42 @@ class Graph(object):
             nodes = vector
 
         return Graph(obj=lib.graph_filter_nodes(self._obj, nodes._obj))
+
+    def sparse_subgraph(self, num_seeds=8, num_neighbors=3):
+        """
+        Create a sparse subgraph by seleting a few seed edges, and then
+        using 'triangular growth' to add additional neighbors.
+
+        # Arguments
+        num_seeds: Number of seed edges to select
+        num_neighbors: Number of neighbors to add per seed node
+
+        # Returns
+        Resulting graph.
+        """
+
+        seeds, _ = self.top_edges(num_seeds, ret_weights=False)
+        nodes = set()
+
+        for (i, j) in seeds:
+            nodes.add(i)
+            nodes.add(j)
+
+            temp = {}
+            for k, w in zip(*self.adjacent_edges(i)):
+                if k == j: continue
+                temp[k] = w
+
+            weights = {}
+            for k, w in zip(*self.adjacent_edges(j)):
+                if k == i: continue
+                if k not in temp: continue
+                weights[k] = min(temp[k], w)
+
+            for w, k in sorted([(w, k) for k, w in weights.items()], reverse=True)[:num_neighbors]:
+                nodes.add(k)
+
+        return self.filter_nodes(nodes)
 
     def bfs_count(self, source, max_count=None):
         """
@@ -2210,7 +2249,6 @@ class MetricTopics(MetricGraph):
     def result(self):
         """ Get the current graph based on network topics. """
         return Graph(obj=lib.metric_topics_get_result(self._obj))
-
 
 @libtvgobject
 class Window(object):
@@ -3782,6 +3820,29 @@ if __name__ == '__main__':
             g = window.update(300)
             self.assertEqual(window.ts, 300)
             self.assertTrue(abs(g[0, 1] - 12.0 / 23.0) < 1e-7)
+
+            del window
+            del tvg
+
+        def test_sparse_topics(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 1] = 1.0
+            g[0, 2] = 0.5
+            g[1, 2] = 0.5
+            g[0, 3] = 0.25
+            g[1, 3] = 0.25
+
+            window = tvg.WindowTopics(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            g = window.update(100)
+            h = g.sparse_subgraph(num_seeds=1, num_neighbors=1)
+            self.assertEqual(h.num_edges, 3)
+            self.assertTrue(abs(h[0, 1] - 2.0 / 3.0) < 1e-7)
+            self.assertTrue(abs(h[0, 2] - 0.5) < 1e-7)
+            self.assertTrue(abs(h[1, 2] - 0.5) < 1e-7)
 
             del window
             del tvg
