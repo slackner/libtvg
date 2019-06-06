@@ -218,6 +218,14 @@ struct metric_count_nodes
     struct vector *result;
 };
 
+struct metric_topics
+{
+    struct metric metric;
+    struct metric *sum_edges;
+    struct metric *count_edges;
+    struct metric *count_nodes;
+};
+
 struct window
 {
     uint64_t    refcount;
@@ -1480,6 +1488,9 @@ struct graph *metric_count_get_result_edges(struct metric *metric);
 
 struct metric *window_alloc_metric_count_nodes(struct window *window);
 struct vector *metric_count_nodes_get_result(struct metric *metric);
+
+struct metric *window_alloc_metric_topics(struct window *window);
+struct graph *metric_topics_get_result(struct metric *metric);
 
 struct metric *grab_metric(struct metric *metric);
 void free_metric(struct metric *metric);

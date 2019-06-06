@@ -463,6 +463,171 @@ struct vector *metric_count_nodes_get_result(struct metric *metric)
     return grab_vector(METRIC_COUNT_NODES(metric)->result);
 }
 
+/* metric_topics functions */
+
+const struct metric_ops metric_topics_ops;
+
+static inline struct metric_topics *METRIC_TOPICS(struct metric *metric)
+{
+    assert(metric->ops == &metric_topics_ops);
+    return CONTAINING_RECORD(metric, struct metric_topics, metric);
+}
+
+static void metric_topics_free(struct metric *metric)
+{
+    struct metric_topics *metric_topics = METRIC_TOPICS(metric);
+    free_metric(metric_topics->sum_edges);
+    free_metric(metric_topics->count_edges);
+    free_metric(metric_topics->count_nodes);
+}
+
+static void metric_topics_reset(struct metric *metric)
+{
+}
+
+static int metric_topics_add(struct metric *metric, struct graph *graph)
+{
+    return 1;  /* nothing to do */
+}
+
+static int metric_topics_sub(struct metric *metric, struct graph *graph)
+{
+    return 1;  /* nothing to do */
+}
+
+static int metric_topics_move(struct metric *metric, uint64_t ts)
+{
+    return 1;  /* nothing to do */
+}
+
+const struct metric_ops metric_topics_ops =
+{
+    metric_topics_free,
+    metric_topics_reset,
+    metric_topics_add,
+    metric_topics_sub,
+    metric_topics_move,
+};
+
+struct metric *window_alloc_metric_topics(struct window *window)
+{
+    struct metric_topics *metric_topics;
+    struct mongodb_config *config;
+    struct metric *metric;
+
+    LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
+    {
+        if (metric->ops == &metric_topics_ops)
+            return grab_metric(metric);
+    }
+
+    if (window->tvg->mongodb)
+    {
+        /* For graphs loaded from a MongoDB, ensure that the settings are
+         * compatible with this metric. */
+
+        config = window->tvg->mongodb->config;
+        if (config->sum_weights)
+        {
+            fprintf(stderr, "%s: Topic metric requires that sum_weights=False\n", __func__);
+            return NULL;
+        }
+    }
+
+    if (!(metric_topics = malloc(sizeof(*metric_topics))))
+        return NULL;
+
+    metric = &metric_topics->metric;
+    metric->refcount = 1;
+    metric->window   = grab_window(window);
+    metric->ops      = &metric_topics_ops;
+    metric->valid    = 0;
+
+    metric_topics->sum_edges   = NULL;
+    metric_topics->count_edges = NULL;
+    metric_topics->count_nodes = NULL;
+
+    if (!(metric_topics->sum_edges = window_alloc_metric_sum_edges(window, 0.0)))
+        goto error;
+    if (!(metric_topics->count_edges = window_alloc_metric_count_edges(window)))
+        goto error;
+    if (!(metric_topics->count_nodes = window_alloc_metric_count_nodes(window)))
+        goto error;
+
+    list_add_tail(&window->metrics, &metric->entry);
+    return metric;
+
+error:
+    free_metric(metric_topics->sum_edges);
+    free_metric(metric_topics->count_edges);
+    free_metric(metric_topics->count_nodes);
+    free_window(metric->window);
+    free(metric_topics);
+    return NULL;
+}
+
+struct graph *metric_topics_get_result(struct metric *metric)
+{
+    struct metric_topics *metric_topics = METRIC_TOPICS(metric);
+    struct vector *count_nodes = NULL;
+    struct graph *count_edges = NULL;
+    struct graph *sum_edges = NULL;
+    struct graph *result = NULL;
+    uint32_t graph_flags;
+    struct entry2 *edge;
+    float w_jaccard;
+    float w_mindist;
+    float weight;
+
+    if (!metric->valid)
+        return NULL;
+
+    if (!(sum_edges = metric_sum_edges_get_result(metric_topics->sum_edges)))
+        goto error;
+    if (!(count_edges = metric_count_edges_get_result(metric_topics->count_edges)))
+        goto error;
+    if (!(count_nodes = metric_count_nodes_get_result(metric_topics->count_nodes)))
+        goto error;
+
+    /* Enforce TVG_FLAGS_POSITIVE, our update mechanism relies on it. */
+    graph_flags = metric->window->tvg->flags & TVG_FLAGS_DIRECTED;
+    graph_flags |= TVG_FLAGS_POSITIVE;
+
+    if (!(result = alloc_graph(graph_flags)))
+        goto error;
+
+    /* Note: In the following, we use |D(e)| = |L(e)|. This works since L(e) only
+     * contains one entry per article, so the length of the tupel list equals to
+     * the number of articles. */
+
+    /* FIXME: Implement temporal weight? */
+
+    GRAPH_FOR_EACH_EDGE(count_edges, edge)
+    {
+        /* article jaccard weight */
+        w_jaccard = (vector_get_entry(count_nodes, edge->source) +
+                     vector_get_entry(count_nodes, edge->target)) / edge->weight;
+
+        /* min distance per article weight */
+        w_mindist = edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
+
+        /* merge results */
+        weight = 2.0 / (w_jaccard + w_mindist);
+        if (!graph_set_edge(result, edge->source, edge->target, weight))
+        {
+            free_graph(result);
+            result = NULL;
+            goto error;
+        }
+    }
+
+error:
+    free_graph(sum_edges);
+    free_graph(count_edges);
+    free_vector(count_nodes);
+    return result;
+}
+
 /* generic functions */
 
 struct metric *grab_metric(struct metric *metric)

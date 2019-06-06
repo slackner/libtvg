@@ -1016,6 +1016,21 @@ __Arguments__
 - __window_r__: Right boundary of the interval, relative to the timestamp.
 
 
+### WindowTopics
+```python
+TVG.WindowTopics(window_l, window_r)
+```
+
+Create a new rectangular filter window to detect topics in a specific range
+around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+considered.
+
+__Arguments__
+
+- __window_l__: Left boundary of the interval, relative to the timestamp.
+- __window_r__: Right boundary of the interval, relative to the timestamp.
+
+
 ### lookup_ge
 ```python
 TVG.lookup_ge(ts=0)
@@ -1271,7 +1286,7 @@ MetricCountEdges(obj=None)
 
 
 ### result
-Get the current graph base on edge counts.
+Get the current graph based on edge counts.
 
 ## MetricCountNodes
 ```python
@@ -1280,7 +1295,16 @@ MetricCountNodes(obj=None)
 
 
 ### result
-Get the current graph base on node counts.
+Get the current graph based on node counts.
+
+## MetricTopics
+```python
+MetricTopics(obj=None)
+```
+
+
+### result
+Get the current graph based on network topics.
 
 ## Window
 ```python
@@ -1339,6 +1363,12 @@ Create a new edge count metric.
 Window.CountNodes()
 ```
 Create a new node count metric.
+
+### Topics
+```python
+Window.Topics()
+```
+Create a new topic metric.
 
 ### reset
 ```python

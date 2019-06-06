@@ -404,6 +404,12 @@ lib.window_alloc_metric_count_nodes.restype = c_metric_p
 lib.metric_count_nodes_get_result.argtypes = (c_metric_p,)
 lib.metric_count_nodes_get_result.restype = c_vector_p
 
+lib.window_alloc_metric_topics.argtypes = (c_window_p,)
+lib.window_alloc_metric_topics.restype = c_metric_p
+
+lib.metric_topics_get_result.argtypes = (c_metric_p,)
+lib.metric_topics_get_result.restype = c_graph_p
+
 lib.free_metric.argtypes = (c_metric_p,)
 
 lib.metric_reset.argtypes = (c_metric_p,)
@@ -1774,6 +1780,20 @@ class TVG(object):
         window = self.Window(window_l, window_r)
         return window.CountNodes()
 
+    def WindowTopics(self, window_l, window_r):
+        """
+        Create a new rectangular filter window to detect topics in a specific range
+        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
+        considered.
+
+        # Arguments
+        window_l: Left boundary of the interval, relative to the timestamp.
+        window_r: Right boundary of the interval, relative to the timestamp.
+        """
+
+        window = self.Window(window_l, window_r)
+        return window.Topics()
+
     def lookup_ge(self, ts=0):
         """ Search for the first graph with timestamps `>= ts`. """
         if isinstance(ts, float):
@@ -2149,14 +2169,21 @@ class MetricSumEdgesExp(MetricGraph):
 class MetricCountEdges(MetricGraph):
     @property
     def result(self):
-        """ Get the current graph base on edge counts. """
+        """ Get the current graph based on edge counts. """
         return Graph(obj=lib.metric_count_edges_get_result(self._obj))
 
 class MetricCountNodes(MetricGraph):
     @property
     def result(self):
-        """ Get the current graph base on node counts. """
+        """ Get the current graph based on node counts. """
         return Vector(obj=lib.metric_count_nodes_get_result(self._obj))
+
+class MetricTopics(MetricGraph):
+    @property
+    def result(self):
+        """ Get the current graph based on network topics. """
+        return Graph(obj=lib.metric_topics_get_result(self._obj))
+
 
 @libtvgobject
 class Window(object):
@@ -2229,6 +2256,10 @@ class Window(object):
     def CountNodes(self):
         """ Create a new node count metric. """
         return MetricCountNodes(obj=lib.window_alloc_metric_count_nodes(self._obj))
+
+    def Topics(self):
+        """ Create a new topic metric. """
+        return MetricTopics(obj=lib.window_alloc_metric_topics(self._obj))
 
     def reset(self):
         """"
@@ -3649,6 +3680,63 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
+
+            del window
+            del tvg
+
+        def test_topics(self):
+            tvg = TVG(positive=True)
+
+            g = tvg.Graph(100)
+            g[0, 1] = 1.0
+            g = tvg.Graph(200)
+            g[0, 1] = 1.0
+            g = tvg.Graph(200)
+            g[1, 2] = 0.5
+            g = tvg.Graph(300)
+            g[0, 1] = 0.5
+            g = tvg.Graph(300)
+            g[0, 1] = 1.0
+            g = tvg.Graph(300)
+            g[1, 2] = 1.0
+
+            with self.assertRaises(MemoryError):
+                tvg.WindowTopics(0, 0)
+            with self.assertRaises(MemoryError):
+                tvg.WindowTopics(1, 0)
+
+            window = tvg.WindowTopics(-50, 50)
+            self.assertEqual(window.width, 100)
+
+            # |D(0)| = 1.0
+            # |D(1)| = 1.0
+            # |D((0, 1))| = 1.0
+            # |L((0, 1))| = 1.0
+            # \sum exp(-\delta) = 1.0
+
+            g = window.update(100)
+            self.assertEqual(window.ts, 100)
+            self.assertTrue(abs(g[0, 1] - 2.0 / 3.0) < 1e-7)
+
+            # |D(0)| = 1.0
+            # |D(1)| = 2.0
+            # |D((0, 1))| = 1.0
+            # |L((0, 1))| = 1.0
+            # \sum exp(-\delta) = 1.0
+
+            g = window.update(200)
+            self.assertEqual(window.ts, 200)
+            self.assertTrue(abs(g[0, 1] - 0.5) < 1e-7)
+
+            # |D(0)| = 2.0
+            # |D(1)| = 3.0
+            # |D((0, 1))| = 2.0
+            # |L((0, 1))| = 2.0
+            # \sum exp(-\delta) = 1.5
+
+            g = window.update(300)
+            self.assertEqual(window.ts, 300)
+            self.assertTrue(abs(g[0, 1] - 12.0 / 23.0) < 1e-7)
 
             del window
             del tvg
