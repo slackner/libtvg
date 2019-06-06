@@ -574,16 +574,17 @@ class Vector(object):
         """ Return entry `index` of the vector, or 0 if it doesn't exist. """
         return lib.vector_get_entry(self._obj, index)
 
-    def entries(self, ret_indices=True, ret_weights=True):
+    def entries(self, ret_indices=True, ret_weights=True, as_dict=False):
         """
         Return all indices and/or weights of a vector.
 
         # Arguments
         ret_indices: Return indices, otherwise None.
         ret_weights: Return weights, otherwise None.
+        as_dict: Return result as dictionary instead of tuple.
 
         # Returns
-        `(indices, weights)`
+        `(indices, weights)` or dictionary
         """
 
         num_entries = 100 # FIXME: Arbitrary limit.
@@ -599,6 +600,9 @@ class Vector(object):
             indices.resize((num_entries,), refcheck=False)
         if weights is not None:
             weights.resize((num_entries,), refcheck=False)
+
+        if as_dict:
+            return dict(zip(indices, weights))
 
         return indices, weights
 
@@ -773,7 +777,7 @@ class Vector(object):
 
     def as_dict(self):
         """ Return a dictionary containing all vector entries. """
-        return dict(zip(*self.entries()))
+        return self.entries(as_dict=True)
 
 @libtvgobject
 class Graph(object):
@@ -955,16 +959,17 @@ class Graph(object):
         (source, target) = indices
         return lib.graph_get_edge(self._obj, source, target)
 
-    def edges(self, ret_indices=True, ret_weights=True):
+    def edges(self, ret_indices=True, ret_weights=True, as_dict=False):
         """
         Return all indices and/or weights of a graph.
 
         # Arguments
         ret_indices: Return indices consisting of (source, target), otherwise None.
         ret_weights: Return weights, otherwise None.
+        as_dict: Return result as dictionary instead of tuple.
 
         # Returns
-        `(indices, weights)`
+        `(indices, weights)` or dictionary
         """
 
         num_edges = 100 # FIXME: Arbitrary limit.
@@ -981,9 +986,12 @@ class Graph(object):
         if weights is not None:
             weights.resize((num_edges,), refcheck=False)
 
+        if as_dict:
+            return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
+
         return indices, weights
 
-    def top_edges(self, max_edges, ret_indices=True, ret_weights=True):
+    def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False):
         """
         Return indices and/or weights of the top edges.
 
@@ -991,9 +999,10 @@ class Graph(object):
         num_edges: Limit the number of edges returned.
         ret_indices: Return indices consisting of (source, target), otherwise None.
         ret_weights: Return weights, otherwise None.
+        as_dict: Return result as dictionary instead of tuple.
 
         # Returns
-        `(indices, weights)`
+        `(indices, weights)` or dictionary
         """
 
         indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
@@ -1004,6 +1013,9 @@ class Graph(object):
             indices.resize((num_edges, 2), refcheck=False)
         if weights is not None and num_edges < max_edges:
             weights.resize((num_edges,), refcheck=False)
+
+        if as_dict:
+            return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
         return indices, weights
 
@@ -1029,7 +1041,7 @@ class Graph(object):
         """ Return the number of nodes of a graph. """
         return len(self.nodes())
 
-    def adjacent_edges(self, source, ret_indices=True, ret_weights=True):
+    def adjacent_edges(self, source, ret_indices=True, ret_weights=True, as_dict=False):
         """
         Return information about all edges adjacent to a given source edge.
 
@@ -1037,9 +1049,10 @@ class Graph(object):
         source: Index of the source node.
         ret_indices: Return target indices, otherwise None.
         ret_weights: Return weights, otherwise None.
+        as_dict: Return result as dictionary instead of tuple.
 
         # Returns
-        `(indices, weights)`
+        `(indices, weights)` or dictionary
         """
 
         num_edges = 100 # FIXME: Arbitrary limit.
@@ -1055,6 +1068,9 @@ class Graph(object):
             indices.resize((num_edges,), refcheck=False)
         if weights is not None:
             weights.resize((num_edges,), refcheck=False)
+
+        if as_dict:
+            return dict(zip(indices, weights))
 
         return indices, weights
 
@@ -1309,10 +1325,8 @@ class Graph(object):
             nodes.add(i)
             nodes.add(j)
 
-            temp = {}
-            for k, w in zip(*self.adjacent_edges(i)):
-                if k == j: continue
-                temp[k] = w
+            temp = self.adjacent_edges(i, as_dict=True)
+            del temp[j]
 
             weights = {}
             for k, w in zip(*self.adjacent_edges(j)):
@@ -1422,8 +1436,7 @@ class Graph(object):
 
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
-        indices, weights = self.edges()
-        return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
+        return self.edges(as_dict=True)
 
 class GraphIter(object):
     def __init__(self, graph):

@@ -240,7 +240,7 @@ Check if a vector has an entry with index `index`.
 
 ### entries
 ```python
-Vector.entries(ret_indices=True, ret_weights=True)
+Vector.entries(ret_indices=True, ret_weights=True, as_dict=False)
 ```
 
 Return all indices and/or weights of a vector.
@@ -249,10 +249,11 @@ __Arguments__
 
 - __ret_indices__: Return indices, otherwise None.
 - __ret_weights__: Return weights, otherwise None.
+- __as_dict__: Return result as dictionary instead of tuple.
 
 __Returns__
 
-`(indices, weights)`
+`(indices, weights)` or dictionary
 
 
 ### set_entries
@@ -447,7 +448,7 @@ Check if the graph has edge `(source, target)`.
 
 ### edges
 ```python
-Graph.edges(ret_indices=True, ret_weights=True)
+Graph.edges(ret_indices=True, ret_weights=True, as_dict=False)
 ```
 
 Return all indices and/or weights of a graph.
@@ -456,15 +457,16 @@ __Arguments__
 
 - __ret_indices__: Return indices consisting of (source, target), otherwise None.
 - __ret_weights__: Return weights, otherwise None.
+- __as_dict__: Return result as dictionary instead of tuple.
 
 __Returns__
 
-`(indices, weights)`
+`(indices, weights)` or dictionary
 
 
 ### top_edges
 ```python
-Graph.top_edges(max_edges, ret_indices=True, ret_weights=True)
+Graph.top_edges(max_edges, ret_indices=True, ret_weights=True, as_dict=False)
 ```
 
 Return indices and/or weights of the top edges.
@@ -474,10 +476,11 @@ __Arguments__
 - __num_edges__: Limit the number of edges returned.
 - __ret_indices__: Return indices consisting of (source, target), otherwise None.
 - __ret_weights__: Return weights, otherwise None.
+- __as_dict__: Return result as dictionary instead of tuple.
 
 __Returns__
 
-`(indices, weights)`
+`(indices, weights)` or dictionary
 
 
 ### nodes
@@ -491,7 +494,7 @@ to at least one other node (either as a source or target).
 
 ### adjacent_edges
 ```python
-Graph.adjacent_edges(source, ret_indices=True, ret_weights=True)
+Graph.adjacent_edges(source, ret_indices=True, ret_weights=True, as_dict=False)
 ```
 
 Return information about all edges adjacent to a given source edge.
@@ -501,10 +504,11 @@ __Arguments__
 - __source__: Index of the source node.
 - __ret_indices__: Return target indices, otherwise None.
 - __ret_weights__: Return weights, otherwise None.
+- __as_dict__: Return result as dictionary instead of tuple.
 
 __Returns__
 
-`(indices, weights)`
+`(indices, weights)` or dictionary
 
 
 ### num_adjacent_edges
