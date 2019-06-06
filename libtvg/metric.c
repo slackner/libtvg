@@ -107,7 +107,7 @@ static int metric_sum_edges_valid(struct metric *metric)
     return (metric_sum_edges->result != NULL);
 }
 
-static int metric_sum_edges_clear(struct metric *metric)
+static int metric_sum_edges_reset(struct metric *metric)
 {
     struct metric_sum_edges *metric_sum_edges = METRIC_SUM_EDGES(metric);
 
@@ -139,7 +139,7 @@ const struct metric_ops metric_sum_edges_ops =
     metric_sum_edges_init,
     metric_sum_edges_free,
     metric_sum_edges_valid,
-    metric_sum_edges_clear,
+    metric_sum_edges_reset,
     metric_sum_edges_add,
     metric_sum_edges_sub,
     metric_sum_edges_move,
@@ -226,7 +226,7 @@ static int metric_sum_edges_exp_valid(struct metric *metric)
     return (metric_sum_edges_exp->result != NULL);
 }
 
-static int metric_sum_edges_exp_clear(struct metric *metric)
+static int metric_sum_edges_exp_reset(struct metric *metric)
 {
     struct metric_sum_edges_exp *metric_sum_edges_exp = METRIC_SUM_EDGES_EXP(metric);
 
@@ -274,7 +274,7 @@ const struct metric_ops metric_sum_edges_exp_ops =
     metric_sum_edges_exp_init,
     metric_sum_edges_exp_free,
     metric_sum_edges_exp_valid,
-    metric_sum_edges_exp_clear,
+    metric_sum_edges_exp_reset,
     metric_sum_edges_exp_add,
     metric_sum_edges_exp_sub,
     metric_sum_edges_exp_move,
@@ -377,7 +377,7 @@ static int metric_count_edges_valid(struct metric *metric)
     return (metric_count_edges->result != NULL);
 }
 
-static int metric_count_edges_clear(struct metric *metric)
+static int metric_count_edges_reset(struct metric *metric)
 {
     struct metric_count_edges *metric_count_edges = METRIC_COUNT_EDGES(metric);
 
@@ -409,7 +409,7 @@ const struct metric_ops metric_count_edges_ops =
     metric_count_edges_init,
     metric_count_edges_free,
     metric_count_edges_valid,
-    metric_count_edges_clear,
+    metric_count_edges_reset,
     metric_count_edges_add,
     metric_count_edges_sub,
     metric_count_edges_move,
@@ -483,7 +483,7 @@ static int metric_count_nodes_valid(struct metric *metric)
     return (metric_count_nodes->result != NULL);
 }
 
-static int metric_count_nodes_clear(struct metric *metric)
+static int metric_count_nodes_reset(struct metric *metric)
 {
     struct metric_count_nodes *metric_count_nodes = METRIC_COUNT_NODES(metric);
 
@@ -515,7 +515,7 @@ const struct metric_ops metric_count_nodes_ops =
     metric_count_nodes_init,
     metric_count_nodes_free,
     metric_count_nodes_valid,
-    metric_count_nodes_clear,
+    metric_count_nodes_reset,
     metric_count_nodes_add,
     metric_count_nodes_sub,
     metric_count_nodes_move,
@@ -572,7 +572,7 @@ void free_metric(struct metric *metric)
 
 void metric_reset(struct metric *metric)
 {
-    metric->ops->free(metric);
+    metric->ops->reset(metric);
 }
 
 struct window *metric_get_window(struct metric *metric)

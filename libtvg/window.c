@@ -60,7 +60,7 @@ void window_reset(struct window *window)
 
     LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
     {
-        metric->ops->free(metric);
+        metric->ops->reset(metric);
     }
 }
 
@@ -198,7 +198,7 @@ restart:
     {
         LIST_FOR_EACH(metric, &window->metrics, struct metric, entry)
         {
-            if (!metric->ops->clear(metric))
+            if (!metric->ops->reset(metric))
             {
                 window_reset(window);
                 return 0;

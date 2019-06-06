@@ -76,7 +76,7 @@ struct metric_ops
     int       (*init)(struct metric *);
     void      (*free)(struct metric *);
     int       (*valid)(struct metric *);
-    int       (*clear)(struct metric *);
+    int       (*reset)(struct metric *);
     int       (*add)(struct metric *, struct graph *);
     int       (*sub)(struct metric *, struct graph *);
     int       (*move)(struct metric *, uint64_t ts);
