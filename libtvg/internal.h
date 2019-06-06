@@ -186,6 +186,7 @@ void free_minheap(struct minheap *h) DECL_INTERNAL;
 int minheap_push(struct minheap *h, const void *element) DECL_INTERNAL;
 void minheap_heapify(struct minheap *h, size_t i) DECL_INTERNAL;
 int minheap_pop(struct minheap *h, void *element) DECL_INTERNAL;
+size_t minheap_count(struct minheap *h) DECL_INTERNAL;
 
 struct queue *alloc_queue(size_t entry_size) DECL_INTERNAL;
 void free_queue(struct queue *q) DECL_INTERNAL;

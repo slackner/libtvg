@@ -550,6 +550,51 @@ uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights,
     return count;
 }
 
+static int _sort_entry2_by_weight(const void *a, const void *b, void *userdata)
+{
+    const struct entry2 *ba = a, *bb = b;
+    return -COMPARE(ba->weight, bb->weight);
+}
+
+uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges)
+{
+    struct minheap *queue;
+    struct entry2 *edge;
+    struct entry2 new_edge;
+    uint64_t count = 0;
+
+    if (!(queue = alloc_minheap(sizeof(struct entry2), _sort_entry2_by_weight, NULL)))
+        return 0;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!minheap_push(queue, edge))
+        {
+            fprintf(stderr, "%s: Out of memory\n", __func__);
+            free_minheap(queue);
+            return 0;
+        }
+    }
+
+    while (minheap_pop(queue, &new_edge))
+    {
+        if (count++ >= max_edges) break;
+        if (indices)
+        {
+            *indices++ = new_edge.source;
+            *indices++ = new_edge.target;
+        }
+        if (weights)
+        {
+            *weights++ = new_edge.weight;
+        }
+    }
+
+    count += minheap_count(queue);
+    free_minheap(queue);
+    return count;
+}
+
 uint64_t graph_get_adjacent_edges(struct graph *graph, uint64_t source, uint64_t *indices, float *weights, uint64_t max_edges)
 {
     uint64_t count = 0;

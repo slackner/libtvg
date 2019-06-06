@@ -462,6 +462,24 @@ __Returns__
 `(indices, weights)`
 
 
+### top_edges
+```python
+Graph.top_edges(max_edges, ret_indices=True, ret_weights=True)
+```
+
+Return indices and/or weights of the top edges.
+
+__Arguments__
+
+- __num_edges__: Limit the number of edges returned.
+- __ret_indices__: Return indices consisting of (source, target), otherwise None.
+- __ret_weights__: Return weights, otherwise None.
+
+__Returns__
+
+`(indices, weights)`
+
+
 ### nodes
 ```python
 Graph.nodes()

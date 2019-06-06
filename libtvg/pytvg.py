@@ -219,6 +219,9 @@ lib.graph_get_edge.restype = c_float
 lib.graph_get_edges.argtypes = (c_graph_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_get_edges.restype = c_uint64
 
+lib.graph_get_top_edges.argtypes = (c_graph_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
+lib.graph_get_top_edges.restype = c_uint64
+
 lib.graph_get_adjacent_edges.argtypes = (c_graph_p, c_uint64, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_get_adjacent_edges.restype = c_uint64
 
@@ -976,6 +979,30 @@ class Graph(object):
         if indices is not None:
             indices.resize((num_edges, 2), refcheck=False)
         if weights is not None:
+            weights.resize((num_edges,), refcheck=False)
+
+        return indices, weights
+
+    def top_edges(self, max_edges, ret_indices=True, ret_weights=True):
+        """
+        Return indices and/or weights of the top edges.
+
+        # Arguments
+        num_edges: Limit the number of edges returned.
+        ret_indices: Return indices consisting of (source, target), otherwise None.
+        ret_weights: Return weights, otherwise None.
+
+        # Returns
+        `(indices, weights)`
+        """
+
+        indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
+        weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C') if ret_weights else None
+        num_edges = lib.graph_get_top_edges(self._obj, indices, weights, max_edges)
+
+        if indices is not None and num_edges < max_edges:
+            indices.resize((num_edges, 2), refcheck=False)
+        if weights is not None and num_edges < max_edges:
             weights.resize((num_edges,), refcheck=False)
 
         return indices, weights
@@ -3151,6 +3178,24 @@ if __name__ == '__main__':
             for i in range(100):
                 s, t = i//10, i%10
                 self.assertEqual(result[s, t], i)
+            del g
+
+        def test_top_edges(self):
+            g = Graph(directed=True)
+
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = (i * 13) % 100
+
+            indices, weights = g.top_edges(5)
+            self.assertEqual(indices.tolist(), [[2, 3], [4, 6], [6, 9], [9, 2], [1, 5]])
+            self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
+
+            indices, _ = g.top_edges(5, ret_weights=False)
+            self.assertEqual(indices.tolist(), [[2, 3], [4, 6], [6, 9], [9, 2], [1, 5]])
+
+            _, weights = g.top_edges(5, ret_indices=False)
+            self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
             del g
 
     class TVGTests(unittest.TestCase):

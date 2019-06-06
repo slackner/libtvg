@@ -100,3 +100,8 @@ int minheap_pop(struct minheap *h, void *element)
     minheap_heapify(h, 0);
     return 1;
 }
+
+size_t minheap_count(struct minheap *h)
+{
+    return h->num_entries;
+}
