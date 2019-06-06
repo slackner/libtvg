@@ -2172,7 +2172,7 @@ class MetricCountEdges(MetricGraph):
         """ Get the current graph based on edge counts. """
         return Graph(obj=lib.metric_count_edges_get_result(self._obj))
 
-class MetricCountNodes(MetricGraph):
+class MetricCountNodes(Metric):
     @property
     def result(self):
         """ Get the current graph based on node counts. """
