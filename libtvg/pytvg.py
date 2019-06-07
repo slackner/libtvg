@@ -1032,6 +1032,7 @@ class Graph(object):
         """ Return the number of edges of a graph. """
         return lib.graph_get_edges(self._obj, None, None, 0)
 
+    @cacheable
     def nodes(self):
         """
         Return a list of all nodes. A node is considered present, when it is connected
