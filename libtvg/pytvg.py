@@ -870,7 +870,16 @@ class Graph(object):
         Get the ID associated with this graph object. This only applies to objects
         loaded from an external data source, e.g., from a MongoDB.
         """
-        return self._obj.contents.id
+
+        objectid = self._obj.contents.objectid
+        if objectid.type == OBJECTID_NONE:
+            return None
+        if objectid.type == OBJECTID_INT:
+            return objectid.lo
+        if objectid.type == OBJECTID_OID:
+            return struct.pack(">IQ", objectid.hi, objectid.lo).hex()
+
+        raise NotImplementedError
 
     @staticmethod
     def load_from_file(filename, nonzero=False, positive=False, directed=False):
@@ -3226,12 +3235,15 @@ if __name__ == '__main__':
             g1 = tvg.Graph(100)
             self.assertEqual(g1.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g1.ts, 100)
+            self.assertEqual(g1.id, None)
             g2 = tvg.Graph(200)
             self.assertEqual(g2.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g2.ts, 200)
+            self.assertEqual(g2.id, None)
             g3 = tvg.Graph(300)
             self.assertEqual(g3.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g3.ts, 300)
+            self.assertEqual(g3.id, None)
             self.assertGreater(tvg.memory_usage, mem)
 
             g = tvg.lookup_le(50)
@@ -4198,6 +4210,7 @@ if __name__ == '__main__':
             for i, g in enumerate(tvg):
                 self.assertEqual(g.revision, 0)
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
+                self.assertEqual(g.id, 10 + i)
                 self.assertEqual(g[1, 2 + i], 1.0)
             del tvg
 
@@ -4229,12 +4242,14 @@ if __name__ == '__main__':
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, 0)
             self.assertEqual(g.ts, 1546300800000)
+            self.assertEqual(g.id, 10)
             self.assertEqual(g[1, 2], 1.0)
 
             g = g.next
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
             self.assertEqual(g.ts, 1546387200000)
+            self.assertEqual(g.id, 11)
             self.assertEqual(g[1, 3], 1.0)
 
             future = mockupdb.go(getattr, g, 'next')
@@ -4262,12 +4277,14 @@ if __name__ == '__main__':
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, 0)
             self.assertEqual(g.ts, 1546473600000)
+            self.assertEqual(g.id, 12)
             self.assertEqual(g[1, 4], 1.0)
 
             g = g.next
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
             self.assertEqual(g.ts, 1546560000000)
+            self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
 
             future = mockupdb.go(tvg.lookup_le, 1546732800000)
@@ -4294,12 +4311,14 @@ if __name__ == '__main__':
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
             self.assertEqual(g.ts, 1546732800000)
+            self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
 
             g = g.prev
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV)
             self.assertEqual(g.ts, 1546646400000)
+            self.assertEqual(g.id, 14)
             self.assertEqual(g[1, 6], 1.0)
 
             future = mockupdb.go(getattr, g, 'prev')
@@ -4319,12 +4338,14 @@ if __name__ == '__main__':
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, 0)
             self.assertEqual(g.ts, 1546560000000)
+            self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
 
             g = tvg.lookup_ge(1546732800000)
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
             self.assertEqual(g.ts, 1546732800000)
+            self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
 
             future = mockupdb.go(getattr, g, 'next')
@@ -4346,6 +4367,7 @@ if __name__ == '__main__':
                 self.assertEqual(g.revision, 0)
                 self.assertEqual(g.flags, 0)
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
+                self.assertEqual(g.id, 10 + i)
                 self.assertEqual(g[1, 2 + i], 1.0)
 
             tvg.disable_mongodb_sync()
@@ -4474,6 +4496,9 @@ if __name__ == '__main__':
             for i, g in enumerate(tvg):
                 self.assertEqual(g.revision, 0)
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
+                self.assertEqual(g.id, ['123456781234567812345678',
+                                        '123456781234567812345679',
+                                        '12345678123456781234567a'][i])
                 self.assertEqual(g[1, 2 + i], 1.0)
             del tvg
 
