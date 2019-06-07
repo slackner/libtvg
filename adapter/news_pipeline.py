@@ -11,12 +11,6 @@ import datetime
 import logging
 import re
 
-# print('Paths')
-# print('\n'.join(sys.path))
-
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../libtvg"))
-import pytvg
-
 class NewsArticle:
 
     def __init__(self, url, lang, publishing_date, nlp_processing_date, extracttime):
