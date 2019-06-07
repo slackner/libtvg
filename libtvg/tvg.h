@@ -1332,7 +1332,7 @@ void vector_optimize(struct vector *vector);
 void vector_set_eps(struct vector *vector, float eps);
 
 int vector_empty(struct vector *vector);
-void vector_clear(struct vector *vector);
+int vector_clear(struct vector *vector);
 
 int vector_has_entry(struct vector *vector, uint64_t index);
 
@@ -1382,7 +1382,7 @@ void graph_optimize(struct graph *graph);
 void graph_set_eps(struct graph *graph, float eps);
 
 int graph_empty(struct graph *graph);
-void graph_clear(struct graph *graph);
+int graph_clear(struct graph *graph);
 
 int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target);
 

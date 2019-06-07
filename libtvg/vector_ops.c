@@ -20,6 +20,21 @@ static inline struct entry1 *_vector_get_entry(struct vector *vector, uint64_t i
     return bucket1_get_entry(bucket, index, allocate);
 }
 
+static int generic_clear(struct vector *vector)
+{
+    uint64_t i, num_buckets;
+
+    num_buckets = 1ULL << vector->bits;
+    for (i = 0; i < num_buckets; i++)
+        bucket1_clear(&vector->buckets[i]);
+
+    vector->revision++;
+    if (!--vector->optimize)
+        vector_optimize(vector);
+
+    return 1;
+}
+
 static float generic_get(struct vector *vector, uint64_t index)
 {
     struct entry1 *entry;
@@ -92,6 +107,7 @@ static void generic_mul_const(struct vector *vector, float constant)
 
 const struct vector_ops vector_generic_ops =
 {
+    generic_clear,
     generic_get,
     generic_set,
     generic_add,
@@ -169,6 +185,7 @@ static void nonzero_mul_const(struct vector *vector, float constant)
 
 const struct vector_ops vector_nonzero_ops =
 {
+    generic_clear,
     generic_get,
     nonzero_set,
     nonzero_add,
@@ -246,6 +263,7 @@ static void positive_mul_const(struct vector *vector, float constant)
 
 const struct vector_ops vector_positive_ops =
 {
+    generic_clear,
     generic_get,
     positive_set,
     positive_add,

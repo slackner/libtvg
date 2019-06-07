@@ -255,17 +255,9 @@ int vector_empty(struct vector *vector)
     return 1;
 }
 
-void vector_clear(struct vector *vector)
+int vector_clear(struct vector *vector)
 {
-    uint64_t i, num_buckets;
-
-    num_buckets = 1ULL << vector->bits;
-    for (i = 0; i < num_buckets; i++)
-        bucket1_clear(&vector->buckets[i]);
-
-    vector->revision++;
-    if (!--vector->optimize)
-        vector_optimize(vector);
+    return vector->ops->clear(vector);
 }
 
 int vector_has_entry(struct vector *vector, uint64_t index)

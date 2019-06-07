@@ -144,6 +144,7 @@ lib.vector_duplicate.argtypes = (c_vector_p,)
 lib.vector_duplicate.restype = c_vector_p
 
 lib.vector_clear.argtypes = (c_vector_p,)
+lib.vector_clear.restype = c_int
 
 lib.vector_set_eps.argtypes = (c_vector_p, c_float)
 
@@ -211,6 +212,7 @@ lib.graph_duplicate.argtypes = (c_graph_p,)
 lib.graph_duplicate.restype = c_graph_p
 
 lib.graph_clear.argtypes = (c_graph_p,)
+lib.graph_clear.restype = c_int
 
 lib.graph_memory_usage.argtypes = (c_graph_p,)
 lib.graph_memory_usage.restype = c_uint64
@@ -765,7 +767,9 @@ class Vector(object):
 
     def clear(self):
         """ Clear all entries of the vector object. """
-        lib.vector_clear(self._obj)
+        res = lib.vector_clear(self._obj)
+        if not res:
+            raise RuntimeError
 
     def has_entry(self, index):
         """ Check if a vector has an entry with index `index`. """
@@ -1183,7 +1187,9 @@ class Graph(object):
 
     def clear(self):
         """ Clear all edges of the graph object. """
-        lib.graph_clear(self._obj)
+        res = lib.graph_clear(self._obj)
+        if not res:
+            raise RuntimeError
 
     def has_edge(self, indices):
         """ Check if the graph has edge `(source, target)`. """

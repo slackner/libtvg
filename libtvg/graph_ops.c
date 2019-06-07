@@ -38,6 +38,21 @@ static inline int _graph_del_edge(struct graph *graph, uint64_t source, uint64_t
     return 1;
 }
 
+static int generic_clear(struct graph *graph)
+{
+    uint64_t i, num_buckets;
+
+    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+    for (i = 0; i < num_buckets; i++)
+        bucket2_clear(&graph->buckets[i]);
+
+    graph->revision++;
+    if (!--graph->optimize)
+        graph_optimize(graph);
+
+    return 1;
+}
+
 static float generic_get(struct graph *graph, uint64_t source, uint64_t target)
 {
     struct entry2 *edge;
@@ -142,6 +157,7 @@ static void generic_mul_const(struct graph *graph, float constant)
 
 const struct graph_ops graph_generic_ops =
 {
+    generic_clear,
     generic_get,
     generic_set,
     generic_add,
@@ -241,6 +257,7 @@ static void nonzero_mul_const(struct graph *graph, float constant)
 
 const struct graph_ops graph_nonzero_ops =
 {
+    generic_clear,
     generic_get,
     nonzero_set,
     nonzero_add,
@@ -340,6 +357,7 @@ static void positive_mul_const(struct graph *graph, float constant)
 
 const struct graph_ops graph_positive_ops =
 {
+    generic_clear,
     generic_get,
     positive_set,
     positive_add,
