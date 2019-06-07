@@ -62,20 +62,25 @@ def parse_date_format(date_string, crawltime):
     # Try parsing date field from String to datetime format. If parsing does not work use crawltime.
     try:
         # Format 2019-04-15
-        publishing_date = datetime.datetime.strptime(date_string, '%Y-%m-%d')
-    except:
-        try:
-            # Format 2019-04-15T17:15:38+02:00 or 2019-05-23T11:13:00Z
-            publishing_date = datetime.datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S%z')
-        except:
-            try:
-                # Format 2019-05-22T03:33:14.929+02:00 or 2019-05-22T03:33:14.929Z
-                publishing_date = datetime.datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f%z')
-            except:
-                publishing_date = crawltime
-                # Log not parseable date format
-                logging.info('Format not processable: {}'.format(date_string))
-    return publishing_date
+        return datetime.datetime.strptime(date_string, '%Y-%m-%d')
+    except ValueError:
+        pass
+
+    try:
+        # Format 2019-04-15T17:15:38+02:00 or 2019-05-23T11:13:00Z
+        return datetime.datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S%z')
+    except ValueError:
+        pass
+
+    try:
+        # Format 2019-05-22T03:33:14.929+02:00 or 2019-05-22T03:33:14.929Z
+        return datetime.datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%f%z')
+    except ValueError:
+        pass
+
+    # Log not parseable date format
+    logging.info('Format not processable: {}'.format(date_string))
+    return crawltime
 
 if __name__ == "__main__":
     logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/unprocessed_date_formats.log'
