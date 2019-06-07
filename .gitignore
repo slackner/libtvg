@@ -6,3 +6,4 @@ libtvg/coverage
 __pycache__
 node_modules
 backlog
+.vscode
