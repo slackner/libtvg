@@ -124,10 +124,14 @@ c_mongodb_p      = POINTER(c_mongodb)
 c_bfs_entry_p    = POINTER(c_bfs_entry)
 c_bfs_callback_p = CFUNCTYPE(c_int, c_graph_p, c_bfs_entry_p, c_void_p)
 
-# init function
+# Before proceeding with any other function calls, first make sure that the library
+# is compatible. This is especially important since there is no stable API yet.
 
 lib.init_libtvg.argtypes = (c_uint64,)
 lib.init_libtvg.restype = c_int
+
+if not lib.init_libtvg(LIBTVG_API_VERSION):
+    raise RuntimeError("Incompatible %s library! Try to run 'make'." % libname)
 
 # vector functions
 
@@ -436,12 +440,6 @@ lib.tvg_load_graphs_from_mongodb.restype = c_int
 # libc functions
 
 libc.free.argtypes = (c_void_p,)
-
-# Before proceeding with any other function calls, first make sure that the library
-# is compatible. This is especially important since there is no stable API yet.
-
-if not lib.init_libtvg(LIBTVG_API_VERSION):
-    raise RuntimeError("Incompatible %s library! Try to run 'make'." % libname)
 
 # The 'cacheable' decorator can be used on Vector and Graph objects to cache the result
 # of a function call as long as the underlying vector/graph has not changed. This is
