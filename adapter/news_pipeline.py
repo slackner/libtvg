@@ -9,6 +9,7 @@ import sys
 import spacy
 import datetime
 import logging
+import re
 
 # print('Paths')
 # print('\n'.join(sys.path))
@@ -52,6 +53,12 @@ def get_entites_with_sentence_ind(spacy_model, article_body, article_id):
     return entities
 
 def parse_date_format(date_string, crawltime):
+    # Python versions < 3.7 only have very limited functionality for parsing
+    # timezones. Both 'Z' (an alias for +0000) and timezone specifiers
+    # containing a colon are not supported.
+    date_string = re.sub(r'Z$', r'+0000', date_string)
+    date_string = re.sub(r'([-+]\d{2}):(\d{2})(?:(\d{2}))?$', r'\1\2\3', date_string)
+
     # Try parsing date field from String to datetime format. If parsing does not work use crawltime.
     try:
         # Format 2019-04-15

@@ -19,7 +19,7 @@ class TestEntityPreprocessing(unittest.TestCase):
         # Result
         result = news.parse_date_format(publishing_date, crawltime)
         # Expected
-        expected = datetime.datetime.strptime(publishing_date, '%Y-%m-%d')
+        expected = datetime.datetime(2019, 4, 15, 0, 0)
         self.assertEqual(result, expected)
 
     def test_parse_date_format_utc_offset(self):
@@ -29,7 +29,7 @@ class TestEntityPreprocessing(unittest.TestCase):
         # Result
         result = news.parse_date_format(publishing_date, crawltime)
         # Expected
-        expected = datetime.datetime.strptime(publishing_date, '%Y-%m-%dT%H:%M:%S%z')
+        expected = datetime.datetime(2019, 4, 15, 17, 15, 38, tzinfo=datetime.timezone(datetime.timedelta(0, 7200)))
         self.assertEqual(result, expected)
 
     def test_parse_date_format_utc_no_offset(self):
@@ -39,7 +39,7 @@ class TestEntityPreprocessing(unittest.TestCase):
         # Result
         result = news.parse_date_format(publishing_date, crawltime)
         # Expected
-        expected = datetime.datetime.strptime(publishing_date, '%Y-%m-%dT%H:%M:%S%z')
+        expected = datetime.datetime(2019, 5, 23, 11, 13, tzinfo=datetime.timezone.utc)
         self.assertEqual(result, expected)
 
     def test_parse_date_format_utc_millisec_offset(self):
@@ -49,7 +49,7 @@ class TestEntityPreprocessing(unittest.TestCase):
         # Result
         result = news.parse_date_format(publishing_date, crawltime)
         # Expected
-        expected = datetime.datetime.strptime(publishing_date, '%Y-%m-%dT%H:%M:%S.%f%z')
+        expected = datetime.datetime(2019, 5, 22, 3, 33, 14, 929000, tzinfo=datetime.timezone(datetime.timedelta(0, 7200)))
         self.assertEqual(result, expected)
 
     def test_parse_date_format_utc_millisec_no_offset(self):
@@ -59,7 +59,7 @@ class TestEntityPreprocessing(unittest.TestCase):
         # Result
         result = news.parse_date_format(publishing_date, crawltime)
         # Expected
-        expected = datetime.datetime.strptime(publishing_date, '%Y-%m-%dT%H:%M:%S.%f%z')
+        expected = datetime.datetime(2019, 5, 22, 3, 33, 14, 929000, tzinfo=datetime.timezone.utc)
         self.assertEqual(result, expected)
 
     def test_parse_date_format_invalid(self):
