@@ -124,15 +124,18 @@ const onOpen = function (content) {
 
     $('#serverConnection').css('color', '#00f100');
     $('#serverConnection').attr('title', 'server connected');
+    $('#daterangepicker').attr('disabled', false);
 };
 
 const onClose = function () {
     console.log('disconnected');
 
-    // eslint-disable-next-line no-use-before-define
-    setTimeout(doConnect, 1000);
     $('#serverConnection').css('color', 'red');
     $('#serverConnection').attr('title', 'server disconnected');
+    $('#daterangepicker').attr('disabled', true);
+
+    // eslint-disable-next-line no-use-before-define
+    setTimeout(doConnect, 1000);
 };
 
 const onError = function (evt) {
