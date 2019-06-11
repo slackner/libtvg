@@ -9,7 +9,23 @@ const globalContext = {
 
 const nodes = new vis.DataSet([]);
 const edges = new vis.DataSet([]);
-const times = new vis.DataSet([]);
+const times = new vis.DataSet([
+    {
+        id: 1,
+        start: globalContext._now.startOf('hour'),
+        end: globalContext._now.startOf('hour'), // end is optional
+        style: 'color: white; background-color: #17a2b8; border-color: #0c7e90; text-align: center;',
+        content: 'selected period',
+        type: 'range',
+        editable: {
+            add: true,
+            updateTime: true,
+            updateGroup: false,
+            remove: false,
+            overrideItems: true,
+        },
+    },
+]);
 
 const settings = {
     color: [
@@ -149,148 +165,60 @@ const resizeDateRangePicker = function (item) {
     }
 };
 
-const initTimeline = function (min, max) {
-    const options = {
-        editable: {
-            add: false,
-            updateTime: true,
-        },
-        onMove: (item, callback) => {
-            sendMessageJson({
-                cmd: 'timeline_seek',
-                start: item.start.getTime(),
-                end: item.end.getTime(),
-            });
-            timeline.focus(1);
-            item.start = moment(item.start);
-            item.end = moment(item.end);
-
-            $('#loading').show();
-
-            callback(item);
-        },
-        onMoving: (item, callback) => {
-            resizeDateRangePicker({
-                start: moment(item.start.getTime()),
-                end: moment(item.end.getTime()),
-            });
-
-            callback(item);
-        },
-        // min: moment(),
-        // max: moment(),
-        zoomMin: 600000,
-        zoomMax: 314496000000,
-    };
+const onMessage = function (evt) {
+    console.log('get message');
+    const msg = JSON.parse(evt.data);
 
     let current;
     let start;
     let end;
 
-    const container = document.getElementById('mytimeline');
-
-    // Seek to the center of the given interval.
-    current = new Date((min + max) / 2);
-    start = moment(current).subtract(1, 'hours').startOf('hours');
-    end = moment(current).startOf('hours');
-
-    resizeDateRangePicker({
-        start,
-        end,
-    });
-
-    while (container.firstChild) {
-        container.removeChild(container.firstChild);
-    }
-
-    times.clear();
-    times.add([
-        {
-            id: 1,
-            start,
-            end, // end is optional
-            content: 'selected period',
-            style: 'color: white; background-color: #17a2b8; border-color: #0c7e90; text-align: center;',
-            type: 'range',
-            editable: {
-                add: true,
-                updateTime: true,
-                updateGroup: false,
-                remove: false,
-                overrideItems: true,
-            },
-        },
-        {
-            id: 2,
-            start: moment(min),
-            end: moment(max),
-            type: 'background',
-            style: 'background-color: #eee;',
-            editable: {
-                add: false,
-                updateTime: true,
-                updateGroup: false,
-                remove: false,
-                overrideItems: true,
-            },
-        },
-    ]);
-
-    timeline = new vis.Timeline(container, times, options);
-    // timeline.setItems(times);
-    timeline.setSelection(1);
-    timeline.focus(1);
-
-    timeline.on('doubleClick', (properties) => {
-        const item = times.get(1);
-        const timeOffset = item.end.diff(item.start) / 2;
-        const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
-        const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
-
-        times.update({
-            id: 1,
-            start: startRescal.startOf('seconds'),
-            end: endRescal.startOf('seconds'), // end is optional
-        });
-
-        resizeDateRangePicker({
-            start,
-            end,
-        });
-
-        timeline.focus(1);
-
-        sendMessageJson({
-            cmd: 'timeline_seek',
-            start: startRescal.unix() * 1000,
-            end: endRescal.unix() * 1000,
-        });
-
-        $('#loading').show();
-    });
-
-    timeline.on('click', () => {
-        timeline.setSelection(1);
-    });
-
-    sendMessageJson({
-        cmd: 'timeline_seek',
-        start: start.unix() * 1000,
-        end: end.unix() * 1000,
-    });
-
-    $('#loading').show();
-};
-
-const onMessage = function (evt) {
-    console.log('get message');
-    const msg = JSON.parse(evt.data);
-
     switch (msg.cmd) {
         case 'timeline_set_options':
             console.log('timeline_set_options');
 
-            initTimeline(msg.min, msg.max);
+            // Seek to the center of the given interval.
+            current = new Date((msg.min + msg.max) / 2);
+            start = moment(current).subtract(1, 'hours').startOf('hours');
+            end = moment(current).startOf('hours');
+
+            resizeDateRangePicker({
+                start,
+                end,
+            });
+
+            times.update({
+                id: 1,
+                start,
+                end,
+            });
+
+            times.update({
+                id: 2,
+                start: moment(msg.min),
+                end: moment(msg.max),
+                type: 'background',
+                style: 'background-color: #eee;',
+                editable: {
+                    add: false,
+                    updateTime: true,
+                    updateGroup: false,
+                    remove: false,
+                    overrideItems: true,
+                },
+            });
+
+            timeline.redraw();
+            timeline.setSelection(1);
+            timeline.focus(1);
+
+            sendMessageJson({
+                cmd: 'timeline_seek',
+                start: start.unix() * 1000,
+                end: end.unix() * 1000,
+            });
+
+            $('#loading').show();
             break;
 
         case 'set_context':
@@ -457,10 +385,82 @@ const initNetwork = function () {
     network = new vis.Network(container, data, options);
 }
 
+const initTimeline = function () {
+    const options = {
+        start: new Date('2018'),
+        end: new Date('2020'),
+        editable: {
+            add: false,
+            updateTime: true,
+        },
+        zoomMin: 600000,
+        zoomMax: 314496000000,
+        onMove: (item, callback) => {
+            sendMessageJson({
+                cmd: 'timeline_seek',
+                start: item.start.getTime(),
+                end: item.end.getTime(),
+            });
+            timeline.focus(1);
+            item.start = moment(item.start);
+            item.end = moment(item.end);
+
+            $('#loading').show();
+
+            callback(item);
+        },
+        onMoving: (item, callback) => {
+            resizeDateRangePicker({
+                start: moment(item.start.getTime()),
+                end: moment(item.end.getTime()),
+            });
+
+            callback(item);
+        },
+    };
+
+    const container = document.getElementById('mytimeline');
+    timeline = new vis.Timeline(container, times, options);
+    // timeline.setItems(times);
+
+    timeline.on('doubleClick', (properties) => {
+        const item = times.get(1);
+        const timeOffset = item.end.diff(item.start) / 2;
+        const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
+        const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
+
+        times.update({
+            id: 1,
+            start: startRescal.startOf('seconds'),
+            end: endRescal.startOf('seconds'), // end is optional
+        });
+
+        resizeDateRangePicker({
+            startRescal,
+            endRescal,
+        });
+
+        timeline.focus(1);
+
+        sendMessageJson({
+            cmd: 'timeline_seek',
+            start: startRescal.unix() * 1000,
+            end: endRescal.unix() * 1000,
+        });
+
+        $('#loading').show();
+    });
+
+    timeline.on('click', () => {
+        timeline.setSelection(1);
+    });
+};
+
 const init = function () {
     initDateRangePicker();
     initColorPicker();
     initNetwork();
+    initTimeline();
 
     setTimeout(doConnect, 1000);
 
