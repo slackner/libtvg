@@ -97,30 +97,32 @@ class Client(WebSocket):
             ts = self.window.ts
 
         if self.window is None or (width is not None and self.window.width != width):
-            self.window = dataset_tvg.WindowTopics(-width, 0)
+            self.window = dataset_tvg.Window(-width, 0)
+            self.nodes  = self.window.SumEdges()
+            self.edges  = self.window.Topics()
 
-        graph = self.window.update(ts)
+        self.window.update(ts)
 
         if context['nodeWeight'] == 'in_degrees':
-            values = graph.in_degrees()
+            values = self.nodes.result.in_degrees()
 
         elif context['nodeWeight'] == 'in_weights':
-            values = graph.in_weights()
+            values = self.nodes.result.in_weights()
 
         elif context['nodeWeight'] == 'out_degrees':
-            values = graph.out_degrees()
+            values = self.nodes.result.out_degrees()
 
         elif context['nodeWeight'] == 'out_weights':
-            values = graph.out_weights()
+            values = self.nodes.result.out_weights()
 
         elif context['nodeWeight'] == 'degree_anomalies':
-            values = graph.degree_anomalies()
+            values = self.nodes.result.degree_anomalies()
 
         elif context['nodeWeight'] == 'weight_anomalies':
-            values = graph.weight_anomalies()
+            values = self.nodes.result.weight_anomalies()
 
         elif context['nodeWeight'] == 'eigenvector':
-            values, _ = graph.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
+            values, _ = self.nodes.result.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
         else:
             print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
@@ -128,7 +130,7 @@ class Client(WebSocket):
 
         # Showing the full graph is not feasible. Limit the view
         # to a sparse subgraph of about ~40 nodes.
-        subgraph = graph.sparse_subgraph()
+        subgraph = self.edges.result.sparse_subgraph()
 
         nodes = []
         for i in subgraph.nodes():
@@ -168,6 +170,8 @@ class Client(WebSocket):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
         self.window  = None
+        self.nodes   = None
+        self.edges   = None
 
         # Set timeline min/max. The client can then seek to any position.
         min_ts = dataset_tvg.lookup_ge().ts
