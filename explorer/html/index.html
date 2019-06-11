@@ -4,22 +4,36 @@
     <title>TVG Explorer</title>
     <link rel="icon" type="image/png" href="../images/favicon.ico" sizes="32x32">
 
+    <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- AngularJS -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular.min.js"></script>
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <!-- popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 
+    <!-- Bootstrap -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
-    <link rel="stylesheet" href="../styles/design.css" type="text/css" media="screen">
 
+    <!-- Vis.js -->
     <script type="text/javascript" src="../scripts/vis.min.js"></script>
     <link rel="stylesheet" href="../styles/vis.min.css" type="text/css" media="screen">
 
+    <!-- Moment.js -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+
+    <!-- daterangepicker -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
+    <!-- custom -->
     <script type="text/javascript" src="../scripts/graph.js"></script>
+    <link rel="stylesheet" href="../styles/design.css" type="text/css" media="screen">
   </head>
 
   <body>
@@ -69,20 +83,20 @@
           </div>
 
           <div style="width: 100%; margin-top: 10px;">
-            <div class="btn-group">
-              <button id="nodeWeight" class="btn btn-info" type="button">
-                  Select Node Size
-              </button>
-              <button class="btn btn-info dropdown-toggle pull-right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick="toggleExpand()">
-              </button>
-              <div class="dropdown-menu" aria-labelledby="nodeWeight">
-                <b class="dropdown-item" name="in_degrees" onclick="getDropdownContent(event)">in_degrees</b>
-                <b class="dropdown-item" name="in_weights" onclick="getDropdownContent(event)">in_weights</b>
-                <b class="dropdown-item" name="out_degrees" onclick="getDropdownContent(event)">out_degrees</b>
-                <b class="dropdown-item" name="out_weights" onclick="getDropdownContent(event)">out_weights</b>
-                <b class="dropdown-item" name="degree_anomalies" onclick="getDropdownContent(event)">degree_anomalies</b>
-                <b class="dropdown-item" name="weight_anomalies" onclick="getDropdownContent(event)">weight_anomalies</b>
-                <a class="dropdown-item" name="eigenvector" onclick="getDropdownContent(event)">eigenvector</a>
+            <div class="input-group mb-3">
+              <input id="nodeWeight" class="form-control" type="text" disabled value="eigenvector"></input>
+              <div class="input-group-append">
+                <button type="button" class="btn btn-secondary noBoxShadow dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" style="cursor: pointer;">
+                  <b class="dropdown-item" name="in_degrees" onclick="getDropdownContent(event)">in degrees</b>
+                  <b class="dropdown-item" name="in_weights" onclick="getDropdownContent(event)">in weights</b>
+                  <b class="dropdown-item" name="out_degrees" onclick="getDropdownContent(event)">out degrees</b>
+                  <b class="dropdown-item" name="out_weights" onclick="getDropdownContent(event)">out weights</b>
+                  <b class="dropdown-item" name="degree_anomalies" onclick="getDropdownContent(event)">degree anomalies</b>
+                  <b class="dropdown-item" name="weight_anomalies" onclick="getDropdownContent(event)">weight anomalies</b>
+                  <b class="dropdown-item" name="eigenvector" onclick="getDropdownContent(event)">eigenvector</b>
+                </div>
               </div>
             </div>
           </div>

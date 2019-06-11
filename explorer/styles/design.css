@@ -57,3 +57,11 @@ right {
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
+.show>.btn-secondary.dropdown-toggle.noBoxShadow:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,0);
+}
+
+.btn-secondary.dropdown-toggle.noBoxShadow:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,0);
+}

@@ -106,24 +106,10 @@ const watchColorPicker = function (event) {
 };
 
 // eslint-disable-next-line no-unused-vars
-const toggleExpand = function () {
-    const dropdown = $('#nodeWeight');
-    const related = $('body').find('[aria-labelledby="nodeWeight"]');
-    if (dropdown.hasClass('show')) {
-        dropdown.removeClass('show');
-        related.removeClass('show');
-    } else {
-        dropdown.addClass('show');
-        related.addClass('show');
-    }
-};
-
-// eslint-disable-next-line no-unused-vars
 const getDropdownContent = function (event) {
     const selected = $(event.target).html();
     const selectedVal = $(event.target).attr('name');
-    $('#nodeWeight').html(selected);
-    toggleExpand();
+    $('#nodeWeight').attr('value', selected);
 
     sendMessageJson({
         cmd: 'change_node_weight',
