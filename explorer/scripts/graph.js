@@ -231,6 +231,8 @@ const onMessage = function (event) {
             nodes.add(msg.nodes);
             edges.add(msg.edges);
 
+            $('#initNodes').html(msg.nodes.length);
+            $('#initEdges').html(msg.edges.length);
             $('#loading').hide();
 
             // FIXME: Stabilize?
