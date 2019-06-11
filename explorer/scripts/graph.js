@@ -18,11 +18,9 @@ const times = new vis.DataSet([
         content: 'selected period',
         type: 'range',
         editable: {
-            add: true,
             updateTime: true,
             updateGroup: false,
             remove: false,
-            overrideItems: true,
         },
     },
 ]);
@@ -191,11 +189,9 @@ const onMessage = function (event) {
                 type: 'background',
                 style: 'background-color: #eee;',
                 editable: {
-                    add: false,
-                    updateTime: true,
+                    updateTime: false,
                     updateGroup: false,
                     remove: false,
-                    overrideItems: true,
                 },
             });
 
