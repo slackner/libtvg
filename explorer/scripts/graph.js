@@ -14,7 +14,7 @@ const times = new vis.DataSet([
         id: 1,
         start: globalContext._now.startOf('hour'),
         end: globalContext._now.startOf('hour'), // end is optional
-        style: 'color: white; background-color: #17a2b8; border-color: #0c7e90; text-align: center;',
+        style: 'color: white; background-color: #7ca7af; border-color: #33636b; text-align: center;',
         content: 'selected period',
         type: 'range',
         editable: {
@@ -71,7 +71,7 @@ let websocket;
 
 const sendMessageJson = function (message) {
     if (!websocket) {
-        console.log('no serverconnection established still');
+        console.log('missing connection to server');
     } else {
         websocket.send(JSON.stringify(message));
     }
@@ -96,13 +96,6 @@ const watchColorPicker = function (event) {
             $('#loading').show();
         }, 250);
     }
-
-
-    /*
-    document.querySelectorAll('p').forEach((p) => {
-        p.style.color = event.target.value;
-    });
-    */
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -137,8 +130,13 @@ const onClose = function (/* event */) {
     $('#serverConnection').attr('title', 'server disconnected');
     $('#daterangepicker').attr('disabled', true);
 
+    times.update({
+        id: 1,
+        style: 'color: white; background-color: #7ca7af; border-color: #33636b; text-align: center;',
+    });
+
     // eslint-disable-next-line no-use-before-define
-    setTimeout(doConnect, 1000);
+    setTimeout(doConnect, 10000);
 };
 
 const onError = function (error) {
@@ -183,6 +181,7 @@ const onMessage = function (event) {
                 id: 1,
                 start,
                 end,
+                style: 'color: white; background-color: #17a2b8; border-color: #0c7e90; text-align: center;',
             });
 
             times.update({
@@ -209,7 +208,6 @@ const onMessage = function (event) {
                 start: start.unix() * 1000,
                 end: end.unix() * 1000,
             });
-
             $('#loading').show();
             break;
 
@@ -277,6 +275,8 @@ const initDateRangePicker = function () {
             start: start / 1,
             end: end / 1,
         });
+        $('#loading').show();
+
         times.update({
             id: 1,
             start: moment(start).startOf('seconds'),
@@ -290,8 +290,6 @@ const initDateRangePicker = function () {
         timeline.itemSet.items[0].repositionX();
         timeline.itemsData.update(itemData);
         */
-
-        $('#loading').show();
 
         // console.log(`A new date selection was made: ${start.format('YYYY-MM-DD')} to ${end.format('YYYY-MM-DD')}`);
     });
@@ -327,7 +325,7 @@ const initColorPicker = function () {
         const node = document.querySelector(`#nodeColor-${element.flag}`);
         node.addEventListener('change', watchColorPicker, false);
     });
-}
+};
 
 const initNetwork = function () {
     const data = {
@@ -377,7 +375,7 @@ const initNetwork = function () {
 
     const container = document.getElementById('mynetwork');
     network = new vis.Network(container, data, options);
-}
+};
 
 const initTimeline = function () {
     const options = {
@@ -396,11 +394,11 @@ const initTimeline = function () {
                     start: item.start.getTime(),
                     end: item.end.getTime(),
                 });
+                $('#loading').show();
+
                 timeline.focus(1);
                 item.start = moment(item.start);
                 item.end = moment(item.end);
-
-                $('#loading').show();
 
                 callback(item); // send back adjusted item
             } else {
@@ -429,8 +427,8 @@ const initTimeline = function () {
         if (globalContext.connected) {
             const item = times.get(1);
             const timeOffset = item.end.diff(item.start) / 2;
-            const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
-            const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
+            const startRescal = moment(properties.time).subtract({ ms: timeOffset });
+            const endRescal = moment(properties.time).add({ ms: timeOffset });
 
             times.update({
                 id: 1,
@@ -439,8 +437,8 @@ const initTimeline = function () {
             });
 
             resizeDateRangePicker({
-                startRescal,
-                endRescal,
+                start: startRescal,
+                end: endRescal,
             });
 
             timeline.focus(1);
@@ -450,7 +448,6 @@ const initTimeline = function () {
                 start: startRescal.unix() * 1000,
                 end: endRescal.unix() * 1000,
             });
-
             $('#loading').show();
         }
     });
@@ -468,7 +465,7 @@ const init = function () {
 
     setTimeout(doConnect, 1000);
 
-    console.log('finished graph.init()');
+    console.log('initialized');
 };
 
 window.addEventListener('load', init, false);
