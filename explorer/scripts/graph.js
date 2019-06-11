@@ -119,16 +119,19 @@ const getDropdownContent = function (event) {
     $('#loading').show();
 };
 
-const onOpen = function (content) {
+const onOpen = function (/* event */) {
     console.log('connected');
+    globalContext.connected = true;
 
     $('#serverConnection').css('color', '#00f100');
     $('#serverConnection').attr('title', 'server connected');
     $('#daterangepicker').attr('disabled', false);
 };
 
-const onClose = function () {
+const onClose = function (/* event */) {
     console.log('disconnected');
+    globalContext.connected = false;
+    websocket = undefined;
 
     $('#serverConnection').css('color', 'red');
     $('#serverConnection').attr('title', 'server disconnected');
@@ -138,8 +141,8 @@ const onClose = function () {
     setTimeout(doConnect, 1000);
 };
 
-const onError = function (evt) {
-    console.log(`error: ${evt.data}`);
+const onError = function (error) {
+    console.log(`error: ${JSON.stringify(error)}`);
 
     websocket.close();
 };
@@ -154,9 +157,9 @@ const resizeDateRangePicker = function (item) {
     }
 };
 
-const onMessage = function (evt) {
+const onMessage = function (event) {
     console.log('get message');
-    const msg = JSON.parse(evt.data);
+    const msg = JSON.parse(event.data);
 
     let current;
     let start;
@@ -385,26 +388,34 @@ const initTimeline = function () {
         zoomMin: 600000,
         zoomMax: 314496000000,
         onMove: (item, callback) => {
-            sendMessageJson({
-                cmd: 'timeline_seek',
-                start: item.start.getTime(),
-                end: item.end.getTime(),
-            });
-            timeline.focus(1);
-            item.start = moment(item.start);
-            item.end = moment(item.end);
+            if (globalContext.connected) {
+                sendMessageJson({
+                    cmd: 'timeline_seek',
+                    start: item.start.getTime(),
+                    end: item.end.getTime(),
+                });
+                timeline.focus(1);
+                item.start = moment(item.start);
+                item.end = moment(item.end);
 
-            $('#loading').show();
+                $('#loading').show();
 
-            callback(item);
+                callback(item); // send back adjusted item
+            } else {
+                callback(null); // cancel updating the item
+            }
         },
         onMoving: (item, callback) => {
-            resizeDateRangePicker({
-                start: moment(item.start.getTime()),
-                end: moment(item.end.getTime()),
-            });
+            if (globalContext.connected) {
+                resizeDateRangePicker({
+                    start: moment(item.start.getTime()),
+                    end: moment(item.end.getTime()),
+                });
 
-            callback(item);
+                callback(item); // send back adjusted item
+            } else {
+                callback(null); // cancel updating the item
+            }
         },
     };
 
@@ -413,31 +424,33 @@ const initTimeline = function () {
     // timeline.setItems(times);
 
     timeline.on('doubleClick', (properties) => {
-        const item = times.get(1);
-        const timeOffset = item.end.diff(item.start) / 2;
-        const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
-        const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
+        if (globalContext.connected) {
+            const item = times.get(1);
+            const timeOffset = item.end.diff(item.start) / 2;
+            const startRescal = moment(properties.snappedTime).subtract({ ms: timeOffset });
+            const endRescal = moment(properties.snappedTime).add({ ms: timeOffset });
 
-        times.update({
-            id: 1,
-            start: startRescal.startOf('seconds'),
-            end: endRescal.startOf('seconds'), // end is optional
-        });
+            times.update({
+                id: 1,
+                start: startRescal.startOf('seconds'),
+                end: endRescal.startOf('seconds'), // end is optional
+            });
 
-        resizeDateRangePicker({
-            startRescal,
-            endRescal,
-        });
+            resizeDateRangePicker({
+                startRescal,
+                endRescal,
+            });
 
-        timeline.focus(1);
+            timeline.focus(1);
 
-        sendMessageJson({
-            cmd: 'timeline_seek',
-            start: startRescal.unix() * 1000,
-            end: endRescal.unix() * 1000,
-        });
+            sendMessageJson({
+                cmd: 'timeline_seek',
+                start: startRescal.unix() * 1000,
+                end: endRescal.unix() * 1000,
+            });
 
-        $('#loading').show();
+            $('#loading').show();
+        }
     });
 
     timeline.on('click', () => {
