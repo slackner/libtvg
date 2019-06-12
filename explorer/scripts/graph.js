@@ -422,20 +422,35 @@ const initTimeline = function () {
     });
 };
 
+const floatString = function (num) {
+    if (Number.isInteger(num)) {
+        return num + ".0";
+    } else {
+        return num.toString();
+    }
+}
+
 const downloadSnapshot = function () {
     let lines = [];
     let base64;
     let link;
+    let pos = network.getPositions();
 
     lines.push("graph");
     lines.push("[");
+    lines.push("  directed 0");
 
     nodes.forEach((node) => {
         lines.push("  node");
         lines.push("  [");
         lines.push("    id " + node.id);
         lines.push("    label \"" + node.label + "\"");
-        // FIXME: encode value
+        lines.push("    weight " + floatString(node.value));
+        lines.push("    graphics");
+        lines.push("    [");
+        lines.push("      x " + floatString( pos[node.id].x));
+        lines.push("      y " + floatString(-pos[node.id].y));
+        lines.push("    ]");
         lines.push("  ]");
     });
 
@@ -444,7 +459,7 @@ const downloadSnapshot = function () {
         lines.push("  [");
         lines.push("    source " + edge.from);
         lines.push("    target " + edge.to);
-        // FIXME: encode value
+        lines.push("    weight " + floatString(edge.value));
         lines.push("  ]");
     });
 
@@ -454,7 +469,7 @@ const downloadSnapshot = function () {
 
     link = document.createElement('a');
     link.href = "data:application/octet-stream;base64," + encodeURI(base64);
-    link.download = "snapshot.gml";
+    link.download = "snapshot_" + moment().format('YYYY-MM-DD_HH-mm') + ".gml";
     link.click();
 }
 
