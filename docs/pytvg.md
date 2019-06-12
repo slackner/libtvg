@@ -226,6 +226,12 @@ Vector.empty()
 ```
 Check if a vector is empty, i.e., if it does not have any entries.
 
+### duplicate
+```python
+Vector.duplicate()
+```
+Create an independent copy of the vector.
+
 ### clear
 ```python
 Vector.clear()
@@ -433,6 +439,12 @@ Unlink a graph from the TVG object.
 Graph.empty()
 ```
 Check if the graph is empty, i.e., it does not have any edges.
+
+### duplicate
+```python
+Graph.duplicate()
+```
+Create an independent copy of the graph.
 
 ### clear
 ```python
