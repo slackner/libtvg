@@ -422,6 +422,42 @@ const initTimeline = function () {
     });
 };
 
+const downloadSnapshot = function () {
+    let lines = [];
+    let base64;
+    let link;
+
+    lines.push("graph");
+    lines.push("[");
+
+    nodes.forEach((node) => {
+        lines.push("  node");
+        lines.push("  [");
+        lines.push("    id " + node.id);
+        lines.push("    label \"" + node.label + "\"");
+        // FIXME: encode value
+        lines.push("  ]");
+    });
+
+    edges.forEach((edge) => {
+        lines.push("  edge");
+        lines.push("  [");
+        lines.push("    source " + edge.from);
+        lines.push("    target " + edge.to);
+        // FIXME: encode value
+        lines.push("  ]");
+    });
+
+    lines.push("]");
+
+    base64 = window.btoa(lines.join("\n"));
+
+    link = document.createElement('a');
+    link.href = "data:application/octet-stream;base64," + encodeURI(base64);
+    link.download = "snapshot.gml";
+    link.click();
+}
+
 const init = function () {
     initDateRangePicker();
     initNetwork();
