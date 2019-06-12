@@ -1362,6 +1362,8 @@ struct graph *grab_graph(struct graph *graph);
 void free_graph(struct graph *graph);
 void unlink_graph(struct graph *graph);
 
+struct graph *graph_duplicate(struct graph *source);
+
 void graph_debug(struct graph *graph);
 uint64_t graph_memory_usage(struct graph *graph);
 

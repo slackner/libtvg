@@ -201,6 +201,9 @@ lib.free_graph.argtypes = (c_graph_p,)
 
 lib.unlink_graph.argtypes = (c_graph_p,)
 
+lib.graph_duplicate.argtypes = (c_graph_p,)
+lib.graph_duplicate.restype = c_graph_p
+
 lib.graph_clear.argtypes = (c_graph_p,)
 
 lib.graph_memory_usage.argtypes = (c_graph_p,)
@@ -958,6 +961,10 @@ class Graph(object):
     def empty(self):
         """ Check if the graph is empty, i.e., it does not have any edges. """
         return lib.graph_empty(self._obj)
+
+    def duplicate(self):
+        """ Create an independent copy of the graph. """
+        return Graph(obj=lib.graph_duplicate(self._obj))
 
     def clear(self):
         """ Clear all edges of the graph object. """
@@ -3252,6 +3259,30 @@ if __name__ == '__main__':
             _, weights = g.top_edges(5, ret_indices=False)
             self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
             del g
+
+        def test_duplicate(self):
+            g = Graph(directed=True)
+
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = i
+
+            revision = g.revision
+            g2 = g.duplicate()
+
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = 1.0
+
+            self.assertNotEqual(g.revision, revision)
+            self.assertEqual(g2.revision, revision)
+
+            for i in range(100):
+                s, t = i//10, i%10
+                self.assertEqual(g2[s, t], i)
+
+            del g
+            del g2
 
     class TVGTests(unittest.TestCase):
         def test_lookup(self):

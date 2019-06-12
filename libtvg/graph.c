@@ -132,6 +132,55 @@ void unlink_graph(struct graph *graph)
     free_graph(graph);
 }
 
+struct graph *graph_duplicate(struct graph *source)
+{
+    struct graph *graph;
+    struct bucket2 *buckets;
+    uint64_t i, num_buckets;
+
+    num_buckets = 1ULL << (source->bits_source + source->bits_target);
+    if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
+        return NULL;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        if (!init_bucket2_from(&buckets[i], &source->buckets[i]))
+        {
+            while (i--)
+                free_bucket2(&buckets[i]);
+
+            return NULL;
+        }
+    }
+
+    if (!(graph = malloc(sizeof(*graph))))
+    {
+        for (i = 0; i < num_buckets; i++)
+            free_bucket2(&buckets[i]);
+
+        free(buckets);
+        return NULL;
+    }
+
+    graph->refcount    = 1;
+    graph->flags       = source->flags & ~(TVG_FLAGS_LOAD_NEXT |
+                                           TVG_FLAGS_LOAD_PREV);
+    graph->revision    = source->revision;
+    graph->eps         = source->eps;
+    graph->ts          = source->ts;
+    graph->objectid    = source->objectid;
+    graph->tvg         = NULL;
+    list_init(&graph->entry);
+    graph->cache       = 0;
+    list_init(&graph->cache_entry);
+    graph->ops         = source->ops;
+    graph->bits_source = source->bits_source;
+    graph->bits_target = source->bits_target;
+    graph->buckets     = buckets;
+    graph->optimize    = source->optimize;
+    return graph;
+}
+
 void graph_refresh_cache(struct graph *graph)
 {
     if (!graph->cache) return;

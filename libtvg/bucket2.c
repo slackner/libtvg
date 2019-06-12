@@ -16,6 +16,31 @@ void init_bucket2(struct bucket2 *bucket)
     bucket->hint        = ~0ULL;
 }
 
+int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source)
+{
+    uint64_t num_entries = source->num_entries;
+    uint64_t max_entries;
+    struct entry2 *entries;
+
+    if (!num_entries)
+    {
+        init_bucket2(bucket);
+        return 1;
+    }
+
+    max_entries = MAX(num_entries, 2ULL);
+    if (!(entries = malloc(sizeof(*entries) * max_entries)))
+        return 0;
+
+    memcpy(entries, source->entries, sizeof(*entries) * num_entries);
+
+    bucket->num_entries = num_entries;
+    bucket->max_entries = max_entries;
+    bucket->entries     = entries;
+    bucket->hint        = ~0ULL;
+    return 1;
+}
+
 void free_bucket2(struct bucket2 *bucket)
 {
     free(bucket->entries);

@@ -170,6 +170,7 @@ extern const struct vector_ops vector_nonzero_ops DECL_INTERNAL;
 extern const struct vector_ops vector_positive_ops DECL_INTERNAL;
 
 void init_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
+int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source) DECL_INTERNAL;
 void free_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 void bucket2_clear(struct bucket2 *bucket) DECL_INTERNAL;
 void bucket2_compress(struct bucket2 *bucket) DECL_INTERNAL;
