@@ -107,8 +107,6 @@ class Client(WebSocket):
         Note that the timestamp specifies the right end of the window. If
         width is given, also update the width of the window.
         """
-        context = self.context
-
         if self.window is None and (ts is None or width is None):
             print('Error: Cannot seek with partial information!')
             return
@@ -124,31 +122,31 @@ class Client(WebSocket):
         log_scale = True
         custom_colors = {}
 
-        if context['nodeWeight'] == 'in_degrees':
+        if self.context['nodeWeight'] == 'in_degrees':
             self.window.update(ts)
             values = self.nodes.result.in_degrees()
 
-        elif context['nodeWeight'] == 'in_weights':
+        elif self.context['nodeWeight'] == 'in_weights':
             self.window.update(ts)
             values = self.nodes.result.in_weights()
 
-        elif context['nodeWeight'] == 'out_degrees':
+        elif self.context['nodeWeight'] == 'out_degrees':
             self.window.update(ts)
             values = self.nodes.result.out_degrees()
 
-        elif context['nodeWeight'] == 'out_weights':
+        elif self.context['nodeWeight'] == 'out_weights':
             self.window.update(ts)
             values = self.nodes.result.out_weights()
 
-        elif context['nodeWeight'] == 'degree_anomalies':
+        elif self.context['nodeWeight'] == 'degree_anomalies':
             self.window.update(ts)
             values = self.nodes.result.degree_anomalies()
 
-        elif context['nodeWeight'] == 'weight_anomalies':
+        elif self.context['nodeWeight'] == 'weight_anomalies':
             self.window.update(ts)
             values = self.nodes.result.weight_anomalies()
 
-        elif context['nodeWeight'] == 'eigenvector':
+        elif self.context['nodeWeight'] == 'eigenvector':
             self.window.update(ts)
             values, _ = self.nodes.result.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
@@ -178,7 +176,7 @@ class Client(WebSocket):
             log_scale = False
 
         else:
-            print('Error: Unimplemented node weight "%s"!' % context['nodeWeight'])
+            print('Error: Unimplemented node weight "%s"!' % self.context['nodeWeight'])
             raise NotImplementedError
 
         # Showing the full graph is not feasible. Limit the view
