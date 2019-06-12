@@ -286,6 +286,7 @@ static void test_graph_get_edge(void)
 {
     struct tvg *tvg = alloc_tvg(TVG_FLAGS_DIRECTED);
     struct graph *graph = tvg_alloc_graph(tvg, 0);
+    struct graph *graph2;
     float weight;
     uint64_t i;
 
@@ -294,9 +295,16 @@ static void test_graph_get_edge(void)
     graph_add_edge(graph, 0, 4, 2.0);
     graph_add_edge(graph, 0, 6, 3.0);
 
+    graph2 = graph_duplicate(graph);
+    assert(graph2 != NULL);
+
     for (i = 0; i < 11; i++)
     {
         weight = graph_get_edge(graph, 0, i);
+        if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
+        else assert(weight == i / 2.0);
+
+        weight = graph_get_edge(graph2, 0, i);
         if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
         else assert(weight == i / 2.0);
     }
@@ -307,6 +315,11 @@ static void test_graph_get_edge(void)
         assert(!graph_has_edge(graph, i, 0));
         assert(graph_get_edge(graph, 0, i) == 0.0);
         assert(graph_get_edge(graph, i, 0) == 0.0);
+
+        assert(!graph_has_edge(graph2, 0, i));
+        assert(!graph_has_edge(graph2, i, 0));
+        assert(graph_get_edge(graph2, 0, i) == 0.0);
+        assert(graph_get_edge(graph2, i, 0) == 0.0);
     }
 
     for (i = 0; i < 11; i++)
@@ -318,19 +331,41 @@ static void test_graph_get_edge(void)
         assert(graph_get_edge(graph, i, 0) == 0.0);
     }
 
+
+    for (i = 0; i < 11; i++)
+    {
+        weight = graph_get_edge(graph2, 0, i);
+        if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
+        else assert(weight == i / 2.0);
+    }
+
+    for (i = 0; i < 11; i++)
+    {
+        graph_del_edge(graph2, 0, i);
+        assert(!graph_has_edge(graph2, 0, i));
+        assert(!graph_has_edge(graph2, i, 0));
+        assert(graph_get_edge(graph2, 0, i) == 0.0);
+        assert(graph_get_edge(graph2, i, 0) == 0.0);
+    }
+
     for (i = 11; i < 21; i++)
     {
         graph_del_edge(graph, 0, i);
         graph_del_edge(graph, i, 0);
+
+        graph_del_edge(graph2, 0, i);
+        graph_del_edge(graph2, i, 0);
     }
 
     free_graph(graph);
+    free_graph(graph2);
     free_tvg(tvg);
 }
 
 static void test_vector_get_entry(void)
 {
     struct vector *vector = alloc_vector(0);
+    struct vector *vector2;
     float weight;
     uint64_t i;
 
@@ -339,9 +374,16 @@ static void test_vector_get_entry(void)
     vector_add_entry(vector, 4, 2.0);
     vector_add_entry(vector, 6, 3.0);
 
+    vector2 = vector_duplicate(vector);
+    assert(vector2 != NULL);
+
     for (i = 0; i < 11; i++)
     {
         weight = vector_get_entry(vector, i);
+        if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
+        else assert(weight == i / 2.0);
+
+        weight = vector_get_entry(vector2, i);
         if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
         else assert(weight == i / 2.0);
     }
@@ -350,6 +392,9 @@ static void test_vector_get_entry(void)
     {
         assert(!vector_has_entry(vector, i));
         assert(vector_get_entry(vector, i) == 0.0);
+
+        assert(!vector_has_entry(vector2, i));
+        assert(vector_get_entry(vector2, i) == 0.0);
     }
 
     for (i = 0; i < 11; i++)
@@ -359,12 +404,30 @@ static void test_vector_get_entry(void)
         assert(vector_get_entry(vector, i) == 0.0);
     }
 
+    for (i = 0; i < 11; i++)
+    {
+        weight = vector_get_entry(vector2, i);
+        if (i < 2 || i > 8 || (i & 1)) assert(weight == 0.0);
+        else assert(weight == i / 2.0);
+    }
+
+    for (i = 0; i < 11; i++)
+    {
+        vector_del_entry(vector2, i);
+        assert(!vector_has_entry(vector2, i));
+        assert(vector_get_entry(vector2, i) == 0.0);
+    }
+
+
     for (i = 11; i < 21; i++)
     {
         vector_del_entry(vector, i);
+
+        vector_del_entry(vector2, i);
     }
 
     free_vector(vector);
+    free_vector(vector2);
 }
 
 static void test_graph_bits_target(void)
