@@ -27,7 +27,7 @@ filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), libname)
 lib = cdll.LoadLibrary(filename)
 libc = cdll.LoadLibrary(find_library('c'))
 
-LIBTVG_API_VERSION  = 0x00000007
+LIBTVG_API_VERSION  = 0x00000008
 
 TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
@@ -67,15 +67,6 @@ class c_node(Structure):
 class c_tvg(Structure):
     _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint)]
-
-class c_metric(Structure):
-    _fields_ = [("refcount", c_uint64)]
-
-class c_window(Structure):
-    _fields_ = [("refcount", c_uint64),
-                ("ts",       c_uint64),
-                ("window_l", c_int64),
-                ("window_r", c_int64)]
 
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
@@ -117,8 +108,6 @@ c_vector_p       = POINTER(c_vector)
 c_graph_p        = POINTER(c_graph)
 c_node_p         = POINTER(c_node)
 c_tvg_p          = POINTER(c_tvg)
-c_metric_p       = POINTER(c_metric)
-c_window_p       = POINTER(c_window)
 c_mongodb_config_p = POINTER(c_mongodb_config)
 c_mongodb_p      = POINTER(c_mongodb)
 c_bfs_entry_p    = POINTER(c_bfs_entry)
@@ -142,6 +131,9 @@ lib.free_vector.argtypes = (c_vector_p,)
 
 lib.vector_duplicate.argtypes = (c_vector_p,)
 lib.vector_duplicate.restype = c_vector_p
+
+lib.vector_memory_usage.argtypes = (c_vector_p,)
+lib.vector_memory_usage.restype = c_uint64
 
 lib.vector_clear.argtypes = (c_vector_p,)
 lib.vector_clear.restype = c_int
@@ -363,6 +355,11 @@ lib.tvg_enable_mongodb_sync.restype = c_int
 
 lib.tvg_disable_mongodb_sync.argtypes = (c_tvg_p,)
 
+lib.tvg_enable_query_cache.argtypes = (c_tvg_p, c_uint64)
+lib.tvg_enable_query_cache.restype = c_int
+
+lib.tvg_disable_query_cache.argtypes = (c_tvg_p,)
+
 lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
 
@@ -375,71 +372,22 @@ lib.tvg_lookup_graph_near.restype = c_graph_p
 lib.tvg_compress.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_compress.restype = c_int
 
-# window functions
+# Query functions
 
-lib.tvg_alloc_window.argtypes = (c_tvg_p, c_int64, c_int64)
-lib.tvg_alloc_window.restype = c_window_p
+lib.tvg_sum_edges.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float)
+lib.tvg_sum_edges.restype = c_graph_p
 
-lib.free_window.argtypes = (c_window_p,)
+lib.tvg_sum_edges_exp.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float, c_float, c_float)
+lib.tvg_sum_edges_exp.restype = c_graph_p
 
-lib.window_reset.argtypes = (c_window_p,)
+lib.tvg_count_edges.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_edges.restype = c_graph_p
 
-lib.window_update.argtypes = (c_window_p, c_uint64)
-lib.window_update.restype = c_int
+lib.tvg_count_nodes.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_nodes.restype = c_vector_p
 
-lib.window_get_sources.argtypes = (c_window_p, POINTER(c_graph_p), c_uint64)
-lib.window_get_sources.restype = c_uint64
-
-# Metric functions
-
-lib.window_alloc_metric_sum_edges.argtypes = (c_window_p, c_float)
-lib.window_alloc_metric_sum_edges.restype = c_metric_p
-
-lib.metric_sum_edges_get_eps.argtypes = (c_metric_p,)
-lib.metric_sum_edges_get_eps.restype = c_float
-
-lib.metric_sum_edges_get_result.argtypes = (c_metric_p,)
-lib.metric_sum_edges_get_result.restype = c_graph_p
-
-lib.window_alloc_metric_sum_edges_exp.argtypes = (c_window_p, c_float, c_float, c_float)
-lib.window_alloc_metric_sum_edges_exp.restype = c_metric_p
-
-lib.metric_sum_edges_exp_get_weight.argtypes = (c_metric_p,)
-lib.metric_sum_edges_exp_get_weight.restype = c_float
-
-lib.metric_sum_edges_exp_get_log_beta.argtypes = (c_metric_p,)
-lib.metric_sum_edges_exp_get_log_beta.restype = c_float
-
-lib.metric_sum_edges_exp_get_eps.argtypes = (c_metric_p,)
-lib.metric_sum_edges_exp_get_eps.restype = c_float
-
-lib.metric_sum_edges_exp_get_result.argtypes = (c_metric_p,)
-lib.metric_sum_edges_exp_get_result.restype = c_graph_p
-
-lib.window_alloc_metric_count_edges.argtypes = (c_window_p,)
-lib.window_alloc_metric_count_edges.restype = c_metric_p
-
-lib.metric_count_edges_get_result.argtypes = (c_metric_p,)
-lib.metric_count_edges_get_result.restype = c_graph_p
-
-lib.window_alloc_metric_count_nodes.argtypes = (c_window_p,)
-lib.window_alloc_metric_count_nodes.restype = c_metric_p
-
-lib.metric_count_nodes_get_result.argtypes = (c_metric_p,)
-lib.metric_count_nodes_get_result.restype = c_vector_p
-
-lib.window_alloc_metric_topics.argtypes = (c_window_p,)
-lib.window_alloc_metric_topics.restype = c_metric_p
-
-lib.metric_topics_get_result.argtypes = (c_metric_p,)
-lib.metric_topics_get_result.restype = c_graph_p
-
-lib.free_metric.argtypes = (c_metric_p,)
-
-lib.metric_reset.argtypes = (c_metric_p,)
-
-lib.metric_get_window.argtypes = (c_metric_p,)
-lib.metric_get_window.restype = c_graph_p
+lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_topics.restype = c_graph_p
 
 # MongoDB functions
 
@@ -760,6 +708,12 @@ class Vector(object):
         res = lib.vector_set_eps(self._obj, value)
         if not res:
             raise MemoryError
+
+    @property
+    @cacheable
+    def memory_usage(self):
+        """ Return the memory usage currently associated with the vector. """
+        return lib.vector_memory_usage(self._obj)
 
     @cacheable
     def empty(self):
@@ -1997,8 +1951,8 @@ class TVG(object):
         Enable synchronization with a MongoDB server. Whenever more data is needed
         (e.g., querying the previous or next graph, or looking up graphs in a certain
         range), requests are sent to the database. Each request loads up to
-        `batch_size` graphs. The total amount of data kept in memory can be controlled
-        with the `cache_size` parameter.
+        `batch_size` graphs. The maximum amount of data kept in memory can be
+        controlled with the `cache_size` parameter.
 
         # Arguments
         mongodb: MongoDB object.
@@ -2014,6 +1968,24 @@ class TVG(object):
         """ Disable synchronization with a MongoDB server. """
         lib.tvg_disable_mongodb_sync(self._obj)
 
+    def enable_query_cache(self, cache_size=0):
+        """
+        Enable the query cache. This can be used to speed up query performance, at the
+        cost of higher memory usage. The maximum amount of data kept in memory can be
+        controlled with the `cache_size` parameter.
+
+        # Arguments
+        cache_size: Maximum size of the cache (in bytes).
+        """
+
+        res = lib.tvg_enable_query_cache(self._obj, cache_size)
+        if not res:
+            raise RuntimeError
+
+    def disable_query_cache(self):
+        """ Disable the query cache. """
+        lib.tvg_disable_query_cache(self._obj)
+
     def __iter__(self):
         """ Iterates through all graphs of a time-varying-graph object. """
         return GraphIter(self.lookup_ge())
@@ -2022,104 +1994,184 @@ class TVG(object):
         """ Iterates (in reverse order) through all graphs of a time-varying graph object. """
         return GraphIterReversed(self.lookup_le())
 
-    def Window(self, window_l, window_r):
+    def sum_edges(self, ts_min, ts_max, eps=None):
         """
-        Create a new sliding window to aggregate data in a specific range around a
-        fixed timestmap. Only graphs in [ts + window_l, ts + window_r] are
-        considered.
+        Add edges in a given timeframe [ts_min, ts_max].
 
         # Arguments
-        window_l: Left boundary of the interval, relative to the timestamp.
-        window_r: Right boundary of the interval, relative to the timestamp.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         """
 
-        if window_l < 0 and np.isinf(window_l):
-            window_l = -0x8000000000000000
-        if window_r > 0 and np.isinf(window_r):
-            window_r =  0x7fffffffffffffff
-        return Window(obj=lib.tvg_alloc_window(self._obj, window_l, window_r))
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
+        if eps is None:
+            eps = 0.0
 
-    def WindowSumEdges(self, window_l, window_r, eps=0.0):
+        return Graph(obj=lib.tvg_sum_edges(self._obj, ts_min, ts_max, eps))
+
+    def sum_edges_exp(self, ts_min, ts_max, beta=None, log_beta=None, weight=1.0, eps=None):
         """
-        Create a new rectangular filter window to aggregate data in a specific range
-        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-        considered.
+        Add edges in a given timeframe [ts_min, ts_max], weighted by an exponential
+        decay function.
 
         # Arguments
-        window_l: Left boundary of the interval, relative to the timestamp.
-        window_r: Right boundary of the interval, relative to the timestamp.
-        """
-
-        window = self.Window(window_l, window_r)
-        return window.SumEdges(eps=eps)
-
-    def WindowSumEdgesExp(self, window, beta=None, log_beta=None, eps=0.0):
-        """
-        Create a new exponential decay window to aggregate data in a specific range
-        around a fixed timestamp. Only graphs in [ts - window, window] are considered.
-
-        # Arguments
-        window: Amount of data in the past to consider.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         beta: Exponential decay constant.
         """
 
-        window = self.Window(-window, 0)
-        return window.SumEdgesExp(beta=beta, log_beta=log_beta, eps=eps)
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
+        if log_beta is None:
+            log_beta = math.log(beta)
+        if eps is None:
+            eps = 0.0
 
-    def WindowSumEdgesExpNorm(self, window, beta=None, log_beta=None, eps=0.0):
+        return Graph(obj=lib.tvg_sum_edges_exp(self._obj, ts_min, ts_max, weight, log_beta, eps))
+
+    def sum_edges_exp_norm(self, ts_min, ts_max, beta=None, log_beta=None, eps=None):
         """
-        Create a new exponential smoothing window to aggregate data in a specific range
-        around a fixed timestamp. Only graphs in [ts - window, window] are considered.
+        Add edges in a given timeframe [ts_min, ts_max], weighted by an exponential
+        smoothing function.
 
         # Arguments
-        window: Amount of data in the past to consider.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         beta: Exponential decay constant.
         """
 
-        window = self.Window(-window, 0)
-        return window.SumEdgesExpNorm(beta=beta, log_beta=log_beta, eps=eps)
+        if log_beta is None:
+            log_beta = math.log(beta)
 
-    def WindowCountEdges(self, window_l, window_r):
+        return self.sum_edges_exp(ts_min, ts_max, log_beta=log_beta, weight=-np.expm1(log_beta), eps=eps)
+
+    def count_edges(self, ts_min, ts_max):
         """
-        Create a new rectangular filter window to count edges in a specific range
-        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-        considered.
+        Count edges in a given timeframe [ts_min, ts_max].
 
         # Arguments
-        window_l: Left boundary of the interval, relative to the timestamp.
-        window_r: Right boundary of the interval, relative to the timestamp.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         """
 
-        window = self.Window(window_l, window_r)
-        return window.CountEdges()
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
 
-    def WindowCountNodes(self, window_l, window_r):
+        return Graph(obj=lib.tvg_count_edges(self._obj, ts_min, ts_max))
+
+    def count_nodes(self, ts_min, ts_max):
         """
-        Create a new rectangular filter window to count nodes in a specific range
-        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-        considered.
+        Count nodes in a given timeframe [ts_min, ts_max].
 
         # Arguments
-        window_l: Left boundary of the interval, relative to the timestamp.
-        window_r: Right boundary of the interval, relative to the timestamp.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         """
 
-        window = self.Window(window_l, window_r)
-        return window.CountNodes()
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
 
-    def WindowTopics(self, window_l, window_r):
+        return Vector(obj=lib.tvg_count_nodes(self._obj, ts_min, ts_max))
+
+    def topics(self, ts_min, ts_max):
         """
-        Create a new rectangular filter window to detect topics in a specific range
-        around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-        considered.
+        Extract network topics in the timeframe [ts_min, ts_max].
 
         # Arguments
-        window_l: Left boundary of the interval, relative to the timestamp.
-        window_r: Right boundary of the interval, relative to the timestamp.
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
         """
 
-        window = self.Window(window_l, window_r)
-        return window.Topics()
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
+
+        return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max))
+
+
+    def sample_eigenvectors(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None, tolerance=None):
+        """
+        Iterative power iteration algorithm to track eigenvectors of a graph over time.
+        Collection of eigenvectors starts at t = (ts - sample_width) and continues up
+        to t = ts. Each entry of the returned dictionary contains sample_steps values
+        collected at equidistant time steps.
+
+        # Arguments
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+        tolerance: Tolerance for the power_iteration algorithm.
+
+        # Returns
+        Dictionary containing lists of collected values for each node.
+        """
+
+        if sample_width < 1:
+            raise RuntimeError
+
+        eigenvector = None
+        result = collections.defaultdict(list)
+
+        for step, ts in enumerate(np.linspace(ts_min, ts_max - sample_width + 1, sample_steps)):
+            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+            eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
+                                                   ret_eigenvalue=False)
+
+            indices, weights = eigenvector.entries()
+            for i, w in zip(indices, weights):
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        for i in result.keys():
+            result[i] += [0.0] * (sample_steps - len(result[i]))
+
+        return result
+
+    def sample_edges(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None):
+        """
+        Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
+        Each entry of the returned dictionary contains sample_steps value collected
+        at equidistant time steps.
+
+        # Arguments
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
+        sample_width: Width of the region to collect samples.
+        sample_steps: Number of values to collect.
+
+        # Returns
+        Dictionary containing lists of collected values for each edge.
+        """
+
+        if sample_width < 1:
+            raise RuntimeError
+
+        result = collections.defaultdict(list)
+
+        for step, ts in enumerate(np.linspace(ts_min, ts_max - sample_width + 1, sample_steps)):
+            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+
+            indices, weights = graph.edges()
+            for i, w in zip(indices, weights):
+                i = tuple(i)
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        for i in result.keys():
+            result[i] += [0.0] * (sample_steps - len(result[i]))
+
+        return result
 
     def lookup_ge(self, ts=0):
         """ Search for the first graph with timestamps `>= ts`. """
@@ -2149,316 +2201,6 @@ class TVG(object):
         res = lib.tvg_compress(self._obj, step, offset)
         if not res:
             raise MemoryError
-
-@libtvgobject
-class Metric(object):
-    def __init__(self, obj=None):
-        if obj is None:
-            raise NotImplementedError
-
-        self._obj = obj
-        if not obj:
-            raise MemoryError
-
-        self._window = Window(obj=lib.metric_get_window(self._obj))
-
-    def __del__(self):
-        if lib is None:
-            return
-        if self._obj:
-            lib.free_metric(self._obj)
-
-    def _get_obj(self):
-        lib.free_metric(self._obj)
-        return self
-
-    @property
-    def window(self):
-        """ Get the associated window. """
-        return self._window
-
-    @property
-    def ts(self):
-        """ Return the current timestamp of the window. """
-        return self._window.ts
-
-    @property
-    def width(self):
-        """ Return the width of the window. """
-        return self._window.width
-
-    @property
-    def result(self):
-        return None
-
-    def reset(self):
-        """ Clear all additional data associated with the metric. """
-        lib.metric_reset(self._obj)
-
-    def update(self, ts):
-        """ Move the sliding window to a new timestamp. """
-        self._window.update(ts)
-        return self.result
-
-    def sources(self):
-        """ Return all graphs of the current window. """
-        return self._window.sources()
-
-class MetricGraph(Metric):
-    def sample_eigenvectors(self, ts, sample_width, sample_steps=9, tolerance=None):
-        """
-        Iterative power iteration algorithm to track eigenvectors of a graph over time.
-        Collection of eigenvectors starts at t = (ts - sample_width) and continues up
-        to t = ts. Each entry of the returned dictionary contains sample_steps values
-        collected at equidistant time steps.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-
-        # Returns
-        Dictionary containing lists of collected values for each node.
-        """
-
-        eigenvector = None
-        result = collections.defaultdict(list)
-
-        for step, ts in enumerate(np.linspace(ts - sample_width, ts, sample_steps)):
-            graph = self.update(int(ts))
-            eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
-                                                   ret_eigenvalue=False)
-
-            indices, weights = eigenvector.entries()
-            for i, w in zip(indices, weights):
-                result[i] += [0.0] * (step - len(result[i]))
-                result[i].append(w)
-
-        for i in result.keys():
-            result[i] += [0.0] * (sample_steps - len(result[i]))
-
-        return result
-
-    def sample_edges(self, ts, sample_width, sample_steps=9):
-        """
-        Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
-        Each entry of the returned dictionary contains sample_steps value collected
-        at equidistant time steps.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-
-        # Returns
-        Dictionary containing lists of collected values for each edge.
-        """
-
-        result = collections.defaultdict(list)
-
-        for step, ts in enumerate(np.linspace(ts - sample_width, ts, sample_steps)):
-            graph = self.update(int(ts))
-
-            indices, weights = graph.edges()
-            for i, w in zip(indices, weights):
-                i = tuple(i)
-                result[i] += [0.0] * (step - len(result[i]))
-                result[i].append(w)
-
-        for i in result.keys():
-            result[i] += [0.0] * (sample_steps - len(result[i]))
-
-        return result
-
-    def metric_entropy(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-        return metric_entropy(values, num_bins=num_bins)
-
-    def metric_entropy_local(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-        return metric_entropy_local(values, num_bins=num_bins)
-
-    def metric_entropy_2d(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-        return metric_entropy_2d(values, num_bins=num_bins)
-
-    def metric_trend(self, ts, sample_width, sample_steps=9, tolerance=None):
-        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-        return metric_trend(values)
-
-    def metric_stability(self, ts, sample_width, sample_steps=9, tolerance=None):
-        values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-        return metric_stability(values)
-
-class MetricSumEdges(MetricGraph):
-    @property
-    def eps(self):
-        """ Get the epsilon parameter. """
-        return lib.metric_sum_edges_get_eps(self._obj)
-
-    @property
-    def result(self):
-        """ Get the current graph based on the rectangle window. """
-        return Graph(obj=lib.metric_sum_edges_get_result(self._obj))
-
-class MetricSumEdgesExp(MetricGraph):
-    @property
-    def weight(self):
-        """ Get the weight parameter. """
-        return lib.metric_sum_edges_exp_get_weight(self._obj)
-
-    @property
-    def log_beta(self):
-        """ Get the log_beta parameter. """
-        return lib.metric_sum_edges_exp_get_log_beta(self._obj)
-
-    @property
-    def eps(self):
-        """ Get the epsilon parameter. """
-        return lib.metric_sum_edges_exp_get_eps(self._obj)
-
-    @property
-    def result(self):
-        """ Get the current graph based on the exponential decay window. """
-        return Graph(obj=lib.metric_sum_edges_exp_get_result(self._obj))
-
-class MetricCountEdges(MetricGraph):
-    @property
-    def result(self):
-        """ Get the current graph based on edge counts. """
-        return Graph(obj=lib.metric_count_edges_get_result(self._obj))
-
-class MetricCountNodes(Metric):
-    @property
-    def result(self):
-        """ Get the current graph based on node counts. """
-        return Vector(obj=lib.metric_count_nodes_get_result(self._obj))
-
-class MetricTopics(MetricGraph):
-    @property
-    def result(self):
-        """ Get the current graph based on network topics. """
-        return Graph(obj=lib.metric_topics_get_result(self._obj))
-
-@libtvgobject
-class Window(object):
-    """
-    This object represents a sliding window, which can be used to extract and aggregate
-    data in a specific timeframe. Once the object has been created, most parameters can
-    not be changed anymore. Only the timestamp can be changed.
-    """
-
-    def __init__(self, obj=None):
-        if obj is None:
-            raise NotImplementedError
-
-        self._obj = obj
-        if not obj:
-            raise MemoryError
-
-    def __del__(self):
-        if lib is None:
-            return
-        if self._obj:
-            lib.free_window(self._obj)
-
-    def _get_obj(self):
-        lib.free_window(self._obj)
-        return self
-
-    @property
-    def ts(self):
-        """ Return the current timestamp of the window. """
-        return self._obj.contents.ts
-
-    @property
-    def width(self):
-        """ Return the width of the window. """
-        return self._obj.contents.window_r - self._obj.contents.window_l
-
-    def SumEdges(self, eps=0.0):
-        """ Create a new rectangular filter metric. """
-        return MetricSumEdges(obj=lib.window_alloc_metric_sum_edges(self._obj, eps))
-
-    def SumEdgesExp(self, weight=1.0, beta=None, log_beta=None, eps=0.0):
-        """
-        Create a new exponential decay metric.
-
-        # Arguments
-        beta: Exponential decay constant.
-        """
-
-        if log_beta is None:
-            log_beta = math.log(beta)
-        return MetricSumEdgesExp(obj=lib.window_alloc_metric_sum_edges_exp(self._obj, weight, log_beta, eps))
-
-    def SumEdgesExpNorm(self, beta=None, log_beta=None, eps=0.0):
-        """
-        Create a new exponential smoothing metric.
-
-        # Arguments
-        beta: Exponential decay constant.
-        """
-
-        if log_beta is None:
-            log_beta = math.log(beta)
-        return self.SumEdgesExp(weight=-np.expm1(log_beta), log_beta=log_beta, eps=eps)
-
-    def CountEdges(self):
-        """ Create a new edge count metric. """
-        return MetricCountEdges(obj=lib.window_alloc_metric_count_edges(self._obj))
-
-    def CountNodes(self):
-        """ Create a new node count metric. """
-        return MetricCountNodes(obj=lib.window_alloc_metric_count_nodes(self._obj))
-
-    def Topics(self):
-        """ Create a new topic metric. """
-        return MetricTopics(obj=lib.window_alloc_metric_topics(self._obj))
-
-    def reset(self):
-        """"
-        Clear all additional data associated with the window, and force a full recompute
-        when the `update` function is used the next time.
-        """
-
-        lib.window_reset(self._obj)
-
-    def update(self, ts):
-        """
-        Move the sliding window to a new timestamp. Whenever possible, the previous state
-        will be reused to speed up the computation. For rectangular windows, for example,
-        it is sufficient to add data points that are moved into the interval, and to remove
-        data points that are now outside of the interval. For exponential windows, it is
-        also necessary to perform a multiplication of the full graph.
-
-        # Arguments
-        ts: New timestamp of the window.
-        """
-
-        res = lib.window_update(self._obj, ts)
-        if not res:
-            raise MemoryError
-
-    def sources(self):
-        """ Return all graphs of the current window. """
-
-        num_sources = 100 # FIXME: Arbitrary limit.
-        while True:
-            max_sources = num_sources
-            graphs = (c_graph_p * max_sources)()
-            num_sources = lib.window_get_sources(self._obj, graphs, max_sources)
-            if num_sources <= max_sources:
-                break
-            for obj in graphs:
-                lib.free_graph(obj)
-            graphs = None
-
-        if graphs is not None:
-            graphs = [Graph(obj=obj) for obj in graphs[:num_sources]]
-
-        return graphs
 
 @libtvgobject
 class MongoDB(object):
@@ -2539,12 +2281,14 @@ if __name__ == '__main__':
             self.assertTrue(v.empty())
             self.assertTrue(v.empty(drop_cache=True))
             revisions = [v.revision]
+            mem = v.memory_usage
 
             for i in range(10):
                 v[i] = i * i
 
             self.assertFalse(v.empty())
             self.assertNotIn(v.revision, revisions)
+            self.assertGreater(v.memory_usage, mem)
             revisions.append(v.revision)
 
             self.assertEqual(v.norm(), math.sqrt(15333.0))
@@ -3786,7 +3530,6 @@ if __name__ == '__main__':
             del tvg
             del g
 
-    class WindowTests(unittest.TestCase):
         def test_sum_edges(self):
             tvg = TVG(positive=True)
 
@@ -3803,40 +3546,28 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowSumEdges(0, 0)
-            with self.assertRaises(MemoryError):
-                tvg.WindowSumEdges(1, 0)
+                tvg.sum_edges(1, 0)
 
-            window = tvg.WindowSumEdges(-50, 50, eps=0.5)
-            self.assertEqual(window.width, 100)
-            self.assertEqual(window.eps, 0.5)
-
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
+            g = tvg.sum_edges(51, 150, eps=0.5)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(200)
-            self.assertEqual(window.ts, 200)
+            g = tvg.sum_edges(151, 250, eps=0.5)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 2.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(300)
-            self.assertEqual(window.ts, 300)
+            g = tvg.sum_edges(251, 350, eps=0.5)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 3.0)
 
-            window.reset()
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
+            g = tvg.sum_edges(51, 150, eps=0.5)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            del window
             del tvg
 
         def test_sum_edges_exp_precision(self):
@@ -3848,22 +3579,14 @@ if __name__ == '__main__':
             tvg.link_graph(g, 0)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowSumEdgesExp(0, beta)
-            with self.assertRaises(MemoryError):
-                tvg.WindowSumEdgesExp(-1, beta)
+                tvg.sum_edges_exp(1, 0, beta=beta)
 
-            window = tvg.WindowSumEdgesExp(np.inf, beta)
-            self.assertEqual(window.weight, 1.0)
-            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
-            self.assertEqual(window.eps, 0.0)
-
-            g = window.update(100)
+            g = tvg.sum_edges_exp(0, 100, beta=beta)
             self.assertTrue(abs(g[0, 0] - math.pow(beta, 100.0)) < 1e-7)
 
-            g = window.update(0)
+            g = tvg.sum_edges_exp(0, 0, beta=beta)
             self.assertTrue(abs(g[0, 0] - 1.0) < 1e-7)
 
-            del window
             del g
 
         def test_sum_edges_exp_norm(self):
@@ -3878,35 +3601,20 @@ if __name__ == '__main__':
                 tvg.link_graph(g, t)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowSumEdgesExpNorm(0, beta)
-            with self.assertRaises(MemoryError):
-                tvg.WindowSumEdgesExpNorm(-1, beta)
-
-            window = tvg.WindowSumEdgesExpNorm(np.inf, beta)
-            self.assertTrue(abs(window.weight + np.expm1(np.log(beta))) < 1e-7)
-            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
-            self.assertEqual(window.eps, 0.0)
+                tvg.sum_edges_exp_norm(1, 0, beta=beta)
 
             expected = 0.0
             for t, s in enumerate(source):
-                g = window.update(t)
-                self.assertEqual(window.ts, t)
+                g = tvg.sum_edges_exp_norm(0, t, beta=beta)
                 expected = beta * expected + (1.0 - beta) * s
                 self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
-            del window
-
-            window = tvg.WindowSumEdgesExpNorm(np.inf, log_beta=math.log(beta))
-            self.assertTrue(abs(window.weight + np.expm1(np.log(beta))) < 1e-7)
-            self.assertTrue(abs(window.log_beta - np.log(beta)) < 1e-7)
-            self.assertEqual(window.eps, 0.0)
 
             expected = 0.0
             for t, s in enumerate(source):
-                g = window.update(t)
-                self.assertEqual(window.ts, t)
+                g = tvg.sum_edges_exp_norm(0, t, log_beta=math.log(beta))
                 expected = beta * expected + (1.0 - beta) * s
                 self.assertTrue(abs(g[0, 0] - expected) < 1e-6)
-            del window
+
             del tvg
 
         def test_count_edges(self):
@@ -3925,39 +3633,28 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowCountEdges(0, 0)
-            with self.assertRaises(MemoryError):
-                tvg.WindowCountEdges(1, 0)
+                tvg.count_edges(1, 0)
 
-            window = tvg.WindowCountEdges(-50, 50)
-            self.assertEqual(window.width, 100)
-
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
+            g = tvg.count_edges(51, 150)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(200)
-            self.assertEqual(window.ts, 200)
+            g = tvg.count_edges(151, 250)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 1.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = window.update(300)
-            self.assertEqual(window.ts, 300)
+            g = tvg.count_edges(251, 350)
             self.assertEqual(g[0, 0], 0.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 1.0)
 
-            window.reset()
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
+            g = tvg.count_edges(51, 150)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            del window
             del tvg
 
         def test_count_nodes(self):
@@ -3977,39 +3674,28 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowCountNodes(0, 0)
-            with self.assertRaises(MemoryError):
-                tvg.WindowCountNodes(1, 0)
+                tvg.count_nodes(1, 0)
 
-            window = tvg.WindowCountNodes(-50, 50)
-            self.assertEqual(window.width, 100)
-
-            v = window.update(100)
-            self.assertEqual(window.ts, 100)
+            v = tvg.count_nodes(51, 150)
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
 
-            v = window.update(200)
-            self.assertEqual(window.ts, 200)
+            v = tvg.count_nodes(151, 250)
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 1.0)
 
-            v = window.update(300)
-            self.assertEqual(window.ts, 300)
+            v = tvg.count_nodes(251, 350)
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 1.0)
 
-            window.reset()
-            v = window.update(100)
-            self.assertEqual(window.ts, 100)
+            v = tvg.count_nodes(51, 150)
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
 
-            del window
             del tvg
 
         def test_topics(self):
@@ -4040,12 +3726,7 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
-                tvg.WindowTopics(0, 0)
-            with self.assertRaises(MemoryError):
-                tvg.WindowTopics(1, 0)
-
-            window = tvg.WindowTopics(-50, 50)
-            self.assertEqual(window.width, 100)
+                tvg.topics(1, 0)
 
             # |D(0)| = 1.0
             # |D(1)| = 1.0
@@ -4053,8 +3734,7 @@ if __name__ == '__main__':
             # |L((0, 1))| = 1.0
             # \sum exp(-\delta) = 1.0
 
-            g = window.update(100)
-            self.assertEqual(window.ts, 100)
+            g = tvg.topics(51, 150)
             self.assertTrue(abs(g[0, 1] - 2.0 / 3.0) < 1e-7)
 
             # |D(0)| = 1.0
@@ -4063,8 +3743,7 @@ if __name__ == '__main__':
             # |L((0, 1))| = 1.0
             # \sum exp(-\delta) = 1.0
 
-            g = window.update(200)
-            self.assertEqual(window.ts, 200)
+            g = tvg.topics(151, 250)
             self.assertTrue(abs(g[0, 1] - 0.5) < 1e-7)
 
             # |D(0)| = 2.0
@@ -4073,11 +3752,9 @@ if __name__ == '__main__':
             # |L((0, 1))| = 2.0
             # \sum exp(-\delta) = 1.5
 
-            g = window.update(300)
-            self.assertEqual(window.ts, 300)
+            g = tvg.topics(251, 350)
             self.assertTrue(abs(g[0, 1] - 12.0 / 23.0) < 1e-7)
 
-            del window
             del tvg
 
         def test_sparse_topics(self):
@@ -4091,80 +3768,13 @@ if __name__ == '__main__':
             g[1, 3] = 0.25
             tvg.link_graph(g, 100)
 
-            window = tvg.WindowTopics(-50, 50)
-            self.assertEqual(window.width, 100)
-
-            g = window.update(100)
+            g = tvg.topics(51, 150)
             h = g.sparse_subgraph(num_seeds=1, num_neighbors=1)
             self.assertEqual(h.num_edges, 3)
             self.assertTrue(abs(h[0, 1] - 2.0 / 3.0) < 1e-7)
             self.assertTrue(abs(h[0, 2] - 0.5) < 1e-7)
             self.assertTrue(abs(h[1, 2] - 0.5) < 1e-7)
 
-            del window
-            del tvg
-
-        def test_multi(self):
-            tvg = TVG(positive=True)
-
-            g = Graph()
-            g[0, 0] = 1.0
-            tvg.link_graph(g, 100)
-
-            g = Graph()
-            g[0, 1] = 2.0
-            g[1, 2] = 2.0
-            tvg.link_graph(g, 200)
-
-            g = Graph()
-            g[0, 2] = 3.0
-            tvg.link_graph(g, 300)
-
-            window = tvg.Window(-50, 50)
-            self.assertEqual(window.width, 100)
-            metric_edges = window.CountEdges()
-            metric_nodes = window.CountNodes()
-
-            window.update(100)
-            self.assertEqual(window.ts, 100)
-
-            g = metric_edges.result
-            self.assertEqual(g[0, 0], 1.0)
-            self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 0.0)
-
-            v = metric_nodes.result
-            self.assertEqual(v[0], 1.0)
-            self.assertEqual(v[1], 0.0)
-            self.assertEqual(v[2], 0.0)
-
-            window.update(200)
-            self.assertEqual(window.ts, 200)
-
-            g = metric_edges.result
-            self.assertEqual(g[0, 0], 0.0)
-            self.assertEqual(g[0, 1], 1.0)
-            self.assertEqual(g[0, 2], 0.0)
-
-            v = metric_nodes.result
-            self.assertEqual(v[0], 1.0)
-            self.assertEqual(v[1], 1.0)
-            self.assertEqual(v[2], 1.0)
-
-            window.update(300)
-            self.assertEqual(window.ts, 300)
-
-            g = metric_edges.result
-            self.assertEqual(g[0, 0], 0.0)
-            self.assertEqual(g[0, 1], 0.0)
-            self.assertEqual(g[0, 2], 1.0)
-
-            v = metric_nodes.result
-            self.assertEqual(v[0], 1.0)
-            self.assertEqual(v[1], 0.0)
-            self.assertEqual(v[2], 1.0)
-
-            del window
             del tvg
 
         def test_sample_eigenvectors(self):
@@ -4182,17 +3792,12 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
-
-            values = window.sample_eigenvectors(300, sample_width=200, sample_steps=3)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
             self.assertEqual(values[2], [0.0, 0.0, 1.0])
 
-            del window
             del tvg
 
         def test_sample_edges(self):
@@ -4210,16 +3815,12 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
-
-            values = window.sample_edges(300, sample_width=200, sample_steps=3)
+            values = tvg.sample_edges(50, 350, sample_width=101, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
             self.assertEqual(values[2, 2], [0.0, 0.0, 3.0])
 
-            del window
             del tvg
 
         def test_metric_entropy(self):
@@ -4240,17 +3841,15 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = metric_entropy(values, num_bins=6)
 
-            values = window.metric_entropy(300, sample_width=200, sample_steps=3, num_bins=6)
             P = np.array([3, 0, 0, 3, 2, 1]) / 9.0
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], - np.log(P[3]) * P[3] - np.log(P[0]) * P[0] - np.log(P[0]) * P[0])
             self.assertEqual(values[1], - np.log(P[3]) * P[3] - np.log(P[4]) * P[4] - np.log(P[0]) * P[0])
             self.assertEqual(values[2], - np.log(P[3]) * P[3] - np.log(P[4]) * P[4] - np.log(P[5]) * P[5])
 
-            del window
             del tvg
 
         def test_metric_entropy_edges(self):
@@ -4286,10 +3885,9 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = metric_entropy_local(values, num_bins=2)
 
-            values = window.metric_entropy_local(300, sample_width=200, sample_steps=3, num_bins=2)
             P0 = 1.0
             P1 = np.array([1, 2]) / 3.0
             P2 = np.array([2, 1]) / 3.0
@@ -4298,7 +3896,6 @@ if __name__ == '__main__':
             self.assertEqual(values[1], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[0]) * P2[0])
             self.assertEqual(values[2], - np.log(P0) * P0 - np.log(P1[1]) * P1[1] - np.log(P2[1]) * P2[1])
 
-            del window
             del tvg
 
         def test_metric_entropy_local_edges(self):
@@ -4334,17 +3931,15 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = metric_entropy_2d(values, num_bins=2)
 
-            values = window.metric_entropy_2d(300, sample_width=200, sample_steps=3, num_bins=2)
             P = np.array([[1, 0], [2, 3]]) / 6.0
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], - np.log(P[1, 0]) * P[1, 0] - np.log(P[0, 0]) * P[0, 0])
             self.assertEqual(values[1], - np.log(P[1, 1]) * P[1, 1] - np.log(P[1, 0]) * P[1, 0])
             self.assertEqual(values[2], - np.log(P[1, 1]) * P[1, 1] - np.log(P[1, 1]) * P[1, 1])
 
-            del window
             del tvg
 
         def test_metric_entropy_2d_edges(self):
@@ -4380,16 +3975,14 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = metric_trend(values)
 
-            values = window.metric_trend(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertTrue(abs(values[0] + 0.288675129) < 1e-7)
             self.assertTrue(abs(values[1] + 0.288675129) < 1e-7)
             self.assertTrue(abs(values[2] - 0.211324870) < 1e-7)
 
-            del window
             del tvg
 
         def test_metric_trend_edges(self):
@@ -4425,16 +4018,14 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            window = tvg.WindowSumEdges(-50, 50)
-            self.assertEqual(window.width, 100)
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = metric_stability(values)
 
-            values = window.metric_stability(300, sample_width=200, sample_steps=3)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[2], 1.0)
             self.assertEqual(values[0], 2.0)
             self.assertEqual(values[1], 2.0)
 
-            del window
             del tvg
 
         def test_metric_stability_edges(self):
@@ -4451,46 +4042,6 @@ if __name__ == '__main__':
             self.assertEqual(result[0, 1], 3.0)
             self.assertEqual(result[1, 1], 4.0)
             self.assertEqual(result[2, 2], 1.0)
-
-        def test_sources(self):
-            tvg = TVG(positive=True)
-
-            for t in range(50):
-                g = Graph()
-                g[t, t] = 1.0
-                tvg.link_graph(g, t)
-
-            window = tvg.WindowSumEdges(-1000, 0)
-            self.assertEqual(window.width, 1000)
-
-            g = window.update(999)
-            for t in range(50):
-                self.assertEqual(g[t, t], 1.0)
-            self.assertEqual(g[50, 50], 0.0)
-
-            graphs = window.sources()
-            self.assertEqual(len(graphs), 50)
-            for t, g in enumerate(graphs):
-                self.assertEqual(g.ts, t)
-                self.assertEqual(g[t, t], 1.0)
-
-            for t in range(50, 500):
-                g = Graph()
-                g[t, t] = 1.0
-                tvg.link_graph(g, t)
-
-            g = window.update(999)
-            for t in range(500):
-                self.assertEqual(g[t, t], 1.0)
-            self.assertEqual(g[500, 500], 0.0)
-
-            graphs = window.sources()
-            self.assertEqual(len(graphs), 500)
-            for t, g in enumerate(graphs):
-                self.assertEqual(g.ts, t)
-                self.assertEqual(g[t, t], 1.0)
-
-            del tvg
 
     class MongoDBTests(unittest.TestCase):
         def MongoDB(self, *args, **kwargs):

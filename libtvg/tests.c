@@ -690,18 +690,19 @@ static void test_extract(void)
     free_tvg(tvg);
 }
 
-static void test_window_sum_edges(void)
+static void test_sum_edges(void)
 {
-    struct window *window;
-    struct metric *metric;
     struct graph *graph;
     struct tvg *tvg;
     uint32_t i;
     uint64_t ts;
     int ret;
 
-    tvg = alloc_tvg(0);
+    tvg = alloc_tvg(TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO);
     assert(tvg != NULL);
+
+    ret = tvg_enable_query_cache(tvg, 0x8000);  /* 32 kB */
+    assert(ret);
 
     graph = alloc_graph(0);
     assert(graph != NULL);
@@ -724,16 +725,9 @@ static void test_window_sum_edges(void)
     assert(ret);
     free_graph(graph);
 
-    window = tvg_alloc_window(tvg, -100, 100);
-    assert(window != NULL);
-    metric = window_alloc_metric_sum_edges(window, 0.0);
-    assert(metric != NULL);
-
     for (ts = 0; ts <= 600; ts += 50)
     {
-        ret = window_update(window, ts);
-        assert(ret);
-        graph = metric_sum_edges_get_result(metric);
+        graph = tvg_sum_edges(tvg, MAX((int64_t)ts - 99, 0), ts + 100, 0.0);
         assert(graph != NULL);
 
         if (ts < 100 || ts >= 300) assert(!graph_has_edge(graph, 0, 0));
@@ -751,9 +745,7 @@ static void test_window_sum_edges(void)
     for (i = 0; i < 10000; i++)
     {
         ts = random_uint64() % 700;
-        ret = window_update(window, ts);
-        assert(ret);
-        graph = metric_sum_edges_get_result(metric);
+        graph = tvg_sum_edges(tvg, MAX((int64_t)ts - 99, 0), ts + 100, 0.0);
         assert(graph != NULL);
 
         if (ts < 100 || ts >= 300) assert(!graph_has_edge(graph, 0, 0));
@@ -768,16 +760,12 @@ static void test_window_sum_edges(void)
         free_graph(graph);
     }
 
-    free_metric(metric);
-    free_window(window);
     free_tvg(tvg);
 }
 
-static void test_window_sum_edges_exp(void)
+static void test_sum_edges_exp(void)
 {
     static float beta = 0.9930924954370359;
-    struct window *window;
-    struct metric *metric;
     struct graph *graph;
     struct tvg *tvg;
     uint64_t ts;
@@ -786,6 +774,9 @@ static void test_window_sum_edges_exp(void)
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
+
+    ret = tvg_enable_query_cache(tvg, 0x8000);  /* 32 kB */
+    assert(ret);
 
     graph = alloc_graph(0);
     assert(graph != NULL);
@@ -808,16 +799,9 @@ static void test_window_sum_edges_exp(void)
     assert(ret);
     free_graph(graph);
 
-    window = tvg_alloc_window(tvg, -1000, 0);
-    assert(window != NULL);
-    metric = window_alloc_metric_sum_edges_exp(window, 1.0, log(beta), 0.0);
-    assert(metric != NULL);
-
     for (ts = 0; ts <= 600; ts += 50)
     {
-        ret = window_update(window, ts);
-        assert(ret);
-        graph = metric_sum_edges_exp_get_result(metric);
+        graph = tvg_sum_edges_exp(tvg, 0, ts, 1.0, log(beta), 0.0);
         assert(graph != NULL);
 
         if (ts < 200) assert(!graph_has_edge(graph, 0, 0));
@@ -832,52 +816,24 @@ static void test_window_sum_edges_exp(void)
         free_graph(graph);
     }
 
-    /* Seeking back is not really numerically stable. To avoid test
-     * failures, manually delete edges that shouldn't exist. */
-
     for (i = 0; i < 10000; i++)
     {
         ts = random_uint64() % 700;
-        ret = window_update(window, ts);
-        assert(ret);
-        graph = metric_sum_edges_exp_get_result(metric);
+        graph = tvg_sum_edges_exp(tvg, 0, ts, 1.0, log(beta), 0.0);
         assert(graph != NULL);
 
-        if (ts < 200)
-        {
-            if (graph_has_edge(graph, 0, 0))
-            {
-                assert(fabs(graph_get_edge(graph, 0, 0)) < 1e-5);
-                graph_del_edge(graph, 0, 0);
-            }
-        }
-        else assert(fabs(graph_get_edge(graph, 0, 0) - 1.0 * pow(beta, ts - 200)) < 1e-6);
+        if (ts < 200) assert(fabs(graph_get_edge(graph, 0, 0)) < 1e-4);
+        else assert(fabs(graph_get_edge(graph, 0, 0) - 1.0 * pow(beta, ts - 200)) < 1e-5);
 
-        if (ts < 300)
-        {
-            if (graph_has_edge(graph, 0, 1))
-            {
-                assert(fabs(graph_get_edge(graph, 0, 1)) < 1e-5);
-                graph_del_edge(graph, 0, 1);
-            }
-        }
-        else assert(fabs(graph_get_edge(graph, 0, 1) - 2.0 * pow(beta, ts - 300)) < 1e-6);
+        if (ts < 300) assert(fabs(graph_get_edge(graph, 0, 1)) < 1e-4);
+        else assert(fabs(graph_get_edge(graph, 0, 1) - 2.0 * pow(beta, ts - 300)) < 1e-5);
 
-        if (ts < 400)
-        {
-            if (graph_has_edge(graph, 0, 2))
-            {
-                assert(fabs(graph_get_edge(graph, 0, 2)) < 1e-5);
-                graph_del_edge(graph, 0, 2);
-            }
-        }
-        else assert(fabs(graph_get_edge(graph, 0, 2) - 3.0 * pow(beta, ts - 400)) < 1e-6);
+        if (ts < 400) assert(fabs(graph_get_edge(graph, 0, 2)) < 1e-4);
+        else assert(fabs(graph_get_edge(graph, 0, 2) - 3.0 * pow(beta, ts - 400)) < 1e-5);
 
         free_graph(graph);
     }
 
-    free_metric(metric);
-    free_window(window);
     free_tvg(tvg);
 }
 
@@ -1517,8 +1473,8 @@ int main(void)
     test_vector_bits();
     test_vector_optimize();
     test_extract();
-    test_window_sum_edges();
-    test_window_sum_edges_exp();
+    test_sum_edges();
+    test_sum_edges_exp();
     test_graph_mul_vector();
     test_graph_vector_for_each_entry();
     test_power_iteration();

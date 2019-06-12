@@ -73,13 +73,17 @@ struct graph_ops
     int       (*mul_const)(struct graph *, float);
 };
 
-struct metric_ops
+struct query_ops
 {
-    void      (*free)(struct metric *);
-    void      (*reset)(struct metric *);
-    int       (*add)(struct metric *, struct graph *);
-    int       (*sub)(struct metric *, struct graph *);
-    int       (*move)(struct metric *, uint64_t ts);
+    void     *(*grab)(struct query *);
+    int       (*can_free)(struct query *);
+    void      (*free)(struct query *);
+
+    /* helpers for query_compute: */
+    int       (*compatible)(struct query *, struct query *);
+    int       (*add_graph)(struct query *, struct graph *, float);
+    int       (*add_query)(struct query *, struct query *, float);
+    void      (*finalize)(struct query *);
 };
 
 static inline void objectid_init(struct objectid *objectid)
@@ -170,6 +174,7 @@ void bucket1_del_entry(struct bucket1 *bucket, struct entry1 *entry) DECL_INTERN
 extern const struct vector_ops vector_generic_ops DECL_INTERNAL;
 extern const struct vector_ops vector_nonzero_ops DECL_INTERNAL;
 extern const struct vector_ops vector_positive_ops DECL_INTERNAL;
+extern const struct vector_ops vector_readonly_ops DECL_INTERNAL;
 
 void init_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source) DECL_INTERNAL;
@@ -199,6 +204,19 @@ int queue_put(struct queue *q, const void *element) DECL_INTERNAL;
 int queue_get(struct queue *q, void *element) DECL_INTERNAL;
 const void *queue_ptr(struct queue *q, size_t index) DECL_INTERNAL;
 
+struct range
+{
+    struct avl_entry entry;
+    uint64_t pos;
+    uint64_t len;
+    int64_t  weight;
+};
+
+struct ranges
+{
+    struct avl_tree tree;
+};
+
 struct ranges *alloc_ranges(void) DECL_INTERNAL;
 void free_ranges(struct ranges *ranges) DECL_INTERNAL;
 void ranges_debug(struct ranges *ranges) DECL_INTERNAL;
@@ -217,5 +235,7 @@ void tvg_load_graphs_ge(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_
 void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_INTERNAL;
 
 void graph_refresh_cache(struct graph *graph) DECL_INTERNAL;
+
+void free_query(struct query *query) DECL_INTERNAL;
 
 #endif /* _INTERNAL_H_ */

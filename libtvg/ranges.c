@@ -14,19 +14,6 @@ struct costs
     int64_t  weight;
 };
 
-struct range
-{
-    struct avl_entry entry;
-    uint64_t pos;
-    uint64_t len;
-    int64_t  weight;
-};
-
-struct ranges
-{
-    struct avl_tree tree;
-};
-
 static int _sort_costs_by_weight(const void *a, const void *b, void *userdata)
 {
     const struct costs *ca = a, *cb = b;

@@ -103,12 +103,18 @@ void unlink_graph(struct graph *graph)
 {
     struct graph *other_graph;
     struct tvg *tvg;
+    int external;
 
     if (!graph || !(tvg = graph->tvg))
         return;
 
-    if (!objectid_empty(&graph->objectid))  /* we have to reload later */
+    if ((external = (graph->cache != 0)))  /* we have to reload later */
+    {
         graph->flags |= (TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV);
+        list_remove(&graph->cache_entry);
+        tvg->graph_cache_used -= graph->cache;
+        graph->cache = 0;
+    }
 
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
     {
@@ -121,16 +127,13 @@ void unlink_graph(struct graph *graph)
         if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_PREV;
     }
 
-    if (graph->cache)
-    {
-        list_remove(&graph->cache_entry);
-        tvg->graph_cache_used -= graph->cache;
-        graph->cache = 0;
-    }
-
     avl_remove(&graph->entry);
     graph->tvg = NULL;
     graph->ops = get_graph_ops(graph->flags);  /* re-enable graph ops */
+
+    if (!external)
+        tvg_invalidate_queries(tvg, graph->ts, graph->ts);
+
     free_graph(graph);
 }
 

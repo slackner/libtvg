@@ -101,75 +101,78 @@ class Client(WebSocket):
         data = json.dumps(kwargs, indent=4, cls=ComplexEncoder)
         self.sendMessage(data)
 
-    def timeline_seek(self, ts=None, width=None):
+    def timeline_seek(self, ts_min=None, ts_max=None):
         """
         Update the graph view. If ts is given, seek to the given timestamp.
         Note that the timestamp specifies the right end of the window. If
         width is given, also update the width of the window.
         """
-        if self.window is None and (ts is None or width is None):
+
+        if ts_min is None:
+            ts_min = self.ts_min
+        if ts_max is None:
+            ts_max = self.ts_max
+
+        if ts_min is None or ts_max is None:
             print('Error: Cannot seek with partial information!')
             return
-
-        if ts is None:
-            ts = self.window.ts
-
-        if self.window is None or (width is not None and self.window.width != width):
-            self.window = dataset_tvg.Window(-width, 0)
-            self.nodes  = self.window.SumEdges()
-            self.edges  = self.window.Topics()
 
         log_scale = True
         custom_colors = {}
 
         if self.context['nodeWeight'] == 'in_degrees':
-            self.window.update(ts)
-            values = self.nodes.result.in_degrees()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.in_degrees()
 
         elif self.context['nodeWeight'] == 'in_weights':
-            self.window.update(ts)
-            values = self.nodes.result.in_weights()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.in_weights()
 
         elif self.context['nodeWeight'] == 'out_degrees':
-            self.window.update(ts)
-            values = self.nodes.result.out_degrees()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.out_degrees()
 
         elif self.context['nodeWeight'] == 'out_weights':
-            self.window.update(ts)
-            values = self.nodes.result.out_weights()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.out_weights()
 
         elif self.context['nodeWeight'] == 'degree_anomalies':
-            self.window.update(ts)
-            values = self.nodes.result.degree_anomalies()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.degree_anomalies()
 
         elif self.context['nodeWeight'] == 'weight_anomalies':
-            self.window.update(ts)
-            values = self.nodes.result.weight_anomalies()
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values = graph.weight_anomalies()
 
         elif self.context['nodeWeight'] == 'eigenvector':
-            self.window.update(ts)
-            values, _ = self.nodes.result.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            values, _ = graph.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
         elif self.context['nodeWeight'] == 'stable_nodes':
-            values = self.nodes.metric_stability(ts, self.window.width * 3)
+            values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
+            values = pytvg.metric_stability(values)
             for i in values.keys():
                 values[i] = -values[i]
             log_scale = False
 
         elif self.context['nodeWeight'] == 'entropy':
-            values = self.nodes.metric_entropy(ts, self.window.width * 3)
+            values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
+            values = pytvg.metric_entropy(values)
             log_scale = False
 
         elif self.context['nodeWeight'] == 'entropy_local':
-            values = self.nodes.metric_entropy_local(ts, self.window.width * 3)
+            values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
+            values = pytvg.metric_entropy_local(values)
             log_scale = False
 
         elif self.context['nodeWeight'] == 'entropy_2d':
-            values = self.nodes.metric_entropy_2d(ts, self.window.width * 3)
+            values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
+            values = pytvg.metric_entropy_2d(values)
             log_scale = False
 
         elif self.context['nodeWeight'] == 'trend':
-            values = self.nodes.metric_trend(ts, self.window.width * 3)
+            values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
+            values = pytvg.metric_trend(values)
             for i in values.keys():
                 custom_colors[i] = 'green' if values[i] >= 0.0 else 'red'
                 values[i] = abs(values[i])
@@ -182,10 +185,8 @@ class Client(WebSocket):
         # Showing the full graph is not feasible. Limit the view
         # to a sparse subgraph of about ~40 nodes.
 
-        if self.window.ts != ts:
-            self.window.update(ts)
-
-        subgraph = self.edges.result.sparse_subgraph()
+        graph = dataset_tvg.topics(ts_min, ts_max)
+        subgraph = graph.sparse_subgraph()
 
         # convert values to dictionary
         if isinstance(values, pytvg.Vector):
@@ -252,19 +253,19 @@ class Client(WebSocket):
             edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
 
         self.send_message_json(cmd='network_set', nodes=nodes, edges=edges)
-        self.ts = ts
+        self.ts_min = ts_min
+        self.ts_max = ts_max
 
     def event_connected(self):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
-        self.window  = None
-        self.nodes   = None
-        self.edges   = None
+        self.ts_min = None
+        self.ts_max = None
 
         # Set timeline min/max. The client can then seek to any position.
-        min_ts = dataset_tvg.lookup_ge().ts
-        max_ts = dataset_tvg.lookup_le().ts
-        self.send_message_json(cmd='timeline_set_options', min=min_ts, max=max_ts)
+        data_ts_min = dataset_tvg.lookup_ge().ts
+        data_ts_max = dataset_tvg.lookup_le().ts
+        self.send_message_json(cmd='timeline_set_options', min=data_ts_min, max=data_ts_max)
 
         self.send_message_json(cmd='set_context', context=self.context)
 
@@ -273,7 +274,7 @@ class Client(WebSocket):
         context = self.context
 
         if msg['cmd'] == 'timeline_seek':
-            self.timeline_seek(ts=int(msg['end']), width=max(int(msg['end'] - msg['start']), 1000))
+            self.timeline_seek(ts_min=int(msg['start']), ts_max=int(msg['end']))
             self.send_message_json(cmd='focus_timeline');
             return
 
@@ -346,6 +347,8 @@ if __name__ == "__main__":
 
     else:
         raise RuntimeError("Config does not have expected format")
+
+    dataset_tvg.enable_query_cache(cache_size=0x10000000) # 256 MB
 
     server = SimpleWebSocketServer('', 8000, Client)
     server.serveforever()

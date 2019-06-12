@@ -93,6 +93,9 @@ struct tvg *alloc_tvg(uint32_t flags)
     list_init(&tvg->graph_cache);
     tvg->graph_cache_used = 0;
     tvg->graph_cache_size = 0;
+    list_init(&tvg->query_cache);
+    tvg->query_cache_used = 0;
+    tvg->query_cache_size = 0;
 
     return tvg;
 }
@@ -105,12 +108,19 @@ struct tvg *grab_tvg(struct tvg *tvg)
 
 void free_tvg(struct tvg *tvg)
 {
+    struct query *query, *next_query;
     struct attribute *attr, *next_attr;
     struct graph *graph, *next_graph;
     struct node *node, *next_node;
 
     if (!tvg) return;
     if (__sync_sub_and_fetch(&tvg->refcount, 1)) return;
+
+    LIST_FOR_EACH_SAFE(query, next_query, &tvg->query_cache, struct query, cache_entry)
+    {
+        assert(query->tvg == tvg);
+        free_query(query);
+    }
 
     AVL_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {
@@ -133,6 +143,8 @@ void free_tvg(struct tvg *tvg)
     assert(avl_empty(&tvg->nodes_key));
     assert(list_empty(&tvg->graph_cache));
     assert(!tvg->graph_cache_used);
+    assert(list_empty(&tvg->query_cache));
+    assert(!tvg->query_cache_used);
     free(tvg);
 }
 
@@ -188,6 +200,8 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
     graph->ops = &graph_readonly_ops;  /* block changes */
     graph->tvg = tvg;
     grab_graph(graph);  /* grab extra reference */
+
+    tvg_invalidate_queries(tvg, ts, ts);
     return 1;
 }
 
@@ -553,6 +567,18 @@ void tvg_disable_mongodb_sync(struct tvg *tvg)
     }
 }
 
+int tvg_enable_query_cache(struct tvg *tvg, uint64_t cache_size)
+{
+    tvg->query_cache_size = cache_size;
+    return 1;
+}
+
+void tvg_disable_query_cache(struct tvg *tvg)
+{
+    tvg->query_cache_size = 0;
+    tvg_invalidate_queries(tvg, 0, ~0ULL);
+}
+
 static inline struct graph *grab_prev_graph(struct tvg *tvg, struct graph *graph)
 {
     struct graph *prev_graph = AVL_PREV(graph, &tvg->graphs, struct graph, entry);
@@ -689,7 +715,7 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
     if (step)
         offset -= (offset / step) * step;
 
-    /* FIXME: Invalidate metrics. */
+    tvg_invalidate_queries(tvg, 0, ~0ULL);
 
     AVL_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {
@@ -774,4 +800,19 @@ struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(str
     }
 
     return out;
+}
+
+void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
+{
+    struct query *query, *next_query;
+
+    if (ts_max < ts_min)
+        return;
+
+    LIST_FOR_EACH_SAFE(query, next_query, &tvg->query_cache, struct query, cache_entry)
+    {
+        if (query->ts_max < ts_min) continue;
+        if (query->ts_min > ts_max) continue;
+        free_query(query);
+    }
 }

@@ -298,3 +298,43 @@ const struct vector_ops vector_positive_ops =
     generic_del,
     positive_mul_const,
 };
+
+static int readonly_clear(struct vector *vector)
+{
+    return 0;
+}
+
+static int readonly_set(struct vector *vector, uint64_t index, float weight)
+{
+    return 0;
+}
+
+static int readonly_add(struct vector *vector, uint64_t index, float weight)
+{
+    return 0;
+}
+
+static int readonly_del(struct vector *vector, uint64_t index)
+{
+    return 0;
+}
+
+static int readonly_mul_const(struct vector *vector, float constant)
+{
+    return 0;
+}
+
+static int readonly_set_eps(struct vector *vector, float eps)
+{
+    return 0;
+}
+
+const struct vector_ops vector_readonly_ops =
+{
+    readonly_set_eps,
+    readonly_clear,
+    readonly_set,
+    readonly_add,
+    readonly_del,
+    readonly_mul_const,
+};

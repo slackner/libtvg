@@ -121,6 +121,27 @@ struct vector *vector_duplicate(struct vector *source)
     return vector;
 }
 
+uint64_t vector_memory_usage(struct vector *vector)
+{
+    uint64_t i, num_buckets;
+    struct bucket1 *bucket;
+    uint64_t size = sizeof(*vector);
+
+    /* In the following, we underestimate the memory usage a bit, since
+     * we do not take into account the heap structure itself. */
+
+    num_buckets = 1ULL << vector->bits;
+    size += sizeof(*bucket) * num_buckets;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        bucket = &vector->buckets[i];
+        size += sizeof(bucket->entries) * bucket->max_entries;
+    }
+
+    return size;
+}
+
 int vector_inc_bits(struct vector *vector)
 {
     struct bucket1 *buckets;

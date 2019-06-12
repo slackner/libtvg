@@ -18,7 +18,7 @@
 #include "list.h"
 #include "tree.h"
 
-#define LIBTVG_API_VERSION  0x00000007ULL
+#define LIBTVG_API_VERSION  0x00000008ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -167,77 +167,55 @@ struct tvg
     struct list graph_cache;
     uint64_t    graph_cache_used;
     uint64_t    graph_cache_size;
+
+    struct list query_cache;
+    uint64_t    query_cache_used;
+    uint64_t    query_cache_size;
 };
 
-struct source
+struct query_ops;
+
+struct query
 {
-    struct list entry;
-    struct list todo_entry;
-    struct graph *graph;
-    uint64_t    revision;
-};
-
-struct metric_ops;
-
-struct metric
-{
-    uint64_t    refcount;
-
     /* private: */
-    struct window *window;
-    struct list entry;
+    struct tvg *tvg;
 
-    const struct metric_ops *ops;
-    int         valid;
+    struct list cache_entry;
+    uint64_t    cache;       /* size of the cache entry */
+
+    struct list todo_entry;
+
+    const struct query_ops *ops;
+    uint64_t    ts_min;
+    uint64_t    ts_max;
 };
 
-struct metric_sum_edges
+struct query_sum_edges
 {
-    struct metric metric;
+    struct query base;
     struct graph *result;
     float       eps;
 };
 
-struct metric_sum_edges_exp
+struct query_sum_edges_exp
 {
-    struct metric metric;
+    struct query base;
     struct graph *result;
     float       weight;
     float       log_beta;
     float       eps;
 };
 
-struct metric_count_edges
+struct query_count_edges
 {
-    struct metric metric;
+    struct query base;
     struct graph *result;
 };
 
-struct metric_count_nodes
+struct query_count_nodes
 {
-    struct metric metric;
+    struct query base;
     struct vector *result;
-};
-
-struct metric_topics
-{
-    struct metric metric;
-    struct metric *sum_edges;
-    struct metric *count_edges;
-    struct metric *count_nodes;
-};
-
-struct window
-{
-    uint64_t    refcount;
-    uint64_t    ts;
-    int64_t     window_l;
-    int64_t     window_r;
-
-    /* private: */
-    struct tvg *tvg;
-    struct list sources;
-    struct list metrics;
 };
 
 struct mongodb_config
@@ -1325,6 +1303,8 @@ void free_vector(struct vector *vector);
 
 struct vector *vector_duplicate(struct vector *source);
 
+uint64_t vector_memory_usage(struct vector *vector);
+
 int vector_inc_bits(struct vector *vector);
 int vector_dec_bits(struct vector *vector);
 void vector_optimize(struct vector *vector);
@@ -1459,6 +1439,9 @@ int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
                             uint64_t batch_size, uint64_t cache_size);
 void tvg_disable_mongodb_sync(struct tvg *tvg);
 
+int tvg_enable_query_cache(struct tvg *tvg, uint64_t cache_size);
+void tvg_disable_query_cache(struct tvg *tvg);
+
 struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts);
@@ -1468,42 +1451,16 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset);
 struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(struct graph *,
                           uint64_t, void *), void *userdata);
 
-/* window functions */
+void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
-struct window *tvg_alloc_window(struct tvg *tvg, int64_t window_l, int64_t window_r);
-struct window *grab_window(struct window *window);
-void free_window(struct window *window);
+/* Query functions */
 
-void window_reset(struct window *window);
-int window_update(struct window *window, uint64_t ts);
-uint64_t window_get_sources(struct window *window, struct graph **graphs, uint64_t max_graphs);
-
-/* metric functions */
-
-struct metric *window_alloc_metric_sum_edges(struct window *window, float eps);
-float metric_sum_edges_get_eps(struct metric *metric);
-struct graph *metric_sum_edges_get_result(struct metric *metric);
-
-struct metric *window_alloc_metric_sum_edges_exp(struct window *window, float weight, float log_beta, float eps);
-float metric_sum_edges_exp_get_weight(struct metric *metric);
-float metric_sum_edges_exp_get_log_beta(struct metric *metric);
-float metric_sum_edges_exp_get_eps(struct metric *metric);
-struct graph *metric_sum_edges_exp_get_result(struct metric *metric);
-
-struct metric *window_alloc_metric_count_edges(struct window *window);
-struct graph *metric_count_get_result_edges(struct metric *metric);
-
-struct metric *window_alloc_metric_count_nodes(struct window *window);
-struct vector *metric_count_nodes_get_result(struct metric *metric);
-
-struct metric *window_alloc_metric_topics(struct window *window);
-struct graph *metric_topics_get_result(struct metric *metric);
-
-struct metric *grab_metric(struct metric *metric);
-void free_metric(struct metric *metric);
-
-void metric_reset(struct metric *metric);
-struct window *metric_get_window(struct metric *metric);
+struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, float eps);
+struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
+                                       float weight, float log_beta, float eps);
+struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
+struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
+struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
 /* MongoDB functions */
 
