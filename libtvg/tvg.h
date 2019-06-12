@@ -1322,6 +1322,8 @@ struct vector *alloc_vector(uint32_t flags);
 struct vector *grab_vector(struct vector *vector);
 void free_vector(struct vector *vector);
 
+struct vector *vector_duplicate(struct vector *source);
+
 int vector_inc_bits(struct vector *vector);
 int vector_dec_bits(struct vector *vector);
 void vector_optimize(struct vector *vector);

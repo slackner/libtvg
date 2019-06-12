@@ -156,6 +156,7 @@ void random_bytes(uint8_t *buffer, size_t length) DECL_INTERNAL;
 float random_float(void) DECL_INTERNAL;
 
 void init_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
+int init_bucket1_from(struct bucket1 *bucket, struct bucket1 *source) DECL_INTERNAL;
 void free_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
 void bucket1_clear(struct bucket1 *bucket) DECL_INTERNAL;
 void bucket1_compress(struct bucket1 *bucket) DECL_INTERNAL;

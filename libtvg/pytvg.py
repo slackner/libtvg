@@ -140,6 +140,9 @@ lib.alloc_vector.restype = c_vector_p
 
 lib.free_vector.argtypes = (c_vector_p,)
 
+lib.vector_duplicate.argtypes = (c_vector_p,)
+lib.vector_duplicate.restype = c_vector_p
+
 lib.vector_clear.argtypes = (c_vector_p,)
 
 lib.vector_set_eps.argtypes = (c_vector_p, c_float)
@@ -559,6 +562,10 @@ class Vector(object):
     def empty(self):
         """ Check if a vector is empty, i.e., if it does not have any entries. """
         return lib.vector_empty(self._obj)
+
+    def duplicate(self):
+        """ Create an independent copy of the vector. """
+        return Vector(obj=lib.vector_duplicate(self._obj))
 
     def clear(self):
         """ Clear all entries of the vector object. """
@@ -2731,6 +2738,27 @@ if __name__ == '__main__':
             self.assertEqual(result, {0: 0.0, 1: 1.0, 2: 4.0, 3: 9.0, 4: 16.0,
                                       5: 25.0, 6: 36.0, 7: 49.0, 8: 64.0, 9: 81.0})
             del v
+
+        def test_duplicate(self):
+            v = Vector()
+
+            for i in range(10):
+                v[i] = i * i
+
+            revision = v.revision
+            v2 = v.duplicate()
+
+            for i in range(10):
+                v[i] = 1.0
+
+            self.assertNotEqual(v.revision, revision)
+            self.assertEqual(v2.revision, revision)
+
+            for i in range(10):
+                self.assertEqual(v2[i], i * i)
+
+            del v
+            del v2
 
     class GraphTests(unittest.TestCase):
         def test_add_edge(self):

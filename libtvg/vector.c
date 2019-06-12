@@ -78,6 +78,47 @@ void free_vector(struct vector *vector)
     free(vector);
 }
 
+struct vector *vector_duplicate(struct vector *source)
+{
+    struct vector *vector;
+    struct bucket1 *buckets;
+    uint64_t i, num_buckets;
+
+    num_buckets = 1ULL << source->bits;
+    if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
+        return NULL;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        if (!init_bucket1_from(&buckets[i], &source->buckets[i]))
+        {
+            while (i--)
+                free_bucket1(&buckets[i]);
+
+            return NULL;
+        }
+    }
+
+    if (!(vector = malloc(sizeof(*vector))))
+    {
+        for (i = 0; i < num_buckets; i++)
+            free_bucket1(&buckets[i]);
+
+        free(buckets);
+        return NULL;
+    }
+
+    vector->refcount = 1;
+    vector->flags    = source->flags;
+    vector->revision = source->revision;
+    vector->eps      = source->eps;
+    vector->ops      = source->ops;
+    vector->bits     = source->bits;
+    vector->buckets  = buckets;
+    vector->optimize = source->optimize;
+    return vector;
+}
+
 int vector_inc_bits(struct vector *vector)
 {
     struct bucket1 *buckets;
