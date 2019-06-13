@@ -663,7 +663,10 @@ def metric_stability(values):
                 front[i] = True
 
         for i in np.where(front)[0]:
-            result[nodes[i]] = rank
+            key = nodes[i]
+            if isinstance(key, np.ndarray):
+                key = tuple(key)
+            result[key] = rank
 
         nodes = nodes[~front]
         costs = costs[~front]
@@ -4040,6 +4043,21 @@ if __name__ == '__main__':
             del window
             del tvg
 
+        def test_metric_entropy_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = metric_entropy(values, num_bins=2)
+            self.assertEqual(len(result), 4)
+            self.assertTrue(abs(result[0, 0] - 0.89587973) < 1e-7)
+            self.assertTrue(abs(result[0, 1] - 0.74918778) < 1e-7)
+            self.assertTrue(abs(result[1, 1] - 0.74918778) < 1e-7)
+            self.assertTrue(abs(result[2, 2] - 0.45580389) < 1e-7)
+
         def test_metric_entropy_local(self):
             tvg = TVG(positive=True)
 
@@ -4068,7 +4086,22 @@ if __name__ == '__main__':
             del window
             del tvg
 
-        def test_metric_2d(self):
+        def test_metric_entropy_local_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = metric_entropy_local(values, num_bins=2)
+            self.assertEqual(len(result), 4)
+            self.assertTrue(abs(result[0, 0] - 0.90890873) < 1e-7)
+            self.assertTrue(abs(result[0, 1] - 0.77809669) < 1e-7)
+            self.assertTrue(abs(result[1, 1] - 0.77809669) < 1e-7)
+            self.assertTrue(abs(result[2, 2] - 0.77809669) < 1e-7)
+
+        def test_metric_entropy_2d(self):
             tvg = TVG(positive=True)
 
             g = tvg.Graph(100)
@@ -4093,6 +4126,21 @@ if __name__ == '__main__':
 
             del window
             del tvg
+
+        def test_metric_entropy_2d_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = metric_entropy_2d(values, num_bins=2)
+            self.assertEqual(len(result), 4)
+            self.assertTrue(abs(result[0, 0] - 0.0) < 1e-7)
+            self.assertTrue(abs(result[0, 1] - 0.25993019) < 1e-7)
+            self.assertTrue(abs(result[1, 1] - 0.25993019) < 1e-7)
+            self.assertTrue(abs(result[2, 2] - 0.43152310) < 1e-7)
 
         def test_metric_trend(self):
             tvg = TVG(positive=True)
@@ -4119,6 +4167,21 @@ if __name__ == '__main__':
             del window
             del tvg
 
+        def test_metric_trend_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = metric_trend(values)
+            self.assertEqual(len(result), 4)
+            self.assertTrue(abs(result[0, 0] - 0.0) < 1e-7)
+            self.assertTrue(abs(result[0, 1] - 1.0) < 1e-7)
+            self.assertTrue(abs(result[1, 1] + 1.0) < 1e-7)
+            self.assertTrue(abs(result[2, 2] - 0.0) < 1e-7)
+
         def test_metric_stability(self):
             tvg = TVG(positive=True)
 
@@ -4143,6 +4206,21 @@ if __name__ == '__main__':
 
             del window
             del tvg
+
+        def test_metric_stability_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = metric_stability(values)
+            self.assertEqual(len(result), 4)
+            self.assertEqual(result[0, 0], 2.0)
+            self.assertEqual(result[0, 1], 3.0)
+            self.assertEqual(result[1, 1], 4.0)
+            self.assertEqual(result[2, 2], 1.0)
 
         def test_sources(self):
             tvg = TVG(positive=True)
