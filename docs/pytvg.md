@@ -188,6 +188,89 @@ Structure/Union member
 ### weight
 Structure/Union member
 
+## metric_entropy
+```python
+metric_entropy(values, num_bins=50)
+```
+
+Rate the importance / interestingness of individual nodes/edges by their entropy.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+- __num_bins__: Number of bins used to create the entropy model.
+
+__Returns__
+
+Dictionary containing the metric for each node or edge.
+
+
+## metric_entropy_local
+```python
+metric_entropy_local(values, num_bins=50)
+```
+
+Like metric_entropy(), but train a separate model for each time step.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+- __num_bins__: Number of bins used to create the entropy model.
+
+__Returns__
+
+Dictionary containing the metric for each node or edge.
+
+
+## metric_entropy_2d
+```python
+metric_entropy_2d(values, num_bins=50)
+```
+
+Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+- __num_bins__: Number of bins used to create the entropy model.
+
+__Returns__
+
+Dictionary containing the metric for each node or edge.
+
+
+## metric_trend
+```python
+metric_trend(values)
+```
+
+Rate the importance / interestingness of individual nodes/edges by their trend.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+
+__Returns__
+
+Dictionary containing the metric for each node or edge.
+
+
+## metric_stability
+```python
+metric_stability(values)
+```
+
+Rate the stability of individual nodes by ranking their average and standard deviation.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+
+__Returns__
+
+Dictionary containing the metric for each node or edge.
+
+
 ## Vector
 ```python
 Vector(nonzero=False, positive=False, obj=None)
@@ -1167,116 +1250,6 @@ __Arguments__
 __Returns__
 
 Dictionary containing lists of collected values for each edge.
-
-
-### metric_entropy
-```python
-MetricGraph.metric_entropy(ts,
-                           sample_width,
-                           sample_steps=9,
-                           tolerance=None,
-                           num_bins=50)
-```
-
-Rate the importance / interestingness of individual nodes by their entropy.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-- __num_bins__: Number of bins used to create the entropy model.
-
-__Returns__
-
-Dictionary containing the metric for each node.
-
-
-### metric_entropy_local
-```python
-MetricGraph.metric_entropy_local(ts,
-                                 sample_width,
-                                 sample_steps=9,
-                                 tolerance=None,
-                                 num_bins=50)
-```
-
-Like metric_entropy(), but train a separate model for each time step.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-- __num_bins__: Number of bins used to create the entropy model.
-
-__Returns__
-
-Dictionary containing the metric for each node.
-
-
-### metric_entropy_2d
-```python
-MetricGraph.metric_entropy_2d(ts,
-                              sample_width,
-                              sample_steps=9,
-                              tolerance=None,
-                              num_bins=50)
-```
-
-Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-- __num_bins__: Number of bins used to create the entropy model.
-
-__Returns__
-
-Dictionary containing the metric for each node.
-
-
-### metric_trend
-```python
-MetricGraph.metric_trend(ts, sample_width, sample_steps=9, tolerance=None)
-```
-
-Rate the importance / interestingness of individual nodes by their trend.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-
-__Returns__
-
-Dictionary containing the metric for each node.
-
-
-### metric_stability
-```python
-MetricGraph.metric_stability(ts, sample_width, sample_steps=9, tolerance=None)
-```
-
-Rate the stability of individual nodes by ranking their average and standard deviation.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-
-__Returns__
-
-Dictionary containing the metric for each node.
 
 
 ## MetricSumEdges

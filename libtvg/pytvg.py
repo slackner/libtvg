@@ -487,6 +487,190 @@ def libtvgobject(klass):
             pass
     return wrapper
 
+def metric_entropy(values, num_bins=50):
+    """
+    Rate the importance / interestingness of individual nodes/edges by their entropy.
+
+    # Arguments
+    values: Values for each node or edge.
+    num_bins: Number of bins used to create the entropy model.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    data = []
+    for i in values.keys():
+        data += values[i]
+
+    prob, bin_edges = np.histogram(data, bins=num_bins)
+    prob = np.array(prob, dtype=float) / np.sum(prob)
+    entropy = (- np.ma.log(prob) * prob).filled(0)
+
+    @np.vectorize
+    def to_entropy(x):
+        index = np.searchsorted(bin_edges, x)
+        if index >= 1: index -= 1
+        return entropy[index]
+
+    result = {}
+    for i in values.keys():
+        result[i] = np.sum(to_entropy(values[i]))
+
+    return result
+
+def metric_entropy_local(values, num_bins=50):
+    """
+    Like metric_entropy(), but train a separate model for each time step.
+
+    # Arguments
+    values: Values for each node or edge.
+    num_bins: Number of bins used to create the entropy model.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    sample_steps = len(next(iter(values.values())))
+
+    result = collections.defaultdict(float)
+    for j in range(sample_steps):
+
+        data = []
+        for i in values.keys():
+            data.append(values[i][j])
+
+        prob, bin_edges = np.histogram(data, bins=num_bins)
+        prob = np.array(prob, dtype=float) / np.sum(prob)
+        entropy = (- np.ma.log(prob) * prob).filled(0)
+
+        def to_entropy(x):
+            index = np.searchsorted(bin_edges, x)
+            if index >= 1: index -= 1
+            return entropy[index]
+
+        for i in values.keys():
+            result[i] += to_entropy(values[i][j])
+
+    return result
+
+def metric_entropy_2d(values, num_bins=50):
+    """
+    Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
+
+    # Arguments
+    values: Values for each node or edge.
+    num_bins: Number of bins used to create the entropy model.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    data_x = []
+    data_y = []
+    for i in values.keys():
+        data_x += values[i][:-1]
+        data_y += values[i][1:]
+
+    prob, bin_edges_x, bin_edges_y = np.histogram2d(data_x, data_y, bins=num_bins)
+
+    prob = np.array(prob, dtype=float) / np.sum(prob)
+    entropy = (- np.ma.log(prob) * prob).filled(0)
+
+    @np.vectorize
+    def to_entropy(x, y):
+        index_x = np.searchsorted(bin_edges_x, x)
+        index_y = np.searchsorted(bin_edges_y, y)
+        if index_x >= 1: index_x -= 1
+        if index_y >= 1: index_y -= 1
+        return entropy[index_x, index_y]
+
+    result = {}
+    for i in values.keys():
+        result[i] = np.sum(to_entropy(values[i][:-1], values[i][1:]))
+
+    return result
+
+def metric_trend(values):
+    """
+    Rate the importance / interestingness of individual nodes/edges by their trend.
+
+    # Arguments
+    values: Values for each node or edge.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    sample_steps = len(next(iter(values.values())))
+
+    A = np.zeros((sample_steps, 2))
+    A[:, 0] = 1.0
+    A[:, 1] = range(A.shape[0])
+
+    kwargs = {}
+    if np.lib.NumpyVersion(np.__version__) >= '1.14.0':
+        kwargs['rcond'] = None
+
+    result = {}
+    for i in values.keys():
+        result[i] = np.linalg.lstsq(A, values[i], **kwargs)[0][1]
+
+    return result
+
+def metric_stability(values):
+    """
+    Rate the stability of individual nodes by ranking their average and standard deviation.
+
+    # Arguments
+    values: Values for each node or edge.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    nodes = []
+    costs = []
+    for i in values.keys():
+        nodes.append(i)
+        costs.append([-np.mean(values[i]), np.std(values[i])])
+
+    nodes = np.array(nodes)
+    costs = np.array(costs)
+    rank = 1.0
+
+    result = {}
+    while len(nodes):
+        front = np.ones(costs.shape[0], dtype=bool)
+        for i, c in enumerate(costs):
+            if front[i]:
+                front[front] = np.any(costs[front] < c, axis=1)
+                front[i] = True
+
+        for i in np.where(front)[0]:
+            result[nodes[i]] = rank
+
+        nodes = nodes[~front]
+        costs = costs[~front]
+        rank += 1.0
+
+    return result
+
 @libtvgobject
 class Vector(object):
     """
@@ -2014,194 +2198,24 @@ class MetricGraph(Metric):
         return result
 
     def metric_entropy(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        """
-        Rate the importance / interestingness of individual nodes by their entropy.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-        num_bins: Number of bins used to create the entropy model.
-
-        # Returns
-        Dictionary containing the metric for each node.
-        """
-
         values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-
-        data = []
-        for i in values.keys():
-            data += values[i]
-
-        prob, bin_edges = np.histogram(data, bins=num_bins)
-        prob = np.array(prob, dtype=float) / np.sum(prob)
-        entropy = (- np.ma.log(prob) * prob).filled(0)
-
-        @np.vectorize
-        def to_entropy(x):
-            index = np.searchsorted(bin_edges, x)
-            if index >= 1: index -= 1
-            return entropy[index]
-
-        result = {}
-        for i in values.keys():
-            result[i] = np.sum(to_entropy(values[i]))
-
-        return result
+        return metric_entropy(values, num_bins=num_bins)
 
     def metric_entropy_local(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        """
-        Like metric_entropy(), but train a separate model for each time step.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-        num_bins: Number of bins used to create the entropy model.
-
-        # Returns
-        Dictionary containing the metric for each node.
-        """
-
         values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-
-        result = collections.defaultdict(float)
-        for j in range(sample_steps):
-
-            data = []
-            for i in values.keys():
-                data.append(values[i][j])
-
-            prob, bin_edges = np.histogram(data, bins=num_bins)
-            prob = np.array(prob, dtype=float) / np.sum(prob)
-            entropy = (- np.ma.log(prob) * prob).filled(0)
-
-            def to_entropy(x):
-                index = np.searchsorted(bin_edges, x)
-                if index >= 1: index -= 1
-                return entropy[index]
-
-            for i in values.keys():
-                result[i] += to_entropy(values[i][j])
-
-        return result
+        return metric_entropy_local(values, num_bins=num_bins)
 
     def metric_entropy_2d(self, ts, sample_width, sample_steps=9, tolerance=None, num_bins=50):
-        """
-        Like metric_entropy(), but train a 2-dimensional model for entropy estimations.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-        num_bins: Number of bins used to create the entropy model.
-
-        # Returns
-        Dictionary containing the metric for each node.
-        """
-
         values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-
-        data_x = []
-        data_y = []
-        for i in values.keys():
-            data_x += values[i][:-1]
-            data_y += values[i][1:]
-
-        prob, bin_edges_x, bin_edges_y = np.histogram2d(data_x, data_y, bins=num_bins)
-
-        prob = np.array(prob, dtype=float) / np.sum(prob)
-        entropy = (- np.ma.log(prob) * prob).filled(0)
-
-        @np.vectorize
-        def to_entropy(x, y):
-            index_x = np.searchsorted(bin_edges_x, x)
-            index_y = np.searchsorted(bin_edges_y, y)
-            if index_x >= 1: index_x -= 1
-            if index_y >= 1: index_y -= 1
-            return entropy[index_x, index_y]
-
-        result = {}
-        for i in values.keys():
-            result[i] = np.sum(to_entropy(values[i][:-1], values[i][1:]))
-
-        return result
+        return metric_entropy_2d(values, num_bins=num_bins)
 
     def metric_trend(self, ts, sample_width, sample_steps=9, tolerance=None):
-        """
-        Rate the importance / interestingness of individual nodes by their trend.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-
-        # Returns
-        Dictionary containing the metric for each node.
-        """
-
         values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-
-        A = np.zeros((sample_steps, 2))
-        A[:, 0] = 1.0
-        A[:, 1] = range(A.shape[0])
-
-        kwargs = {}
-        if np.lib.NumpyVersion(np.__version__) >= '1.14.0':
-            kwargs['rcond'] = None
-
-        result = {}
-        for i in values.keys():
-            result[i] = np.linalg.lstsq(A, values[i], **kwargs)[0][1]
-
-        return result
+        return metric_trend(values)
 
     def metric_stability(self, ts, sample_width, sample_steps=9, tolerance=None):
-        """
-        Rate the stability of individual nodes by ranking their average and standard deviation.
-
-        # Arguments
-        ts: Timestamp of the window.
-        sample_width: Width of the region to collect samples.
-        sample_steps: Number of values to collect.
-        tolerance: Tolerance for the power_iteration algorithm.
-
-        # Returns
-        Dictionary containing the metric for each node.
-        """
-
         values = self.sample_eigenvectors(ts, sample_width, sample_steps=sample_steps, tolerance=tolerance)
-
-        nodes = []
-        costs = []
-        for i in values.keys():
-            nodes.append(i)
-            costs.append([-np.mean(values[i]), np.std(values[i])])
-
-        nodes = np.array(nodes)
-        costs = np.array(costs)
-        rank = 1.0
-
-        result = {}
-        while len(nodes):
-            front = np.ones(costs.shape[0], dtype=bool)
-            for i, c in enumerate(costs):
-                if front[i]:
-                    front[front] = np.any(costs[front] < c, axis=1)
-                    front[i] = True
-
-            for i in np.where(front)[0]:
-                result[nodes[i]] = rank
-
-            nodes = nodes[~front]
-            costs = costs[~front]
-            rank += 1.0
-
-        return result
+        return metric_stability(values)
 
 class MetricSumEdges(MetricGraph):
     @property
