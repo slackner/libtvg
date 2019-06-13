@@ -62,7 +62,7 @@ const watchColorPicker = function (event) {
 };
 
 // eslint-disable-next-line no-unused-vars
-const getDropdownContent = function (event) {
+const changeNodeWeight = function (event) {
     const selected = $(event.target).html();
     const selectedVal = $(event.target).attr('name');
     $('#nodeWeight').attr('value', selected);
