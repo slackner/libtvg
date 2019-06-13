@@ -2891,6 +2891,16 @@ if __name__ == '__main__':
 
             del g
 
+        def test_power_iteration_bug(self):
+            g = Graph()
+            g[0, 0] = 0.0
+            g[1, 1] = 1.0
+
+            v = g.power_iteration()[0].as_dict()
+            self.assertEqual(v, {0: 0.0, 1: 1.0})
+
+            del g
+
         def test_batch(self):
             test_indices = np.array([[0, 1], [1, 2], [2, 0]])
             test_weights = np.array([1.0, 2.0, 3.0])

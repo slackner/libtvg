@@ -812,7 +812,7 @@ struct vector *graph_mul_vector(const struct graph *graph, const struct vector *
     struct entry2 *edge;
 
     /* FIXME: Appropriate flags? */
-    if (!(out = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(out = alloc_vector(0)))
         return NULL;
 
     GRAPH_VECTOR_FOR_EACH_EDGE(graph, edge, vector, entry)
@@ -992,7 +992,7 @@ struct vector *graph_power_iteration(const struct graph *graph, struct vector *i
         num_iterations = 100;
 
     /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(vector = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
