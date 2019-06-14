@@ -18,7 +18,7 @@ struct list
 
 /* get struct from embedded 'struct list' datatype */
 #define LIST_ENTRY(elem, type, field) ({ \
-    const typeof(((type *)0)->field) *__ptr = (elem); \
+    const struct list *__ptr = (elem); \
     (type *)((char *)__ptr - offsetof(type, field)); })
 
 /* retrieve the next element in a linked list */
