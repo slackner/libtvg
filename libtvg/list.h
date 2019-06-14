@@ -59,11 +59,10 @@ struct list
 
 /* loop over list elements while ensuring that elements can be deleted */
 #define LIST_FOR_EACH_SAFE(cursor, cursor2, list, type, field) \
-    for ((cursor) = LIST_ENTRY((list)->next, type, field), \
-         (cursor2) = LIST_ENTRY((cursor)->field.next, type, field); \
-         &(cursor)->field != (list); \
-         (cursor) = (cursor2), \
-         (cursor2) = LIST_ENTRY((cursor)->field.next, type, field))
+    for ((cursor) = LIST_ENTRY((list)->next, type, field); \
+         &(cursor)->field != (list) && \
+             ({ (cursor2) = LIST_ENTRY((cursor)->field.next, type, field); 1; }); \
+         (cursor) = (cursor2))
 
 /* initialize a list */
 static inline void list_init(struct list *list)
