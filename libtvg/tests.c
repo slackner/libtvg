@@ -9,6 +9,7 @@
 
 #include "tvg.h"
 #include "internal.h"
+#include "tree.h"
 
 /* replace random_bytes() to avoid export from libtvg */
 static void _random_bytes(uint8_t *buffer, size_t length) { while (length--) *buffer++ = (uint8_t)rand(); }
@@ -1211,6 +1212,157 @@ static void test_graph_bfs(void)
     free_graph(graph);
 }
 
+struct sample
+{
+    struct avl_entry entry;
+    uint64_t ts;
+};
+
+static int _sample_compar(const void *a, const void *b, void *userdata)
+{
+    const struct sample *sa = AVL_ENTRY(a, struct sample, entry);
+    const struct sample *sb = AVL_ENTRY(b, struct sample, entry);
+    assert(userdata == (void *)0xdeadbeef);
+    return COMPARE(sa->ts, sb->ts);
+}
+
+static int _sample_lookup(const void *a, const void *b, void *userdata)
+{
+    const struct sample *sa = AVL_ENTRY(a, struct sample, entry);
+    const uint64_t *b_ts = b;
+    assert(userdata == (void *)0xdeadbeef);
+    return COMPARE(sa->ts, *b_ts);
+}
+
+static void test_avl_tree(void)
+{
+    uint64_t max_ts = 0, min_ts = ~0ULL;
+    struct sample *sample, *next_sample;
+    struct avl_tree tree;
+    uint64_t ts;
+    uint32_t i;
+
+    avl_init(&tree, _sample_compar, _sample_lookup, (void *)0xdeadbeef);
+    avl_assert_valid(&tree);
+
+    ts = 0;
+    sample = AVL_LOOKUP_GE(&tree, &ts, struct sample, entry);
+    assert(!sample);
+
+    ts = ~0ULL;
+    sample = AVL_LOOKUP_LE(&tree, &ts, struct sample, entry);
+    assert(!sample);
+
+    for (i = 0; i < 100; i++)
+    {
+        ts = random_uint64();
+        sample = malloc(sizeof(*sample));
+        sample->ts = ts;
+        avl_insert(&tree, &sample->entry, 1);
+        avl_assert_valid(&tree);
+        min_ts = MIN(min_ts, ts);
+        max_ts = MAX(max_ts, ts);
+    }
+
+    ts = min_ts;
+    i = 0;
+    AVL_FOR_EACH(sample, &tree, struct sample, entry)
+    {
+        assert(sample->ts >= ts);
+        ts = sample->ts;
+        i++;
+    }
+    assert(ts == max_ts);
+    assert(i == 100);
+
+    i = 0;
+    AVL_FOR_EACH_POSTORDER(sample, &tree, struct sample, entry)
+    {
+        assert(sample->ts >= min_ts);
+        assert(sample->ts <= max_ts);
+        i++;
+    }
+    assert(i == 100);
+
+    ts = min_ts;
+    sample = AVL_LOOKUP(&tree, &ts, struct sample, entry);
+    assert(sample != NULL);
+    assert(sample->ts == min_ts);
+
+    ts = max_ts;
+    sample = AVL_LOOKUP(&tree, &ts, struct sample, entry);
+    assert(sample != NULL);
+    assert(sample->ts == max_ts);
+
+    for (i = 0; i < 10000; i++)
+    {
+        ts = random_uint64();
+
+        sample = AVL_LOOKUP_GE(&tree, &ts, struct sample, entry);
+        if (ts > max_ts) assert(sample == NULL);
+        else
+        {
+            assert(sample != NULL);
+            assert(sample->ts >= ts);
+            if ((sample = AVL_PREV(sample, &tree, struct sample, entry)))
+                assert(sample->ts < ts);
+        }
+
+        sample = AVL_LOOKUP_LE(&tree, &ts, struct sample, entry);
+        if (ts < min_ts) assert(sample == NULL);
+        else
+        {
+            assert(sample != NULL);
+            assert(sample->ts <= ts);
+            if ((sample = AVL_NEXT(sample, &tree, struct sample, entry)))
+                assert(sample->ts > ts);
+        }
+    }
+
+    for (i = 0; i < 50; i++)
+    {
+        ts = random_uint64();
+
+        sample = AVL_LOOKUP_GE(&tree, &ts, struct sample, entry);
+        if (sample)
+        {
+            next_sample = AVL_NEXT(sample, &tree, struct sample, entry);
+            avl_remove(&sample->entry);
+            free(sample);
+            avl_assert_valid(&tree);
+            if (next_sample && (sample = AVL_PREV(next_sample, &tree, struct sample, entry)))
+                assert(sample->ts < ts);
+        }
+    }
+
+    for (i = 0; i < 50; i++)
+    {
+        ts = random_uint64();
+
+        sample = AVL_LOOKUP_LE(&tree, &ts, struct sample, entry);
+        assert(!sample || sample->ts <= ts);
+        next_sample = malloc(sizeof(*next_sample));
+        next_sample->ts = ts;
+        avl_add_after(&tree, sample ? &sample->entry : NULL, &next_sample->entry);
+        avl_assert_valid(&tree);
+
+        ts = random_uint64();
+
+        sample = AVL_LOOKUP_GE(&tree, &ts, struct sample, entry);
+        assert(!sample || sample->ts >= ts);
+        next_sample = malloc(sizeof(*next_sample));
+        next_sample->ts = ts;
+        avl_add_before(&tree, sample ? &sample->entry : NULL, &next_sample->entry);
+        avl_assert_valid(&tree);
+    }
+
+    AVL_FOR_EACH_SAFE(sample, next_sample, &tree, struct sample, entry)
+    {
+        avl_remove(&sample->entry);
+        free(sample);
+    }
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -1246,6 +1398,7 @@ int main(void)
     test_vector_for_each_entry2();
     test_tvg_for_each_graph();
     test_graph_bfs();
+    test_avl_tree();
 
     fprintf(stderr, "No test failures found\n");
 }
