@@ -79,22 +79,22 @@ static inline int list_empty(const struct list *list)
 
 /* add a new element after the cursor position */
 #define list_add_head list_add_after
-static inline void list_add_after(struct list *cursor, struct list *to_add)
+static inline void list_add_after(struct list *cursor, struct list *entry)
 {
-    to_add->next        = cursor->next;
-    to_add->prev        = cursor;
-    cursor->next->prev  = to_add;
-    cursor->next        = to_add;
+    entry->next         = cursor->next;
+    entry->prev         = cursor;
+    cursor->next->prev  = entry;
+    cursor->next        = entry;
 }
 
 /* add a new element before the cursor position */
 #define list_add_tail list_add_before
-static inline void list_add_before(struct list *cursor, struct list *to_add)
+static inline void list_add_before(struct list *cursor, struct list *entry)
 {
-    to_add->next        = cursor;
-    to_add->prev        = cursor->prev;
-    cursor->prev->next  = to_add;
-    cursor->prev        = to_add;
+    entry->next         = cursor;
+    entry->prev         = cursor->prev;
+    cursor->prev->next  = entry;
+    cursor->prev        = entry;
 }
 
 static inline void list_remove(struct list *cursor)
