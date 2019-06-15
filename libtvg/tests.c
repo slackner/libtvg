@@ -1253,6 +1253,34 @@ static void test_avl_tree(void)
     sample = AVL_LOOKUP_LE(&tree, &ts, struct sample, entry);
     assert(!sample);
 
+    i = 0;
+    AVL_FOR_EACH(sample, &tree, struct sample, entry)
+    {
+        i++;
+    }
+    assert(i == 0);
+
+    i = 0;
+    AVL_FOR_EACH_SAFE(sample, next_sample, &tree, struct sample, entry)
+    {
+        i++;
+    }
+    assert(i == 0);
+
+    i = 0;
+    AVL_FOR_EACH_POSTORDER(sample, &tree, struct sample, entry)
+    {
+        i++;
+    }
+    assert(i == 0);
+
+    i = 0;
+    AVL_FOR_EACH_POSTORDER_SAFE(sample, next_sample, &tree, struct sample, entry)
+    {
+        i++;
+    }
+    assert(i == 0);
+
     for (i = 0; i < 100; i++)
     {
         ts = random_uint64();

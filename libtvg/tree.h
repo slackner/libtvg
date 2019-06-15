@@ -35,69 +35,69 @@ struct avl_tree
 #define AVL_NEXT(cursor, tree, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY((cursor) ? avl_next(&(cursor)->field) : \
                                           avl_head((tree)->root.right), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* retrieve the first element in an avl tree */
 #define AVL_HEAD(tree, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY(avl_head((tree)->root.right), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* retrieve the previous element in an avl tree */
 #define AVL_PREV(cursor, tree, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY((cursor) ? avl_prev(&(cursor)->field) : \
                                           avl_tail((tree)->root.right), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* retrieve the last element in an avl tree */
 #define AVL_TAIL(tree, type, field)  ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY(avl_tail((tree)->root.right), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* lookup an element from the avl tree */
 #define AVL_LOOKUP(tree, data, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY(avl_lookup((tree), data), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* lookup the first element >= data in an avl tree */
 #define AVL_LOOKUP_GE(tree, data, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY(avl_lookup_ge((tree), data), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* lookup the last element <= data in an avl tree */
 #define AVL_LOOKUP_LE(tree, data, type, field) ({ \
     typeof(((type *)0)) __ret = AVL_ENTRY(avl_lookup_le((tree), data), type, field); \
-    if (&__ret->field == NULL) __ret = NULL; \
+    if (__ret == AVL_ENTRY(NULL, type, field)) __ret = NULL; \
     __ret; })
 
 /* loop over avl tree elements */
 #define AVL_FOR_EACH(cursor, tree, type, field) \
     for ((cursor) = AVL_ENTRY(avl_head((tree)->root.right), type, field); \
-         &(cursor)->field != NULL; \
+         (cursor) != AVL_ENTRY(NULL, type, field); \
          (cursor) = AVL_ENTRY(avl_next(&(cursor)->field), type, field))
 
 /* loop over avl tree elements while ensuring that elements can be deleted */
 #define AVL_FOR_EACH_SAFE(cursor, cursor2, tree, type, field) \
     for ((cursor) = AVL_ENTRY(avl_head((tree)->root.right), type, field); \
-         &(cursor)->field != NULL && \
+         (cursor) != AVL_ENTRY(NULL, type, field) && \
              ({ (cursor2) = AVL_ENTRY(avl_next(&(cursor)->field), type, field); 1; }); \
          (cursor) = (cursor2))
 
 /* loop over avl tree elements in post-order */
 #define AVL_FOR_EACH_POSTORDER(cursor, tree, type, field) \
     for ((cursor) = AVL_ENTRY(avl_postorder_head((tree)->root.right), type, field); \
-         &(cursor)->field != NULL; \
+         (cursor) != AVL_ENTRY(NULL, type, field); \
          (cursor) = AVL_ENTRY(avl_postorder_next(&(cursor)->field), type, field))
 
 /* loop over avl tree elements in post-order while ensuring that elements can be deleted */
 #define AVL_FOR_EACH_POSTORDER_SAFE(cursor, cursor2, tree, type, field) \
     for ((cursor) = AVL_ENTRY(avl_postorder_head((tree)->root.right), type, field); \
-         &(cursor)->field != NULL && \
+         (cursor) != AVL_ENTRY(NULL, type, field) && \
              ({ (cursor2) = AVL_ENTRY(avl_postorder_next(&(cursor)->field), type, field); 1; }); \
          (cursor) = (cursor2))
 
