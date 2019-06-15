@@ -57,7 +57,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->ts          = 0.0;
     objectid_init(&graph->objectid);
     graph->tvg         = NULL;
-    list_init(&graph->entry);
+    avl_entry_init(&graph->entry);
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = ops;
@@ -111,12 +111,12 @@ void unlink_graph(struct graph *graph)
 
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
     {
-        other_graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
+        other_graph = AVL_PREV(graph, &tvg->graphs, struct graph, entry);
         if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_NEXT;
     }
     if (graph->flags & TVG_FLAGS_LOAD_PREV)
     {
-        other_graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
+        other_graph = AVL_NEXT(graph, &tvg->graphs, struct graph, entry);
         if (other_graph) other_graph->flags |= TVG_FLAGS_LOAD_PREV;
     }
 
@@ -127,7 +127,7 @@ void unlink_graph(struct graph *graph)
         graph->cache = 0;
     }
 
-    list_remove(&graph->entry);
+    avl_remove(&graph->entry);
     graph->tvg = NULL;
     free_graph(graph);
 }
@@ -170,7 +170,7 @@ struct graph *graph_duplicate(struct graph *source)
     graph->ts          = source->ts;
     graph->objectid    = source->objectid;
     graph->tvg         = NULL;
-    list_init(&graph->entry);
+    avl_entry_init(&graph->entry);
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = source->ops;
@@ -240,7 +240,7 @@ struct graph *prev_graph(struct graph *graph)
     if (graph->flags & TVG_FLAGS_LOAD_PREV)
         tvg_load_prev_graph(tvg, graph);
 
-    graph = LIST_PREV(graph, &tvg->graphs, struct graph, entry);
+    graph = AVL_PREV(graph, &tvg->graphs, struct graph, entry);
     if (!graph)
         return NULL;
 
@@ -262,7 +262,7 @@ struct graph *next_graph(struct graph *graph)
     if (graph->flags & TVG_FLAGS_LOAD_NEXT)
         tvg_load_next_graph(tvg, graph);
 
-    graph = LIST_NEXT(graph, &tvg->graphs, struct graph, entry);
+    graph = AVL_NEXT(graph, &tvg->graphs, struct graph, entry);
     if (!graph)
         return NULL;
 

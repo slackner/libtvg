@@ -16,6 +16,7 @@
 #include <math.h>
 
 #include "list.h"
+#include "tree.h"
 
 #define LIBTVG_API_VERSION  0x00000007ULL
 
@@ -116,7 +117,7 @@ struct graph
 
     /* private: */
     struct tvg *tvg;         /* NULL for disconnected graphs */
-    struct list entry;
+    struct avl_entry entry;
 
     uint64_t    cache;       /* 0 if not cached, otherwise size of graph */
     struct list cache_entry;
@@ -154,7 +155,7 @@ struct tvg
     uint32_t    flags;
 
     /* private: */
-    struct list graphs;
+    struct avl_tree graphs;
     struct mongodb *mongodb;
     uint64_t    batch_size;
 

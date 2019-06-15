@@ -711,9 +711,6 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
 
     assert(direction == 1 || direction == -1);
 
-    if (!other_graph)
-        other_graph = LIST_ENTRY(&tvg->graphs, struct graph, entry);
-
     opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(direction),
                                  config->article_id,   BCON_INT32(direction), "}",
                     "limit", BCON_INT64(tvg->batch_size));
@@ -764,7 +761,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         if (direction > 0)
         {
             first = 1;
-            while (&other_graph->entry != &tvg->graphs)
+            while (other_graph)
             {
                 if ((res = compare_graph_ts_objectid(other_graph, ts, &objectid)) >= 0) break;
                 if (!jump)
@@ -772,14 +769,14 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
                     if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
                     other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
                 }
-                other_graph = LIST_ENTRY(other_graph->entry.next, struct graph, entry);
+                other_graph = AVL_NEXT(other_graph, &tvg->graphs, struct graph, entry);
                 first = 0;
             }
         }
         else
         {
             first = 1;
-            while (&other_graph->entry != &tvg->graphs)
+            while (other_graph)
             {
                 if ((res = compare_graph_ts_objectid(other_graph, ts, &objectid)) <= 0) break;
                 if (!jump)
@@ -787,14 +784,14 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
                     if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
                     other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
                 }
-                other_graph = LIST_ENTRY(other_graph->entry.prev, struct graph, entry);
+                other_graph = AVL_PREV(other_graph, &tvg->graphs, struct graph, entry);
                 first = 0;
             }
         }
 
         if (!res)
         {
-            assert(&other_graph->entry != &tvg->graphs);
+            assert(other_graph != NULL);
             if (!jump && !first)
             {
                 if (direction > 0)
@@ -830,17 +827,17 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         {
             if (jump) graph->flags |= TVG_FLAGS_LOAD_PREV;
             graph->flags |= TVG_FLAGS_LOAD_NEXT;  /* will be cleared later */
-            if (&other_graph->entry != &tvg->graphs)
+            if (other_graph)
                 assert(compare_graph_ts_objectid(other_graph, ts, &objectid) > 0);
-            list_add_before(&other_graph->entry, &graph->entry);
+            avl_add_before(&tvg->graphs, other_graph ? &other_graph->entry : NULL, &graph->entry);
         }
         else
         {
             if (jump) graph->flags |= TVG_FLAGS_LOAD_NEXT;
             graph->flags |= TVG_FLAGS_LOAD_PREV;  /* will be cleared later */
-            if (&other_graph->entry != &tvg->graphs)
+            if (other_graph)
                 assert(compare_graph_ts_objectid(other_graph, ts, &objectid) < 0);
-            list_add_after(&other_graph->entry, &graph->entry);
+            avl_add_after(&tvg->graphs, other_graph ? &other_graph->entry : NULL, &graph->entry);
         }
 
         graph->cache = graph_memory_usage(graph);
@@ -862,23 +859,23 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         if (direction > 0)
         {
             first = 1;
-            while (&other_graph->entry != &tvg->graphs)
+            while (other_graph)
             {
                 if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
-                if (!(tvg->flags & TVG_FLAGS_STREAMING) || other_graph->entry.next != &tvg->graphs)
+                if (!(tvg->flags & TVG_FLAGS_STREAMING) || AVL_NEXT(other_graph, &tvg->graphs, struct graph, entry))
                     other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
-                other_graph = LIST_ENTRY(other_graph->entry.next, struct graph, entry);
+                other_graph = AVL_NEXT(other_graph, &tvg->graphs, struct graph, entry);
                 first = 0;
             }
         }
         else
         {
             first = 1;
-            while (&other_graph->entry != &tvg->graphs)
+            while (other_graph)
             {
                 if (!first) other_graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
                 other_graph->flags &= ~TVG_FLAGS_LOAD_PREV;
-                other_graph = LIST_ENTRY(other_graph->entry.prev, struct graph, entry);
+                other_graph = AVL_PREV(other_graph, &tvg->graphs, struct graph, entry);
                 first = 0;
             }
         }
@@ -917,7 +914,6 @@ void tvg_load_next_graph(struct tvg *tvg, struct graph *graph)
     bson_oid_t oid;
     bson_t *filter;
 
-    assert(&graph->entry != &tvg->graphs);
     if (!tvg->mongodb || (int64_t)graph->ts < 0)
     {
         graph->flags &= ~TVG_FLAGS_LOAD_NEXT;
@@ -967,7 +963,6 @@ void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph)
     bson_oid_t oid;
     bson_t *filter;
 
-    assert(&graph->entry != &tvg->graphs);
     if (!tvg->mongodb || (int64_t)graph->ts < 0)
     {
         graph->flags &= ~TVG_FLAGS_LOAD_PREV;

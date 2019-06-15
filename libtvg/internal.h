@@ -110,7 +110,7 @@ static inline void objectid_to_str(struct objectid *objectid, char *str)
     }
 }
 
-static inline int compare_graph_ts_objectid(struct graph *graph, uint64_t ts, struct objectid *objectid)
+static inline int compare_graph_ts_objectid(const struct graph *graph, uint64_t ts, const struct objectid *objectid)
 {
     int res;
     if ((res = COMPARE(graph->ts, ts))) return res;
