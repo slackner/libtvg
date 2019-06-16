@@ -57,7 +57,6 @@ struct graph *alloc_graph(uint32_t flags)
     graph->ts          = 0.0;
     objectid_init(&graph->objectid);
     graph->tvg         = NULL;
-    avl_entry_init(&graph->entry);
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = ops;
@@ -170,7 +169,6 @@ struct graph *graph_duplicate(struct graph *source)
     graph->ts          = source->ts;
     graph->objectid    = source->objectid;
     graph->tvg         = NULL;
-    avl_entry_init(&graph->entry);
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = source->ops;

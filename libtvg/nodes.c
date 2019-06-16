@@ -18,8 +18,6 @@ struct node *alloc_node(void)
     node->refcount    = 1;
     node->index       = ~0ULL;
     node->tvg         = NULL;
-    list_init(&node->entry_ind);
-    list_init(&node->entry_key);
     list_init(&node->attributes);
 
     return node;
@@ -53,8 +51,8 @@ void unlink_node(struct node *node)
     if (!node || !node->tvg)
         return;
 
-    list_remove(&node->entry_ind);
-    list_remove(&node->entry_key);
+    avl_remove(&node->entry_ind);
+    avl_remove(&node->entry_key);  /* only if primary key is set */
     node->tvg = NULL;
     free_node(node);
 }
@@ -151,55 +149,4 @@ char **node_get_attributes(struct node *node)
 
     *ptr = NULL;
     return (char **)buf;
-}
-
-int node_equal_key(struct tvg *tvg, struct node *node1, struct node *node2)
-{
-    struct attribute *attr1, *attr2;
-
-    NODE_FOR_EACH_PRIMARY_ATTRIBUTE2(tvg, node1, attr1, node2, attr2)
-    {
-        if (attr1 && attr2)
-        {
-            if (strcmp(attr1->value, attr2->value)) return 0;
-        }
-        else if (attr1 || attr2)
-        {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-uint32_t node_hash_index(struct tvg *tvg, uint64_t index)
-{
-    return index % ARRAY_SIZE(tvg->nodes_ind);
-}
-
-uint32_t node_hash_primary_key(struct tvg *tvg, struct node *node)
-{
-    struct attribute *attr;
-    uint32_t hash = 5381;
-    const char *str;
-
-    if (list_empty(&tvg->primary_key))
-        return ~0U;
-
-    NODE_FOR_EACH_PRIMARY_ATTRIBUTE(tvg, node, attr)
-    {
-        if (!attr) return ~0U;
-
-        str = attr->value;
-        while (*str)
-        {
-            hash = (hash << 5) + hash;
-            hash += *str++;
-        }
-
-        /* terminating '\0' */
-        hash = (hash << 5) + hash;
-    }
-
-    return hash % ARRAY_SIZE(tvg->nodes_key);
 }

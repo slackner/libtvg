@@ -25,10 +25,52 @@ static int _graph_lookup(const void *a, const void *b, void *userdata)
     return COMPARE(ga->ts, *ts);
 }
 
+static int _nodes_ind_compar(const void *a, const void *b, void *userdata)
+{
+    const struct node *na = AVL_ENTRY(a, struct node, entry_ind);
+    const struct node *nb = AVL_ENTRY(b, struct node, entry_ind);
+    return COMPARE(na->index, nb->index);
+}
+
+static int _nodes_ind_lookup(const void *a, const void *b, void *userdata)
+{
+    const struct node *na = AVL_ENTRY(a, struct node, entry_ind);
+    const uint64_t *index = b;
+    return COMPARE(na->index, *index);
+}
+
+static int _nodes_key_compar(const void *a, const void *b, void *userdata)
+{
+    /* const */ struct node *node1 = AVL_ENTRY(a, struct node, entry_key);
+    /* const */ struct node *node2 = AVL_ENTRY(b, struct node, entry_key);
+    struct attribute *attr1, *attr2;
+    struct tvg *tvg = userdata;
+    int res;
+
+    NODE_FOR_EACH_PRIMARY_ATTRIBUTE2(tvg, node1, attr1, node2, attr2)
+    {
+        if (attr1 && attr2)
+        {
+            if ((res = strcmp(attr1->value, attr2->value)))
+                return res;
+        }
+        else if (attr1 && !attr2)
+            return 1;
+        else if (!attr1 && attr2)
+            return -1;
+    }
+
+    return 0;
+}
+
+static int _nodes_key_lookup(const void *a, const void *b, void *userdata)
+{
+    return _nodes_key_compar(a, b, userdata);
+}
+
 struct tvg *alloc_tvg(uint32_t flags)
 {
     struct tvg *tvg;
-    uint32_t i;
 
     if (flags & ~(TVG_FLAGS_NONZERO |
                   TVG_FLAGS_POSITIVE |
@@ -44,10 +86,8 @@ struct tvg *alloc_tvg(uint32_t flags)
     avl_init(&tvg->graphs, _graph_compar, _graph_lookup, NULL);
     tvg->mongodb    = NULL;
     tvg->batch_size = 0;
-    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
-        list_init(&tvg->nodes_ind[i]);
-    for (i = 0; i < ARRAY_SIZE(tvg->nodes_key); i++)
-        list_init(&tvg->nodes_key[i]);
+    avl_init(&tvg->nodes_ind, _nodes_ind_compar, _nodes_ind_lookup, NULL);
+    avl_init(&tvg->nodes_key, _nodes_key_compar, _nodes_key_lookup, tvg);
     list_init(&tvg->primary_key);
     tvg->next_node  = 0;
     list_init(&tvg->cache);
@@ -67,8 +107,7 @@ void free_tvg(struct tvg *tvg)
 {
     struct attribute *attr, *next_attr;
     struct graph *graph, *next_graph;
-    struct node *node;
-    uint32_t i;
+    struct node *node, *next_node;
 
     if (!tvg) return;
     if (__sync_sub_and_fetch(&tvg->refcount, 1)) return;
@@ -79,17 +118,11 @@ void free_tvg(struct tvg *tvg)
         unlink_graph(graph);
     }
 
-    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
+    AVL_FOR_EACH_SAFE(node, next_node, &tvg->nodes_ind, struct node, entry_ind)
     {
-        while ((node = LIST_HEAD(&tvg->nodes_ind[i], struct node, entry_ind)))
-        {
-            assert(node->tvg == tvg);
-            unlink_node(node);
-        }
+        assert(node->tvg == tvg);
+        unlink_node(node);
     }
-
-    for (i = 0; i < ARRAY_SIZE(tvg->nodes_key); i++)
-        assert(list_empty(&tvg->nodes_key[i]));
 
     LIST_FOR_EACH_SAFE(attr, next_attr, &tvg->primary_key, struct attribute, entry)
     {
@@ -97,6 +130,7 @@ void free_tvg(struct tvg *tvg)
         free(attr);
     }
 
+    assert(avl_empty(&tvg->nodes_key));
     assert(list_empty(&tvg->cache));
     assert(!tvg->cache_used);
     free(tvg);
@@ -180,15 +214,15 @@ struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts)
 int tvg_set_primary_key(struct tvg *tvg, const char *key)
 {
     struct attribute *attr, *next_attr, *other_attr;
+    struct node *node, *next_node;
     struct list primary_key;
-    struct node *node;
     const char *next;
-    uint32_t hash;
     size_t keylen;
-    uint32_t i;
     int res;
 
     list_init(&primary_key);
+
+    /* FIXME: Handle empty primary key? */
 
     for (;;)
     {
@@ -219,6 +253,11 @@ int tvg_set_primary_key(struct tvg *tvg, const char *key)
         key = next + 1;
     }
 
+    AVL_FOR_EACH_SAFE(node, next_node, &tvg->nodes_key, struct node, entry_key)
+    {
+        avl_remove(&node->entry_key);
+    }
+
     LIST_FOR_EACH_SAFE(attr, next_attr, &tvg->primary_key, struct attribute, entry)
     {
         list_remove(&attr->entry);
@@ -231,18 +270,13 @@ int tvg_set_primary_key(struct tvg *tvg, const char *key)
         list_add_tail(&tvg->primary_key, &attr->entry);
     }
 
-    for (i = 0; i < ARRAY_SIZE(tvg->nodes_ind); i++)
+    if (!list_empty(&tvg->primary_key))
     {
-        LIST_FOR_EACH(node, &tvg->nodes_ind[i], struct node, entry_ind)
+        AVL_FOR_EACH(node, &tvg->nodes_ind, struct node, entry_ind)
         {
-            list_remove(&node->entry_key);
-
             /* FIXME: When creating nodes before setting the primary key,
              * there could be conflicts. */
-
-            hash = node_hash_primary_key(tvg, node);
-            if (hash == ~0U) list_init(&node->entry_key);
-            else list_add_head(&tvg->nodes_key[hash], &node->entry_key);
+            avl_insert(&tvg->nodes_key, &node->entry_key, 0);
         }
     }
 
@@ -259,8 +293,7 @@ error:
 
 int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, uint64_t index)
 {
-    struct node *other_node;
-    uint32_t hash_ind, hash_key;
+    struct avl_entry *entry;
 
     if (ret_node)
         *ret_node = NULL;
@@ -268,49 +301,39 @@ int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, ui
     if (node->tvg)
         return 0;
 
-    if ((hash_key = node_hash_primary_key(tvg, node)) != ~0U)
+    if (!list_empty(&tvg->primary_key))
     {
-        LIST_FOR_EACH(other_node, &tvg->nodes_key[hash_key], struct node, entry_key)
+        if ((entry = avl_insert(&tvg->nodes_key, &node->entry_key, 0)))
         {
-            assert(other_node->tvg == tvg);
-            if (node_equal_key(tvg, node, other_node))
-            {
-                if (ret_node) *ret_node = grab_node(other_node);
-                return 0;  /* collision */
-            }
-        }
-    }
-
-    if (index != ~0ULL)
-    {
-        hash_ind = node_hash_index(tvg, index);
-        LIST_FOR_EACH(other_node, &tvg->nodes_ind[hash_ind], struct node, entry_ind)
-        {
-            assert(other_node->tvg == tvg);
-            if (other_node->index == index) return 0;
+            node = AVL_ENTRY(entry, struct node, entry_key);
+            assert(node->tvg == tvg);
+            if (ret_node) *ret_node = grab_node(node);
+            return 0;  /* collision */
         }
     }
     else
     {
-    retry:
-        index = tvg->next_node++;
-
-        hash_ind = node_hash_index(tvg, index);
-        LIST_FOR_EACH(other_node, &tvg->nodes_ind[hash_ind], struct node, entry_ind)
-        {
-            assert(other_node->tvg == tvg);
-            if (other_node->index == index) goto retry;
-        }
+        /* entry_key is unused since no primary key is set */
+        node->entry_key.parent = NULL;
     }
 
+    if (index != ~0ULL)
+    {
+        node->index = index;
+        if (avl_insert(&tvg->nodes_ind, &node->entry_ind, 0))
+        {
+            avl_remove(&node->entry_key);
+            return 0;
+        }
+    }
+    else for (;;)
+    {
+        node->index = tvg->next_node++;
+        if (!avl_insert(&tvg->nodes_ind, &node->entry_ind, 0))
+            break;
+    }
 
-    node->index = index;
-    node->tvg   = tvg;
-    list_add_head(&tvg->nodes_ind[hash_ind], &node->entry_ind);
-
-    if (hash_key == ~0U) list_init(&node->entry_key);
-    else list_add_head(&tvg->nodes_key[hash_key], &node->entry_key);
-
+    node->tvg = tvg;
     grab_node(node);  /* grab extra reference */
     return 1;
 }
@@ -318,33 +341,20 @@ int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, ui
 struct node *tvg_get_node_by_index(struct tvg *tvg, uint64_t index)
 {
     struct node *node;
-    uint32_t hash;
 
-    hash = node_hash_index(tvg, index);
-    LIST_FOR_EACH(node, &tvg->nodes_ind[hash], struct node, entry_ind)
-    {
-        assert(node->tvg == tvg);
-        if (node->index == index) return grab_node(node);
-    }
-
-    return NULL;
+    node = AVL_LOOKUP(&tvg->nodes_ind, &index, struct node, entry_ind);
+    return grab_node(node);
 }
 
 struct node *tvg_get_node_by_primary_key(struct tvg *tvg, struct node *primary_key)
 {
     struct node *node;
-    uint32_t hash;
 
-    if ((hash = node_hash_primary_key(tvg, primary_key)) == ~0U)
-        return NULL;
+    if (list_empty(&tvg->primary_key))
+        return NULL;  /* no primary key set */
 
-    LIST_FOR_EACH(node, &tvg->nodes_key[hash], struct node, entry_key)
-    {
-        assert(node->tvg == tvg);
-        if (node_equal_key(tvg, node, primary_key)) return grab_node(node);
-    }
-
-    return NULL;
+    node = AVL_LOOKUP(&tvg->nodes_key, &primary_key->entry_key, struct node, entry_key);
+    return grab_node(node);
 }
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)

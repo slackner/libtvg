@@ -144,8 +144,8 @@ struct node
 
     /* private: */
     struct tvg *tvg;         /* NULL for disconnected nodes */
-    struct list entry_ind;
-    struct list entry_key;
+    struct avl_entry entry_ind;
+    struct avl_entry entry_key;
     struct list attributes;
 };
 
@@ -159,8 +159,8 @@ struct tvg
     struct mongodb *mongodb;
     uint64_t    batch_size;
 
-    struct list nodes_ind[7919]; /* node by index */
-    struct list nodes_key[7919]; /* node by primary key */
+    struct avl_tree nodes_ind;  /* node by index */
+    struct avl_tree nodes_key;  /* node by primary key */
     struct list primary_key;
     uint64_t    next_node;
 

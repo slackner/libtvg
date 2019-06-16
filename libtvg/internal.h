@@ -197,9 +197,6 @@ int queue_get(struct queue *q, void *element) DECL_INTERNAL;
 const void *queue_ptr(struct queue *q, size_t index) DECL_INTERNAL;
 
 int node_set_attribute_internal(struct node *node, const char *key, size_t keylen, const char *value) DECL_INTERNAL;
-int node_equal_key(struct tvg *tvg, struct node *node1, struct node *node2) DECL_INTERNAL;
-uint32_t node_hash_index(struct tvg *tvg, uint64_t index) DECL_INTERNAL;
-uint32_t node_hash_primary_key(struct tvg *tvg, struct node *node) DECL_INTERNAL;
 
 void tvg_load_next_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;
 void tvg_load_prev_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;

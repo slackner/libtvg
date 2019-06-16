@@ -114,15 +114,6 @@ static inline void avl_init(struct avl_tree *tree, int (*compar)(const void *, c
     tree->userdata      = userdata;
 }
 
-/* initialize an avl entry */
-static inline void avl_entry_init(struct avl_entry *entry)
-{
-    entry->parent  = NULL;
-    entry->left    = NULL;
-    entry->right   = NULL;
-    entry->balance = 0;
-}
-
 /* check if an avl tree is empty */
 static inline int avl_empty(const struct avl_tree *tree)
 {
@@ -507,7 +498,9 @@ static inline struct avl_entry *avl_insert(struct avl_tree *tree, struct avl_ent
     struct avl_entry *other;
     int res;
 
-    avl_entry_init(entry);
+    entry->left    = NULL;
+    entry->right   = NULL;
+    entry->balance = 0;
 
     if (!tree->root.right)
     {
@@ -519,9 +512,13 @@ static inline struct avl_entry *avl_insert(struct avl_tree *tree, struct avl_ent
     other = tree->root.right;
     for (;;)
     {
-        res = tree->compar(entry, other, tree->userdata);
-        if (!res && !allow_duplicates) return other;
-        if (res > 0)
+        res = tree->compar(other, entry, tree->userdata);
+        if (!res && !allow_duplicates)
+        {
+            entry->parent = NULL;
+            return other;
+        }
+        if (res < 0)
         {
             if (!other->right)
             {
@@ -550,7 +547,9 @@ static inline struct avl_entry *avl_insert(struct avl_tree *tree, struct avl_ent
 
 static inline void avl_add_after(struct avl_tree *tree, struct avl_entry *cursor, struct avl_entry *entry)
 {
-    avl_entry_init(entry);
+    entry->left    = NULL;
+    entry->right   = NULL;
+    entry->balance = 0;
 
     if (!cursor)
     {
@@ -589,7 +588,9 @@ static inline void avl_add_after(struct avl_tree *tree, struct avl_entry *cursor
 
 static inline void avl_add_before(struct avl_tree *tree, struct avl_entry *cursor, struct avl_entry *entry)
 {
-    avl_entry_init(entry);
+    entry->left    = NULL;
+    entry->right   = NULL;
+    entry->balance = 0;
 
     if (!cursor)
     {
@@ -673,6 +674,9 @@ static inline void avl_remove(struct avl_entry *entry)
     struct avl_entry *left = entry->left;
     struct avl_entry *right = entry->right;
     struct avl_entry *parent = entry->parent;
+
+    if (!parent)
+        return;
 
     if (!left)
     {
@@ -790,6 +794,8 @@ static inline void avl_remove(struct avl_entry *entry)
 
         avl_remove_balance(successor_parent, 1);
     }
+
+    entry->parent = NULL;
 }
 
 #endif  /* _TREE_H */
