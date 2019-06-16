@@ -144,7 +144,7 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
         return 0;
 
     graph->ts = ts;
-    if (!avl_insert(&tvg->graphs, &graph->entry, objectid_empty(&graph->objectid)))
+    if (avl_insert(&tvg->graphs, &graph->entry, objectid_empty(&graph->objectid)))
         return 0;  /* MongoDB graphs can only be added once */
 
     /* FIXME: Inherit flags of neighboring graphs. */

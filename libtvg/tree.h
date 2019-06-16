@@ -502,7 +502,7 @@ static inline void avl_insert_balance(struct avl_entry *entry, int balance)
     }
 }
 
-static inline int avl_insert(struct avl_tree *tree, struct avl_entry *entry, int allow_duplicates)
+static inline struct avl_entry *avl_insert(struct avl_tree *tree, struct avl_entry *entry, int allow_duplicates)
 {
     struct avl_entry *other;
     int res;
@@ -513,14 +513,14 @@ static inline int avl_insert(struct avl_tree *tree, struct avl_entry *entry, int
     {
         tree->root.right = entry;
         entry->parent = &tree->root;
-        return 1;
+        return NULL;
     }
 
     other = tree->root.right;
     for (;;)
     {
         res = tree->compar(entry, other, tree->userdata);
-        if (!res && !allow_duplicates) return 0;
+        if (!res && !allow_duplicates) return other;
         if (res > 0)
         {
             if (!other->right)
@@ -528,7 +528,7 @@ static inline int avl_insert(struct avl_tree *tree, struct avl_entry *entry, int
                 other->right = entry;
                 entry->parent = other;
                 avl_insert_balance(other, 1);
-                return 1;
+                return NULL;
             }
 
             other = other->right;
@@ -540,7 +540,7 @@ static inline int avl_insert(struct avl_tree *tree, struct avl_entry *entry, int
                 other->left = entry;
                 entry->parent = other;
                 avl_insert_balance(other, -1);
-                return 1;
+                return NULL;
             }
 
             other = other->left;
