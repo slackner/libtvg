@@ -378,6 +378,9 @@ static int bson_parse_entity_multi(struct tvg *tvg, const bson_t *doc, const cha
         next = strchr(key, ';');
         keylen = next ? (next - key) : strlen(key);
 
+        if (!keylen)
+            goto skip;
+
         if (!bson_iter_init_find_key(&iter, doc, key, keylen))
             goto skip;
 
