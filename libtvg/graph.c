@@ -853,7 +853,7 @@ struct vector *graph_in_weights(const struct graph *graph)
     struct entry2 *edge;
 
     /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(vector = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
@@ -895,7 +895,7 @@ struct vector *graph_out_weights(const struct graph *graph)
     struct entry2 *edge;
 
     /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(vector = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)

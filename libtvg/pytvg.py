@@ -3179,24 +3179,26 @@ if __name__ == '__main__':
             g[0, 0] = 1.0
             g[0, 1] = 2.0
             g[1, 0] = 3.0
+            g[1, 2] = 0.0
+            g[2, 3] = 0.0
 
             d = g.in_degrees()
             indices, weights = d.entries()
-            self.assertEqual(indices.tolist(), [0, 1])
-            self.assertEqual(weights.tolist(), [2.0, 1.0])
+            self.assertEqual(indices.tolist(), [0, 1, 2, 3])
+            self.assertEqual(weights.tolist(), [2.0, 1.0, 1.0, 1.0])
             d = g.in_weights()
             indices, weights = d.entries()
-            self.assertEqual(indices.tolist(), [0, 1])
-            self.assertEqual(weights.tolist(), [4.0, 2.0])
+            self.assertEqual(indices.tolist(), [0, 1, 2, 3])
+            self.assertEqual(weights.tolist(), [4.0, 2.0, 0.0, 0.0])
 
             d = g.out_degrees()
             indices, weights = d.entries()
-            self.assertEqual(indices.tolist(), [0, 1])
-            self.assertEqual(weights.tolist(), [2.0, 1.0])
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [2.0, 2.0, 1.0])
             d = g.out_weights()
             indices, weights = d.entries()
-            self.assertEqual(indices.tolist(), [0, 1])
-            self.assertEqual(weights.tolist(), [3.0, 3.0])
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [3.0, 3.0, 0.0])
             del g
 
         def test_anomalies(self):
