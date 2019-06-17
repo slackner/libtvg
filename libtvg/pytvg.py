@@ -3618,6 +3618,9 @@ if __name__ == '__main__':
             with self.assertRaises(KeyError):
                 l["text"] = "other text"
 
+            with self.assertRaises(KeyError):
+                l[""] = "empty key"
+
             l["attr1"] = "sample attr1"
             l["attr2"] = "sample attr2"
             l["attr3"] = "sample attr3"

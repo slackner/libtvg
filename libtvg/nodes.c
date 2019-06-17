@@ -63,12 +63,16 @@ int node_set_attribute_internal(struct node *node, const char *key, size_t keyle
     struct tvg *tvg;
     int res;
 
+    if (!keylen)
+        return 0;
+
     if ((tvg = node->tvg))
     {
         /* Don't allow to change primary key after adding to a TVG object. */
         LIST_FOR_EACH(attr, &tvg->primary_key, struct attribute, entry)
         {
-            if (!strcmp(attr->key, key)) return 0;
+            if (!strncmp(attr->key, key, keylen) && attr->key[keylen] == '\0')
+                return 0;
         }
     }
 
