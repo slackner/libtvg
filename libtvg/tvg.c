@@ -222,12 +222,13 @@ int tvg_set_primary_key(struct tvg *tvg, const char *key)
 
     list_init(&primary_key);
 
-    /* FIXME: Handle empty primary key? */
-
     for (;;)
     {
         next = strchr(key, ';');
         keylen = next ? (next - key) : strlen(key);
+
+        if (!keylen)
+            goto skip;
 
         if (!(attr = malloc(offsetof(struct attribute, buffer[keylen + 1]))))
             goto error;
