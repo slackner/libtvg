@@ -199,6 +199,16 @@ int queue_put(struct queue *q, const void *element) DECL_INTERNAL;
 int queue_get(struct queue *q, void *element) DECL_INTERNAL;
 const void *queue_ptr(struct queue *q, size_t index) DECL_INTERNAL;
 
+struct ranges *alloc_ranges(void) DECL_INTERNAL;
+void free_ranges(struct ranges *ranges) DECL_INTERNAL;
+void ranges_debug(struct ranges *ranges) DECL_INTERNAL;
+void ranges_assert_valid(struct ranges *ranges) DECL_INTERNAL;
+int ranges_empty(struct ranges *ranges) DECL_INTERNAL;
+int ranges_add_range(struct ranges *ranges, uint64_t pos, uint64_t len, int64_t weight) DECL_INTERNAL;
+int64_t ranges_get_weight(struct ranges *ranges, uint64_t pos) DECL_INTERNAL;
+uint64_t ranges_get_length(struct ranges *ranges) DECL_INTERNAL;
+int64_t ranges_get_delta_length(struct ranges *ranges, uint64_t pos, uint64_t len, int64_t *weight) DECL_INTERNAL;
+
 int node_set_attribute_internal(struct node *node, const char *key, size_t keylen, const char *value) DECL_INTERNAL;
 
 void tvg_load_next_graph(struct tvg *tvg, struct graph *graph) DECL_INTERNAL;

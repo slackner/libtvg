@@ -35,5 +35,5 @@ clean:
 $(LIBNAME): $(wildcard *.c *.h)
 	$(CC) $(LIB_CFLAGS) $(CFLAGS) -o $(LIBNAME) $(wildcard *.c) $(LIB_LDFLAGS) $(LDFLAGS)
 
-tests: tests.c tvg.h internal.h $(LIBNAME)
-	$(CC) $(APP_CFLAGS) $(CFLAGS) -o $@ $< $(APP_LDFLAGS) $(LDFLAGS)
+tests: tests.c minheap.c ranges.c tvg.h internal.h $(LIBNAME)
+	$(CC) $(APP_CFLAGS) $(CFLAGS) -o $@ tests.c minheap.c ranges.c $(APP_LDFLAGS) $(LDFLAGS)

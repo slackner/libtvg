@@ -1428,6 +1428,71 @@ static void test_avl_tree(void)
     }
 }
 
+static void test_ranges(void)
+{
+    uint64_t pos, pos2, len;
+    uint64_t total_len;
+    int64_t *weights;
+    struct ranges *r;
+    int64_t weight;
+    int i, j;
+    int ret;
+
+    r = alloc_ranges();
+    assert(r != NULL);
+
+    weights = malloc(sizeof(*weights) * 4096);
+    assert(weights != NULL);
+
+    for (i = 0; i < 4096; i++)
+        weights[i] = 0;
+
+    for (j = 0; j < 10000; j++)
+    {
+        pos  = random_uint64() % 4096;
+        pos2 = random_uint64() % 4096;
+        if (pos > pos2) SWAP((char *)&pos, (char *)&pos2, sizeof(pos));
+        len = (pos2 - pos + 1);
+        assert(pos + len <= 4096);
+
+        weight = (random_uint64() & 1) ? 1 : -1;
+
+        ret = ranges_add_range(r, pos, len, weight);
+        assert(ret);
+
+        for (i = pos; i < pos + len; i++)
+            weights[i] += weight;
+
+        ranges_assert_valid(r);
+        for (i = 0; i < 4096; i++)
+            assert(ranges_get_weight(r, i) == weights[i]);
+
+        pos = random_uint64() % 4096;
+        pos2 = random_uint64() % 4096;
+        if (pos > pos2) SWAP((char *)&pos, (char *)&pos2, sizeof(pos));
+        len = (pos2 - pos + 1);
+        assert(pos + len <= 4096);
+
+        total_len = ranges_get_length(r);
+        total_len += ranges_get_delta_length(r, pos, len, &weight);
+
+        ret = ranges_add_range(r, pos, len, weight);
+        assert(ret);
+
+        for (i = pos; i < pos + len; i++)
+            weights[i] += weight;
+
+        ranges_assert_valid(r);
+        for (i = 0; i < 4096; i++)
+            assert(ranges_get_weight(r, i) == weights[i]);
+
+        assert(ranges_get_length(r) == total_len);
+    }
+
+    free_ranges(r);
+    free(weights);
+}
+
 int main(void)
 {
     srand((unsigned int)time(NULL));
@@ -1464,6 +1529,7 @@ int main(void)
     test_tvg_for_each_graph();
     test_graph_bfs();
     test_avl_tree();
+    test_ranges();
 
     fprintf(stderr, "No test failures found\n");
 }
