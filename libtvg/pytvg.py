@@ -171,11 +171,17 @@ lib.vector_add_entry.restype = c_int
 lib.vector_add_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_add_entries.restype = c_int
 
+lib.vector_add_vector.argtypes = (c_vector_p, c_vector_p, c_float)
+lib.vector_add_vector.restype = c_int
+
 lib.vector_sub_entry.argtypes = (c_vector_p, c_uint64, c_float)
 lib.vector_sub_entry.restype = c_int
 
 lib.vector_sub_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_sub_entries.restype = c_int
+
+lib.vector_sub_vector.argtypes = (c_vector_p, c_vector_p, c_float)
+lib.vector_sub_vector.restype = c_int
 
 lib.vector_del_entry.argtypes = (c_vector_p, c_uint64)
 
@@ -891,6 +897,17 @@ class Vector(object):
         if not res:
             raise MemoryError
 
+    def add_vector(self, other, weight=1.0):
+        """ Add entries specified by a second vector, optionally multiplied by `weight`. """
+        res = lib.vector_add_vector(self._obj, other._obj, weight)
+        if not res:
+            raise MemoryError
+
+    def __add__(self, other):
+        result = self.duplicate()
+        result.add_vector(other)
+        return result
+
     def sub_entry(self, index, weight):
         """ Subtract weight `weight` from the entry with index `index`. """
         res = lib.vector_sub_entry(self._obj, index, weight)
@@ -930,6 +947,17 @@ class Vector(object):
         res = lib.vector_sub_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
+
+    def sub_vector(self, other, weight=1.0):
+        """ Subtract entries specified by a second vector, optionally multiplied by `weight`. """
+        res = lib.vector_sub_vector(self._obj, other._obj, weight)
+        if not res:
+            raise MemoryError
+
+    def __sub__(self, other):
+        result = self.duplicate()
+        result.sub_vector(other)
+        return result
 
     def __delitem__(self, index):
         """ Delete entry `index` from the vector or do nothing if it doesn't exist. """
@@ -1372,6 +1400,17 @@ class Graph(object):
         if not res:
             raise MemoryError
 
+    def add_graph(self, other, weight=1.0):
+        """ Add edges specified by a second graph, optionally multiplied by `weight`. """
+        res = lib.graph_add_graph(self._obj, other._obj, weight)
+        if not res:
+            raise MemoryError
+
+    def __add__(self, other):
+        result = self.duplicate()
+        result.add_graph(other)
+        return result
+
     def sub_edge(self, indices, weight):
         """ Subtract weight `weight` from edge `(source, target)`. """
         (source, target) = indices
@@ -1412,6 +1451,17 @@ class Graph(object):
         res = lib.graph_sub_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
+
+    def sub_graph(self, other, weight=1.0):
+        """ Subtract edges specified by a second graph, optionally multiplied by `weight`. """
+        res = lib.graph_sub_graph(self._obj, other._obj, weight)
+        if not res:
+            raise MemoryError
+
+    def __sub__(self, other):
+        result = self.duplicate()
+        result.sub_graph(other)
+        return result
 
     def __delitem__(self, indices):
         """ Delete edge `(source, target)` from the graph or do nothing if it doesn't exist. """
@@ -2507,6 +2557,28 @@ if __name__ == '__main__':
             self.assertNotIn(v.revision, revisions)
             del v
 
+        def test_add_vector(self):
+            v1 = Vector()
+            v1[0] = 1.0
+            v1[1] = 2.0
+            v1[2] = 3.0
+
+            v2 = Vector()
+            v2[1] = 30.0
+            v2[2] = 20.0
+            v2[3] = 10.0
+
+            v = v1 + v2
+            self.assertEqual(v.as_dict(), {0: 1.0, 1: 32.0, 2: 23.0, 3: 10.0})
+            del v
+
+            v = v2 - v1
+            self.assertEqual(v.as_dict(), {0: -1.0, 1: 28.0, 2: 17.0, 3: 10.0})
+            del v
+
+            del v1
+            del v2
+
         def test_clear(self):
             v = Vector()
             self.assertTrue(v.empty())
@@ -2829,6 +2901,30 @@ if __name__ == '__main__':
             self.assertTrue(g.empty())
             self.assertNotIn(g.revision, revisions)
             del g
+
+        def test_add_graph(self):
+            g1 = Graph()
+            g1[0, 0] = 1.0
+            g1[0, 1] = 2.0
+            g1[0, 2] = 3.0
+
+            g2 = Graph()
+            g2[0, 1] = 30.0
+            g2[0, 2] = 20.0
+            g2[0, 3] = 10.0
+
+            g = g1 + g2
+            self.assertEqual(g.as_dict(), {(0, 0): 1.0, (0, 1): 32.0,
+                                           (0, 2): 23.0, (0, 3): 10.0})
+            del g
+
+            g = g2 - g1
+            self.assertEqual(g.as_dict(), {(0, 0): -1.0, (0, 1): 28.0,
+                                           (0, 2): 17.0, (0, 3): 10.0})
+            del g
+
+            del g1
+            del g2
 
         def test_clear(self):
             g = Graph(directed=True)

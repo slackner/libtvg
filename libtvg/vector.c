@@ -365,6 +365,22 @@ int vector_add_entries(struct vector *vector, uint64_t *indices, float *weights,
     return 1;
 }
 
+int vector_add_vector(struct vector *out, struct vector *vector, float weight)
+{
+    struct entry1 *entry;
+
+    VECTOR_FOR_EACH_ENTRY(vector, entry)
+    {
+        /* Note that we intentionally don't use out->ops->add here. It is safer to
+         * always use exported functions when working on other objects. */
+        if (!vector_add_entry(out, entry->index, entry->weight * weight))
+            return 0;
+    }
+
+    /* vector_add_entry already updated the revision */
+    return 1;
+}
+
 int vector_sub_entry(struct vector *vector, uint64_t index, float weight)
 {
     return vector->ops->add(vector, index, -weight);
@@ -395,6 +411,11 @@ int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights,
     }
 
     return 1;
+}
+
+int vector_sub_vector(struct vector *out, struct vector *vector, float weight)
+{
+    return vector_add_vector(out, vector, -weight);
 }
 
 void vector_del_entry(struct vector *vector, uint64_t index)

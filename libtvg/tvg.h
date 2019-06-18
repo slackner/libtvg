@@ -1344,9 +1344,11 @@ int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights,
 
 int vector_add_entry(struct vector *vector, uint64_t index, float weight);
 int vector_add_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries);
+int vector_add_vector(struct vector *out, struct vector *vector, float weight);
 
 int vector_sub_entry(struct vector *vector, uint64_t index, float weight);
 int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries);
+int vector_sub_vector(struct vector *out, struct vector *vector, float weight);
 
 void vector_del_entry(struct vector *vector, uint64_t index);
 void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
