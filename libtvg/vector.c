@@ -423,9 +423,9 @@ void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_e
     }
 }
 
-void vector_mul_const(struct vector *vector, float constant)
+int vector_mul_const(struct vector *vector, float constant)
 {
-    vector->ops->mul_const(vector, constant);
+    return vector->ops->mul_const(vector, constant);
 }
 
 double vector_norm(const struct vector *vector)

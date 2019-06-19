@@ -789,9 +789,9 @@ void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges)
     }
 }
 
-void graph_mul_const(struct graph *graph, float constant)
+int graph_mul_const(struct graph *graph, float constant)
 {
-    graph->ops->mul_const(graph, constant);
+    return graph->ops->mul_const(graph, constant);
 }
 
 struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector)
@@ -1004,7 +1004,12 @@ struct vector *graph_power_iteration(const struct graph *graph, struct vector *i
             return NULL;
         }
 
-        vector_mul_const(temp, (float)(1.0 / vector_norm(temp)));
+        if (!vector_mul_const(temp, (float)(1.0 / vector_norm(temp))))
+        {
+            free_vector(vector);
+            free_vector(temp);
+            return NULL;
+        }
 
         if (tolerance > 0.0 && vector_sub_vector_norm(vector, temp) <= tolerance)
             num_iterations = 0;

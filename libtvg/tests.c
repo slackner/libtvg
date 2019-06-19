@@ -969,6 +969,7 @@ static void test_power_iteration(void)
     struct vector *vector;
     struct graph *graph;
     double eigenvalue;
+    int ret;
 
     graph = alloc_graph(TVG_FLAGS_DIRECTED);
     graph_add_edge(graph, 0, 0, 0.5);
@@ -983,7 +984,8 @@ static void test_power_iteration(void)
     assert(fabs(vector_get_entry(vector, 1) - invsqrt2) < 1e-7);
     free_vector(vector);
 
-    graph_mul_const(graph, -1.0);
+    ret = graph_mul_const(graph, -1.0);
+    assert(ret);
 
     vector = graph_power_iteration(graph, NULL, 0, 0.0, &eigenvalue);
     assert(vector != NULL);

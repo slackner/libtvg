@@ -143,7 +143,7 @@ static void generic_del(struct graph *graph, uint64_t source, uint64_t target)
         graph_optimize(graph);
 }
 
-static void generic_mul_const(struct graph *graph, float constant)
+static int generic_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge;
 
@@ -153,6 +153,7 @@ static void generic_mul_const(struct graph *graph, float constant)
     }
 
     graph->revision++;
+    return 1;
 }
 
 static int generic_set_eps(struct graph *graph, float eps)
@@ -234,7 +235,7 @@ static int nonzero_add(struct graph *graph, uint64_t source, uint64_t target, fl
     return 1;
 }
 
-static void nonzero_mul_const(struct graph *graph, float constant)
+static int nonzero_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
@@ -260,13 +261,13 @@ static void nonzero_mul_const(struct graph *graph, float constant)
 
     graph->revision++;
     /* FIXME: Trigger graph_optimize? */
+    return 1;
 }
 
 static int nonzero_set_eps(struct graph *graph, float eps)
 {
     graph->eps = (float)fabs(eps);
-    nonzero_mul_const(graph, 1.0);
-    return 1;
+    return nonzero_mul_const(graph, 1.0);
 }
 
 const struct graph_ops graph_nonzero_ops =
@@ -342,7 +343,7 @@ static int positive_add(struct graph *graph, uint64_t source, uint64_t target, f
     return 1;
 }
 
-static void positive_mul_const(struct graph *graph, float constant)
+static int positive_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
@@ -368,13 +369,13 @@ static void positive_mul_const(struct graph *graph, float constant)
 
     graph->revision++;
     /* FIXME: Trigger graph_optimize? */
+    return 1;
 }
 
 static int positive_set_eps(struct graph *graph, float eps)
 {
     graph->eps = (float)fabs(eps);
-    positive_mul_const(graph, 1.0);
-    return 1;
+    return positive_mul_const(graph, 1.0);
 }
 
 const struct graph_ops graph_positive_ops =

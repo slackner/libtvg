@@ -1353,7 +1353,7 @@ int vector_sub_vector(struct vector *out, struct vector *vector, float weight);
 void vector_del_entry(struct vector *vector, uint64_t index);
 void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
 
-void vector_mul_const(struct vector *vector, float constant);
+int vector_mul_const(struct vector *vector, float constant);
 double vector_norm(const struct vector *vector);
 double vector_mul_vector(const struct vector *vector1, const struct vector *vector2);
 double vector_sub_vector_norm(const struct vector *vector1, const struct vector *vector2);
@@ -1405,7 +1405,7 @@ int graph_sub_graph(struct graph *out, struct graph *graph, float weight);
 void graph_del_edge(struct graph *graph, uint64_t source, uint64_t target);
 void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges);
 
-void graph_mul_const(struct graph *graph, float constant);
+int graph_mul_const(struct graph *graph, float constant);
 struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector);
 
 struct vector *graph_in_degrees(const struct graph *graph);

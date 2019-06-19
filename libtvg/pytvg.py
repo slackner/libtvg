@@ -990,7 +990,9 @@ class Vector(object):
 
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of the vector with `constant`. """
-        lib.vector_mul_const(self._obj, constant)
+        res = lib.vector_mul_const(self._obj, constant)
+        if not res:
+            raise RuntimeError
 
     @cacheable
     def norm(self):
@@ -1499,7 +1501,9 @@ class Graph(object):
 
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of all graph edges with `constant`. """
-        lib.graph_mul_const(self._obj, constant)
+        res = lib.graph_mul_const(self._obj, constant)
+        if not res:
+            raise RuntimeError
 
     def mul_vector(self, other):
         """ Compute the matrix-vector product of the graph with vector `other`. """

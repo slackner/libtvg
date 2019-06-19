@@ -93,7 +93,7 @@ static void generic_del(struct vector *vector, uint64_t index)
         vector_optimize(vector);
 }
 
-static void generic_mul_const(struct vector *vector, float constant)
+static int generic_mul_const(struct vector *vector, float constant)
 {
     struct entry1 *entry;
 
@@ -103,6 +103,7 @@ static void generic_mul_const(struct vector *vector, float constant)
     }
 
     vector->revision++;
+    return 1;
 }
 
 static int generic_set_eps(struct vector *vector, float eps)
@@ -163,7 +164,7 @@ static int nonzero_add(struct vector *vector, uint64_t index, float weight)
     return 1;
 }
 
-static void nonzero_mul_const(struct vector *vector, float constant)
+static int nonzero_mul_const(struct vector *vector, float constant)
 {
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
@@ -188,13 +189,13 @@ static void nonzero_mul_const(struct vector *vector, float constant)
 
     vector->revision++;
     /* FIXME: Trigger vector_optimize? */
+    return 1;
 }
 
 static int nonzero_set_eps(struct vector *vector, float eps)
 {
     vector->eps = (float)fabs(eps);
-    nonzero_mul_const(vector, 1.0);
-    return 1;
+    return nonzero_mul_const(vector, 1.0);
 }
 
 const struct vector_ops vector_nonzero_ops =
@@ -249,7 +250,7 @@ static int positive_add(struct vector *vector, uint64_t index, float weight)
     return 1;
 }
 
-static void positive_mul_const(struct vector *vector, float constant)
+static int positive_mul_const(struct vector *vector, float constant)
 {
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
@@ -274,13 +275,13 @@ static void positive_mul_const(struct vector *vector, float constant)
 
     vector->revision++;
     /* FIXME: Trigger vector_optimize? */
+    return 1;
 }
 
 static int positive_set_eps(struct vector *vector, float eps)
 {
     vector->eps = (float)fabs(eps);
-    positive_mul_const(vector, 1.0);
-    return 1;
+    return positive_mul_const(vector, 1.0);
 }
 
 const struct vector_ops vector_positive_ops =
