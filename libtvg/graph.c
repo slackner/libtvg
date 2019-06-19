@@ -526,10 +526,9 @@ error:
     graph->optimize = 1024;
 }
 
-void graph_set_eps(struct graph *graph, float eps)
+int graph_set_eps(struct graph *graph, float eps)
 {
-    graph->eps = (float)fabs(eps);
-    graph->ops->mul_const(graph, 1.0);
+    return graph->ops->set_eps(graph, eps);
 }
 
 int graph_empty(struct graph *graph)

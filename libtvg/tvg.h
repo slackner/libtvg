@@ -1329,7 +1329,7 @@ int vector_inc_bits(struct vector *vector);
 int vector_dec_bits(struct vector *vector);
 void vector_optimize(struct vector *vector);
 
-void vector_set_eps(struct vector *vector, float eps);
+int vector_set_eps(struct vector *vector, float eps);
 
 int vector_empty(struct vector *vector);
 int vector_clear(struct vector *vector);
@@ -1379,7 +1379,7 @@ int graph_inc_bits_source(struct graph *graph);
 int graph_dec_bits_source(struct graph *graph);
 void graph_optimize(struct graph *graph);
 
-void graph_set_eps(struct graph *graph, float eps);
+int graph_set_eps(struct graph *graph, float eps);
 
 int graph_empty(struct graph *graph);
 int graph_clear(struct graph *graph);

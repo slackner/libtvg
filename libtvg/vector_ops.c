@@ -105,8 +105,15 @@ static void generic_mul_const(struct vector *vector, float constant)
     vector->revision++;
 }
 
+static int generic_set_eps(struct vector *vector, float eps)
+{
+    vector->eps = (float)fabs(eps);
+    return 1;
+}
+
 const struct vector_ops vector_generic_ops =
 {
+    generic_set_eps,
     generic_clear,
     generic_get,
     generic_set,
@@ -183,8 +190,16 @@ static void nonzero_mul_const(struct vector *vector, float constant)
     /* FIXME: Trigger vector_optimize? */
 }
 
+static int nonzero_set_eps(struct vector *vector, float eps)
+{
+    vector->eps = (float)fabs(eps);
+    nonzero_mul_const(vector, 1.0);
+    return 1;
+}
+
 const struct vector_ops vector_nonzero_ops =
 {
+    nonzero_set_eps,
     generic_clear,
     generic_get,
     nonzero_set,
@@ -261,8 +276,16 @@ static void positive_mul_const(struct vector *vector, float constant)
     /* FIXME: Trigger vector_optimize? */
 }
 
+static int positive_set_eps(struct vector *vector, float eps)
+{
+    vector->eps = (float)fabs(eps);
+    positive_mul_const(vector, 1.0);
+    return 1;
+}
+
 const struct vector_ops vector_positive_ops =
 {
+    positive_set_eps,
     generic_clear,
     generic_get,
     positive_set,

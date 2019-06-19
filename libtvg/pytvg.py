@@ -147,6 +147,7 @@ lib.vector_clear.argtypes = (c_vector_p,)
 lib.vector_clear.restype = c_int
 
 lib.vector_set_eps.argtypes = (c_vector_p, c_float)
+lib.vector_set_eps.restype = c_int
 
 lib.vector_empty.argtypes = (c_vector_p,)
 lib.vector_empty.restype = c_int
@@ -224,6 +225,7 @@ lib.next_graph.argtypes = (c_graph_p,)
 lib.next_graph.restype = c_graph_p
 
 lib.graph_set_eps.argtypes = (c_graph_p, c_float)
+lib.graph_set_eps.restype = c_int
 
 lib.graph_empty.argtypes = (c_graph_p,)
 lib.graph_empty.restype = c_int
@@ -754,7 +756,9 @@ class Vector(object):
 
     @eps.setter
     def eps(self, value):
-        lib.vector_set_eps(self._obj, value)
+        res = lib.vector_set_eps(self._obj, value)
+        if not res:
+            raise MemoryError
 
     @cacheable
     def empty(self):
@@ -1081,7 +1085,9 @@ class Graph(object):
 
     @eps.setter
     def eps(self, value):
-        lib.graph_set_eps(self._obj, value)
+        res = lib.graph_set_eps(self._obj, value)
+        if not res:
+            raise RuntimeError
 
     @property
     def ts(self):

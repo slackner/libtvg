@@ -237,10 +237,9 @@ error:
     vector->optimize = 1024;
 }
 
-void vector_set_eps(struct vector *vector, float eps)
+int vector_set_eps(struct vector *vector, float eps)
 {
-    vector->eps = (float)fabs(eps);
-    vector->ops->mul_const(vector, 1.0);
+    return vector->ops->set_eps(vector, eps);
 }
 
 int vector_empty(struct vector *vector)

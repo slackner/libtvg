@@ -55,6 +55,7 @@
 
 struct vector_ops
 {
+    int       (*set_eps)(struct vector *, float);
     int       (*clear)(struct vector *);
     float     (*get)(struct vector *, uint64_t);
     int       (*set)(struct vector *, uint64_t, float);
@@ -65,6 +66,7 @@ struct vector_ops
 
 struct graph_ops
 {
+    int       (*set_eps)(struct graph *, float);
     int       (*clear)(struct graph *);
     float     (*get)(struct graph *, uint64_t, uint64_t);
     int       (*set)(struct graph *, uint64_t, uint64_t, float);

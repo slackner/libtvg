@@ -155,8 +155,15 @@ static void generic_mul_const(struct graph *graph, float constant)
     graph->revision++;
 }
 
+static int generic_set_eps(struct graph *graph, float eps)
+{
+    graph->eps = (float)fabs(eps);
+    return 1;
+}
+
 const struct graph_ops graph_generic_ops =
 {
+    generic_set_eps,
     generic_clear,
     generic_get,
     generic_set,
@@ -255,8 +262,16 @@ static void nonzero_mul_const(struct graph *graph, float constant)
     /* FIXME: Trigger graph_optimize? */
 }
 
+static int nonzero_set_eps(struct graph *graph, float eps)
+{
+    graph->eps = (float)fabs(eps);
+    nonzero_mul_const(graph, 1.0);
+    return 1;
+}
+
 const struct graph_ops graph_nonzero_ops =
 {
+    nonzero_set_eps,
     generic_clear,
     generic_get,
     nonzero_set,
@@ -355,8 +370,16 @@ static void positive_mul_const(struct graph *graph, float constant)
     /* FIXME: Trigger graph_optimize? */
 }
 
+static int positive_set_eps(struct graph *graph, float eps)
+{
+    graph->eps = (float)fabs(eps);
+    positive_mul_const(graph, 1.0);
+    return 1;
+}
+
 const struct graph_ops graph_positive_ops =
 {
+    positive_set_eps,
     generic_clear,
     generic_get,
     positive_set,
