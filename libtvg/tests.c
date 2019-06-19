@@ -290,6 +290,7 @@ static void test_graph_get_edge(void)
     struct graph *graph2;
     float weight;
     uint64_t i;
+    int ret;
 
     graph_add_edge(graph, 0, 2, 1.0);
     graph_add_edge(graph, 0, 8, 4.0);
@@ -325,7 +326,8 @@ static void test_graph_get_edge(void)
 
     for (i = 0; i < 11; i++)
     {
-        graph_del_edge(graph, 0, i);
+        ret = graph_del_edge(graph, 0, i);
+        assert(ret);
         assert(!graph_has_edge(graph, 0, i));
         assert(!graph_has_edge(graph, i, 0));
         assert(graph_get_edge(graph, 0, i) == 0.0);
@@ -342,7 +344,8 @@ static void test_graph_get_edge(void)
 
     for (i = 0; i < 11; i++)
     {
-        graph_del_edge(graph2, 0, i);
+        ret = graph_del_edge(graph2, 0, i);
+        assert(ret);
         assert(!graph_has_edge(graph2, 0, i));
         assert(!graph_has_edge(graph2, i, 0));
         assert(graph_get_edge(graph2, 0, i) == 0.0);
@@ -351,11 +354,15 @@ static void test_graph_get_edge(void)
 
     for (i = 11; i < 21; i++)
     {
-        graph_del_edge(graph, 0, i);
-        graph_del_edge(graph, i, 0);
+        ret = graph_del_edge(graph, 0, i);
+        assert(ret);
+        ret = graph_del_edge(graph, i, 0);
+        assert(ret);
 
-        graph_del_edge(graph2, 0, i);
-        graph_del_edge(graph2, i, 0);
+        ret = graph_del_edge(graph2, 0, i);
+        assert(ret);
+        ret = graph_del_edge(graph2, i, 0);
+        assert(ret);
     }
 
     free_graph(graph);
@@ -369,6 +376,7 @@ static void test_vector_get_entry(void)
     struct vector *vector2;
     float weight;
     uint64_t i;
+    int ret;
 
     vector_add_entry(vector, 2, 1.0);
     vector_add_entry(vector, 8, 4.0);
@@ -400,7 +408,8 @@ static void test_vector_get_entry(void)
 
     for (i = 0; i < 11; i++)
     {
-        vector_del_entry(vector, i);
+        ret = vector_del_entry(vector, i);
+        assert(ret);
         assert(!vector_has_entry(vector, i));
         assert(vector_get_entry(vector, i) == 0.0);
     }
@@ -414,7 +423,8 @@ static void test_vector_get_entry(void)
 
     for (i = 0; i < 11; i++)
     {
-        vector_del_entry(vector2, i);
+        ret = vector_del_entry(vector2, i);
+        assert(ret);
         assert(!vector_has_entry(vector2, i));
         assert(vector_get_entry(vector2, i) == 0.0);
     }
@@ -422,9 +432,11 @@ static void test_vector_get_entry(void)
 
     for (i = 11; i < 21; i++)
     {
-        vector_del_entry(vector, i);
+        ret = vector_del_entry(vector, i);
+        assert(ret);
 
-        vector_del_entry(vector2, i);
+        ret = vector_del_entry(vector2, i);
+        assert(ret);
     }
 
     free_vector(vector);

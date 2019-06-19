@@ -775,18 +775,22 @@ int graph_sub_graph(struct graph *out, struct graph *graph, float weight)
     return graph_add_graph(out, graph, -weight);
 }
 
-void graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
+int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
 {
-    graph->ops->del(graph, source, target);
+    return graph->ops->del(graph, source, target);
 }
 
-void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges)
+int graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges)
 {
     while (num_edges--)
     {
-        graph->ops->del(graph, indices[0], indices[1]);
+        if (!graph->ops->del(graph, indices[0], indices[1]))
+            return 0;
+
         indices += 2;
     }
+
+    return 1;
 }
 
 int graph_mul_const(struct graph *graph, float constant)

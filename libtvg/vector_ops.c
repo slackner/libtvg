@@ -77,20 +77,22 @@ static int generic_add(struct vector *vector, uint64_t index, float weight)
     return 1;
 }
 
-static void generic_del(struct vector *vector, uint64_t index)
+static int generic_del(struct vector *vector, uint64_t index)
 {
     struct bucket1 *bucket;
     struct entry1 *entry;
 
     bucket = _vector_get_bucket(vector, index);
     if (!(entry = bucket1_get_entry(bucket, index, 0)))
-        return;
+        return 1;
 
     bucket1_del_entry(bucket, entry);
 
     vector->revision++;
     if (!--vector->optimize)
         vector_optimize(vector);
+
+    return 1;
 }
 
 static int generic_mul_const(struct vector *vector, float constant)

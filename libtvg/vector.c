@@ -409,18 +409,22 @@ int vector_sub_vector(struct vector *out, struct vector *vector, float weight)
     return vector_add_vector(out, vector, -weight);
 }
 
-void vector_del_entry(struct vector *vector, uint64_t index)
+int vector_del_entry(struct vector *vector, uint64_t index)
 {
-    vector->ops->del(vector, index);
+    return vector->ops->del(vector, index);
 }
 
-void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries)
+int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries)
 {
     while (num_entries--)
     {
-        vector->ops->del(vector, indices[0]);
+        if (!vector->ops->del(vector, indices[0]))
+            return 0;
+
         indices++;
     }
+
+    return 1;
 }
 
 int vector_mul_const(struct vector *vector, float constant)

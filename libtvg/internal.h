@@ -60,7 +60,7 @@ struct vector_ops
     float     (*get)(struct vector *, uint64_t);
     int       (*set)(struct vector *, uint64_t, float);
     int       (*add)(struct vector *, uint64_t, float);
-    void      (*del)(struct vector *, uint64_t);
+    int       (*del)(struct vector *, uint64_t);
     int       (*mul_const)(struct vector *, float);
 };
 
@@ -71,7 +71,7 @@ struct graph_ops
     float     (*get)(struct graph *, uint64_t, uint64_t);
     int       (*set)(struct graph *, uint64_t, uint64_t, float);
     int       (*add)(struct graph *, uint64_t, uint64_t, float);
-    void      (*del)(struct graph *, uint64_t, uint64_t);
+    int       (*del)(struct graph *, uint64_t, uint64_t);
     int       (*mul_const)(struct graph *, float);
 };
 

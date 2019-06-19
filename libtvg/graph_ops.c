@@ -122,7 +122,7 @@ static int generic_add(struct graph *graph, uint64_t source, uint64_t target, fl
     return 1;
 }
 
-static void generic_del(struct graph *graph, uint64_t source, uint64_t target)
+static int generic_del(struct graph *graph, uint64_t source, uint64_t target)
 {
     int changed = 0;
 
@@ -136,11 +136,13 @@ static void generic_del(struct graph *graph, uint64_t source, uint64_t target)
     }
 
     if (!changed)
-        return;
+        return 1;
 
     graph->revision++;
     if (!--graph->optimize)
         graph_optimize(graph);
+
+    return 1;
 }
 
 static int generic_mul_const(struct graph *graph, float constant)

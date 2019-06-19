@@ -186,8 +186,10 @@ lib.vector_sub_vector.argtypes = (c_vector_p, c_vector_p, c_float)
 lib.vector_sub_vector.restype = c_int
 
 lib.vector_del_entry.argtypes = (c_vector_p, c_uint64)
+lib.vector_del_entry.restype = c_int
 
 lib.vector_del_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), c_uint64)
+lib.vector_del_entries.restype = c_int
 
 lib.vector_mul_const.argtypes = (c_vector_p, c_float)
 
@@ -270,8 +272,10 @@ lib.graph_sub_graph.argtypes = (c_graph_p, c_graph_p, c_float)
 lib.graph_sub_graph.restype = c_int
 
 lib.graph_del_edge.argtypes = (c_graph_p, c_uint64, c_uint64)
+lib.graph_del_edge.restype = c_int
 
 lib.graph_del_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), c_uint64)
+lib.graph_del_edges.restype = c_int
 
 lib.graph_mul_const.argtypes = (c_graph_p, c_float)
 
@@ -969,7 +973,9 @@ class Vector(object):
 
     def __delitem__(self, index):
         """ Delete entry `index` from the vector or do nothing if it doesn't exist. """
-        lib.vector_del_entry(self._obj, index)
+        res = lib.vector_del_entry(self._obj, index)
+        if not res:
+            raise RuntimeError
 
     def del_entries(self, indices):
         """
@@ -986,7 +992,9 @@ class Vector(object):
         if len(indices.shape) != 1:
             raise ValueError("indices array does not have correct dimensions")
 
-        lib.vector_del_entries(self._obj, indices, indices.shape[0])
+        res = lib.vector_del_entries(self._obj, indices, indices.shape[0])
+        if not res:
+            raise RuntimeError
 
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of the vector with `constant`. """
@@ -1480,7 +1488,9 @@ class Graph(object):
     def __delitem__(self, indices):
         """ Delete edge `(source, target)` from the graph or do nothing if it doesn't exist. """
         (source, target) = indices
-        lib.graph_del_edge(self._obj, source, target)
+        res = lib.graph_del_edge(self._obj, source, target)
+        if not res:
+            raise RuntimeError
 
     def del_edges(self, indices):
         """
@@ -1497,7 +1507,9 @@ class Graph(object):
         if len(indices.shape) != 2 or indices.shape[1] != 2:
             raise ValueError("indices array does not have correct dimensions")
 
-        lib.graph_del_edges(self._obj, indices, indices.shape[0])
+        res = lib.graph_del_edges(self._obj, indices, indices.shape[0])
+        if not res:
+            raise RuntimeError
 
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of all graph edges with `constant`. """

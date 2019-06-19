@@ -1350,8 +1350,8 @@ int vector_sub_entry(struct vector *vector, uint64_t index, float weight);
 int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries);
 int vector_sub_vector(struct vector *out, struct vector *vector, float weight);
 
-void vector_del_entry(struct vector *vector, uint64_t index);
-void vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
+int vector_del_entry(struct vector *vector, uint64_t index);
+int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
 
 int vector_mul_const(struct vector *vector, float constant);
 double vector_norm(const struct vector *vector);
@@ -1402,8 +1402,8 @@ int graph_sub_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 int graph_sub_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t num_edges);
 int graph_sub_graph(struct graph *out, struct graph *graph, float weight);
 
-void graph_del_edge(struct graph *graph, uint64_t source, uint64_t target);
-void graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges);
+int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target);
+int graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges);
 
 int graph_mul_const(struct graph *graph, float constant);
 struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector);
