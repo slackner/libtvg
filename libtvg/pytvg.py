@@ -3764,6 +3764,28 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_readonly(self):
+            tvg = TVG(positive=True)
+            g = Graph(positive=True)
+            tvg.link_graph(g, 0)
+            self.assertEqual(g.ts, 0)
+
+            with self.assertRaises(RuntimeError):
+                g.clear()
+            with self.assertRaises(MemoryError):
+                g[0, 0] = 1.0
+            with self.assertRaises(MemoryError):
+                g.add_edge((0, 0), 1.0)
+            with self.assertRaises(RuntimeError):
+                del g[0, 0]
+            with self.assertRaises(RuntimeError):
+                g.mul_const(2.0)
+            with self.assertRaises(RuntimeError):
+                g.eps = 2.0
+
+            del tvg
+            del g
+
     class WindowTests(unittest.TestCase):
         def test_sum_edges(self):
             tvg = TVG(positive=True)
@@ -4930,6 +4952,81 @@ if __name__ == '__main__':
 
             g = self.load_from_occurrences(occurrences2)
             self.assertTrue(abs(g[1, 2]/math.exp(-1.0) - 1.0) < 1e-7)
+            del g
+
+        def test_readonly(self):
+            future = mockupdb.go(TVG.load, self.db, primary_key="dummy")
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {'fkey': 'fvalue'})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', 1), ('_id', 1)]))
+            documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546387200)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_entities")
+            self.assertEqual(request["filter"], {'doc': 10})
+            self.assertEqual(request["sort"], {'sen': 1})
+            occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 2}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            tvg = future()
+            g = tvg.lookup_ge()
+            self.assertEqual(g.ts, 1546387200000)
+
+            with self.assertRaises(RuntimeError):
+                g.clear()
+            with self.assertRaises(MemoryError):
+                g[0, 0] = 1.0
+            with self.assertRaises(MemoryError):
+                g.add_edge((0, 0), 1.0)
+            with self.assertRaises(RuntimeError):
+                del g[0, 0]
+            with self.assertRaises(RuntimeError):
+                g.mul_const(2.0)
+            with self.assertRaises(RuntimeError):
+                g.eps = 2.0
+
+            del tvg
+            del g
+
+            tvg = TVG(streaming=True)
+            tvg.enable_mongodb_sync(self.db, batch_size=1, cache_size=0x8000) # 32 kB cache
+
+            future = mockupdb.go(tvg.lookup_le)
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_articles")
+            self.assertEqual(request["filter"], {'fkey': 'fvalue'})
+            self.assertEqual(request["sort"], collections.OrderedDict([('time', -1), ('_id', -1)]))
+            self.assertEqual(request["limit"], 1)
+            documents = [{'_id': 10, 'time': datetime.datetime.utcfromtimestamp(1546387200)}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': documents}})
+
+            request = self.s.receives()
+            self.assertEqual(request["find"], "col_entities")
+            self.assertEqual(request["filter"], {'doc': 10})
+            self.assertEqual(request["sort"], {'sen': 1})
+            occurrences = [{'sen': 1, 'ent': 1}, {'sen': 1, 'ent': 2}]
+            request.replies({'cursor': {'id': 0, 'firstBatch': occurrences}})
+
+            g = future()
+            self.assertEqual(g.ts, 1546387200000)
+
+            with self.assertRaises(RuntimeError):
+                g.clear()
+            with self.assertRaises(MemoryError):
+                g[0, 0] = 1.0
+            with self.assertRaises(MemoryError):
+                g.add_edge((0, 0), 1.0)
+            with self.assertRaises(RuntimeError):
+                del g[0, 0]
+            with self.assertRaises(RuntimeError):
+                g.mul_const(2.0)
+            with self.assertRaises(RuntimeError):
+                g.eps = 2.0
+
             del g
 
     # Run the unit tests
