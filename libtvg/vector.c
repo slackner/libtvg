@@ -261,18 +261,6 @@ int vector_clear(struct vector *vector)
     return vector->ops->clear(vector);
 }
 
-int vector_has_entry(struct vector *vector, uint64_t index)
-{
-    /* keep in sync with _vector_get_bucket! */
-    uint32_t i = (uint32_t)(index & ((1ULL << vector->bits) - 1));
-    return bucket1_get_entry(&vector->buckets[i], index, 0) != NULL;
-}
-
-float vector_get_entry(struct vector *vector, uint64_t index)
-{
-    return vector->ops->get(vector, index);
-}
-
 uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t max_edges)
 {
     uint64_t count = 0;

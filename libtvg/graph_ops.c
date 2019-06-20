@@ -38,6 +38,21 @@ static inline int _graph_del_edge(struct graph *graph, uint64_t source, uint64_t
     return 1;
 }
 
+int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target)
+{
+    return _graph_get_edge(graph, source, target, 0) != NULL;
+}
+
+float graph_get_edge(struct graph *graph, uint64_t source, uint64_t target)
+{
+    struct entry2 *edge;
+
+    if (!(edge = _graph_get_edge(graph, source, target, 0)))
+        return 0.0;
+
+    return edge->weight;
+}
+
 static int generic_clear(struct graph *graph)
 {
     uint64_t i, num_buckets;
@@ -51,16 +66,6 @@ static int generic_clear(struct graph *graph)
         graph_optimize(graph);
 
     return 1;
-}
-
-static float generic_get(struct graph *graph, uint64_t source, uint64_t target)
-{
-    struct entry2 *edge;
-
-    if (!(edge = _graph_get_edge(graph, source, target, 0)))
-        return 0.0;
-
-    return edge->weight;
 }
 
 static int generic_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
@@ -168,7 +173,6 @@ const struct graph_ops graph_generic_ops =
 {
     generic_set_eps,
     generic_clear,
-    generic_get,
     generic_set,
     generic_add,
     generic_del,
@@ -276,7 +280,6 @@ const struct graph_ops graph_nonzero_ops =
 {
     nonzero_set_eps,
     generic_clear,
-    generic_get,
     nonzero_set,
     nonzero_add,
     generic_del,
@@ -384,7 +387,6 @@ const struct graph_ops graph_positive_ops =
 {
     positive_set_eps,
     generic_clear,
-    generic_get,
     positive_set,
     positive_add,
     generic_del,
@@ -425,7 +427,6 @@ const struct graph_ops graph_readonly_ops =
 {
     readonly_set_eps,
     readonly_clear,
-    generic_get,
     readonly_set,
     readonly_add,
     readonly_del,

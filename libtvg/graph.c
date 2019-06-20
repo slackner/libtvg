@@ -551,21 +551,6 @@ int graph_clear(struct graph *graph)
     return graph->ops->clear(graph);
 }
 
-int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target)
-{
-    uint32_t i;
-    /* keep in sync with _graph_get_bucket! */
-    i  = (uint32_t)(target & ((1ULL << graph->bits_target) - 1));
-    i  = (i << graph->bits_source);
-    i |= (uint32_t)(source & ((1ULL << graph->bits_source) - 1));
-    return bucket2_get_entry(&graph->buckets[i], source, target, 0) != NULL;
-}
-
-float graph_get_edge(struct graph *graph, uint64_t source, uint64_t target)
-{
-    return graph->ops->get(graph, source, target);
-}
-
 uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges)
 {
     uint64_t count = 0;

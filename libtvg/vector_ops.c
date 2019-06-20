@@ -20,6 +20,21 @@ static inline struct entry1 *_vector_get_entry(struct vector *vector, uint64_t i
     return bucket1_get_entry(bucket, index, allocate);
 }
 
+int vector_has_entry(struct vector *vector, uint64_t index)
+{
+    return _vector_get_entry(vector, index, 0) != NULL;
+}
+
+float vector_get_entry(struct vector *vector, uint64_t index)
+{
+    struct entry1 *entry;
+
+    if (!(entry = _vector_get_entry(vector, index, 0)))
+        return 0.0;
+
+    return entry->weight;
+}
+
 static int generic_clear(struct vector *vector)
 {
     uint64_t i, num_buckets;
@@ -33,16 +48,6 @@ static int generic_clear(struct vector *vector)
         vector_optimize(vector);
 
     return 1;
-}
-
-static float generic_get(struct vector *vector, uint64_t index)
-{
-    struct entry1 *entry;
-
-    if (!(entry = _vector_get_entry(vector, index, 0)))
-        return 0.0;
-
-    return entry->weight;
 }
 
 static int generic_set(struct vector *vector, uint64_t index, float weight)
@@ -118,7 +123,6 @@ const struct vector_ops vector_generic_ops =
 {
     generic_set_eps,
     generic_clear,
-    generic_get,
     generic_set,
     generic_add,
     generic_del,
@@ -204,7 +208,6 @@ const struct vector_ops vector_nonzero_ops =
 {
     nonzero_set_eps,
     generic_clear,
-    generic_get,
     nonzero_set,
     nonzero_add,
     generic_del,
@@ -290,7 +293,6 @@ const struct vector_ops vector_positive_ops =
 {
     positive_set_eps,
     generic_clear,
-    generic_get,
     positive_set,
     positive_add,
     generic_del,
