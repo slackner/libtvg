@@ -34,17 +34,25 @@ static uint64_t abs_sub_uint64(uint64_t a, uint64_t b)
 /* helper for test_next_graph and test_prev_graph */
 static struct tvg *alloc_random_tvg(uint32_t flags, uint32_t count)
 {
+    uint32_t graph_flags;
     struct graph *graph;
     struct tvg *tvg;
     uint32_t i;
+    int ret;
 
     tvg = alloc_tvg(flags);
     assert(tvg != NULL);
 
+    graph_flags = flags & (TVG_FLAGS_NONZERO |
+                           TVG_FLAGS_POSITIVE |
+                           TVG_FLAGS_DIRECTED);
+
     for (i = 0; i < count; i++)
     {
-        graph = tvg_alloc_graph(tvg, random_uint64());
+        graph = alloc_graph(graph_flags);
         assert(graph != NULL);
+        ret = tvg_link_graph(tvg, graph, random_uint64());
+        assert(ret);
         free_graph(graph);
     }
 
@@ -144,18 +152,22 @@ static void test_lookup_graph(void)
     uint64_t ts, delta;
     struct tvg *tvg;
     uint32_t i;
+    int ret;
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
     for (i = 0; i < 100; i++)
     {
-        ts = random_uint64();
-        graph = tvg_alloc_graph(tvg, ts);
+        graph = alloc_graph(0);
         assert(graph != NULL);
+        ts = random_uint64();
+        ret = tvg_link_graph(tvg, graph, ts);
+        assert(ret);
+        free_graph(graph);
+
         min_ts = MIN(min_ts, ts);
         max_ts = MAX(max_ts, ts);
-        free_graph(graph);
     }
 
     for (i = 0; i < 10000; i++)
@@ -285,8 +297,7 @@ static void test_prev_graph(void)
 
 static void test_graph_get_edge(void)
 {
-    struct tvg *tvg = alloc_tvg(TVG_FLAGS_DIRECTED);
-    struct graph *graph = tvg_alloc_graph(tvg, 0);
+    struct graph *graph = alloc_graph(TVG_FLAGS_DIRECTED);
     struct graph *graph2;
     float weight;
     uint64_t i;
@@ -367,7 +378,6 @@ static void test_graph_get_edge(void)
 
     free_graph(graph);
     free_graph(graph2);
-    free_tvg(tvg);
 }
 
 static void test_vector_get_entry(void)
@@ -445,8 +455,7 @@ static void test_vector_get_entry(void)
 
 static void test_graph_bits_target(void)
 {
-    struct tvg *tvg = alloc_tvg(TVG_FLAGS_DIRECTED);
-    struct graph *graph = tvg_alloc_graph(tvg, 0);
+    struct graph *graph = alloc_graph(TVG_FLAGS_DIRECTED);
     uint64_t i, j;
     float weight;
     int ret;
@@ -482,13 +491,11 @@ static void test_graph_bits_target(void)
     assert(!ret);
 
     free_graph(graph);
-    free_tvg(tvg);
 }
 
 static void test_graph_bits_source(void)
 {
-    struct tvg *tvg = alloc_tvg(TVG_FLAGS_DIRECTED);
-    struct graph *graph = tvg_alloc_graph(tvg, 0);
+    struct graph *graph = alloc_graph(TVG_FLAGS_DIRECTED);
     uint64_t i, j;
     float weight;
     int ret;
@@ -524,17 +531,15 @@ static void test_graph_bits_source(void)
     assert(!ret);
 
     free_graph(graph);
-    free_tvg(tvg);
 }
 
 static void test_graph_optimize(void)
 {
-    struct tvg *tvg = alloc_tvg(TVG_FLAGS_DIRECTED);
     struct graph *graph;
     uint64_t i;
 
     /* 4 x 4 */
-    graph = tvg_alloc_graph(tvg, 0);
+    graph = alloc_graph(TVG_FLAGS_DIRECTED);
 
     for (i = 0; i < 4 * 4; i++)
         graph_add_edge(graph, i / 4, i % 4, 1.0 + i);
@@ -544,7 +549,7 @@ static void test_graph_optimize(void)
     free_graph(graph);
 
     /* 20 x 20 */
-    graph = tvg_alloc_graph(tvg, 0);
+    graph = alloc_graph(TVG_FLAGS_DIRECTED);
 
     for (i = 0; i < 20 * 20; i++)
         graph_add_edge(graph, i / 20, i % 20, 1.0 + i);
@@ -554,7 +559,7 @@ static void test_graph_optimize(void)
     free_graph(graph);
 
     /* 100 x 100 */
-    graph = tvg_alloc_graph(tvg, 0);
+    graph = alloc_graph(TVG_FLAGS_DIRECTED);
 
     for (i = 0; i < 100 * 100; i++)
         graph_add_edge(graph, i / 100, i % 100, 1.0 + i);
@@ -562,8 +567,6 @@ static void test_graph_optimize(void)
     assert(graph->bits_source == 3);
     assert(graph->bits_target == 3);
     free_graph(graph);
-
-    free_tvg(tvg);
 }
 
 static void test_vector_bits(void)
@@ -650,23 +653,30 @@ static void test_extract(void)
 {
     struct graph *graph;
     struct tvg *tvg;
+    int ret;
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
-    graph = tvg_alloc_graph(tvg, 100);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 0, 1.0);
+    ret = tvg_link_graph(tvg, graph, 100);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 200);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 1, 2.0);
+    ret = tvg_link_graph(tvg, graph, 200);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 300);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 2, 3.0);
+    ret = tvg_link_graph(tvg, graph, 300);
+    assert(ret);
     free_graph(graph);
 
     graph = tvg_extract(tvg, 123, weight_func, (void *)0xdeadbeef);
@@ -693,19 +703,25 @@ static void test_window_sum_edges(void)
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
-    graph = tvg_alloc_graph(tvg, 200);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 0, 1.0);
+    ret = tvg_link_graph(tvg, graph, 200);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 300);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 1, 2.0);
+    ret = tvg_link_graph(tvg, graph, 300);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 400);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 2, 3.0);
+    ret = tvg_link_graph(tvg, graph, 400);
+    assert(ret);
     free_graph(graph);
 
     window = tvg_alloc_window(tvg, -100, 100);
@@ -771,19 +787,25 @@ static void test_window_sum_edges_exp(void)
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
-    graph = tvg_alloc_graph(tvg, 200);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 0, 1.0);
+    ret = tvg_link_graph(tvg, graph, 200);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 300);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 1, 2.0);
+    ret = tvg_link_graph(tvg, graph, 300);
+    assert(ret);
     free_graph(graph);
 
-    graph = tvg_alloc_graph(tvg, 400);
+    graph = alloc_graph(0);
     assert(graph != NULL);
     graph_add_edge(graph, 0, 2, 3.0);
+    ret = tvg_link_graph(tvg, graph, 400);
+    assert(ret);
     free_graph(graph);
 
     window = tvg_alloc_window(tvg, -1000, 0);
@@ -1139,17 +1161,18 @@ static void test_tvg_for_each_graph(void)
     static const uint64_t mid = (1ULL << 63);
     struct graph *graph;
     struct tvg *tvg;
-    uint64_t ts;
     uint32_t i;
+    int ret;
 
     tvg = alloc_tvg(0);
     assert(tvg != NULL);
 
     for (i = 0; i < 100; i++)
     {
-        ts = random_uint64();
-        graph = tvg_alloc_graph(tvg, ts);
+        graph = alloc_graph(0);
         assert(graph != NULL);
+        ret = tvg_link_graph(tvg, graph, random_uint64());
+        assert(ret);
         free_graph(graph);
     }
 

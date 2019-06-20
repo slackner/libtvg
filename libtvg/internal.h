@@ -186,6 +186,7 @@ void bucket2_del_entry(struct bucket2 *bucket, struct entry2 *entry) DECL_INTERN
 extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
 extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
 extern const struct graph_ops graph_positive_ops DECL_INTERNAL;
+extern const struct graph_ops graph_readonly_ops DECL_INTERNAL;
 
 struct minheap *alloc_minheap(size_t entry_size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
 void free_minheap(struct minheap *h) DECL_INTERNAL;

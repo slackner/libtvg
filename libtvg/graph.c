@@ -13,11 +13,20 @@
 /* graph_debug relies on that */
 C_ASSERT(sizeof(long long unsigned int) == sizeof(uint64_t));
 
+static const struct graph_ops *get_graph_ops(uint32_t flags)
+{
+    if (flags & TVG_FLAGS_POSITIVE)
+        return &graph_positive_ops;
+    else if (flags & TVG_FLAGS_NONZERO)
+        return &graph_nonzero_ops;
+    else
+        return &graph_generic_ops;
+}
+
 struct graph *alloc_graph(uint32_t flags)
 {
     static const uint32_t bits_source = 0;
     static const uint32_t bits_target = 0;
-    const struct graph_ops *ops;
     struct graph *graph;
     struct bucket2 *buckets;
     uint64_t i, num_buckets;
@@ -26,6 +35,9 @@ struct graph *alloc_graph(uint32_t flags)
                   TVG_FLAGS_POSITIVE |
                   TVG_FLAGS_DIRECTED))
         return NULL;
+
+    if (flags & TVG_FLAGS_POSITIVE)
+        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
 
     num_buckets = 1ULL << (bits_source + bits_target);
     if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
@@ -40,16 +52,6 @@ struct graph *alloc_graph(uint32_t flags)
         return NULL;
     }
 
-    if (flags & TVG_FLAGS_POSITIVE)
-    {
-        ops = &graph_positive_ops;
-        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
-    }
-    else if (flags & TVG_FLAGS_NONZERO)
-        ops = &graph_nonzero_ops;
-    else
-        ops = &graph_generic_ops;
-
     graph->refcount    = 1;
     graph->flags       = flags;
     graph->revision    = 0;
@@ -59,7 +61,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);
-    graph->ops         = ops;
+    graph->ops         = get_graph_ops(flags);
     graph->bits_source = bits_source;
     graph->bits_target = bits_target;
     graph->buckets     = buckets;
@@ -128,6 +130,7 @@ void unlink_graph(struct graph *graph)
 
     avl_remove(&graph->entry);
     graph->tvg = NULL;
+    graph->ops = get_graph_ops(graph->flags);  /* re-enable graph ops */
     free_graph(graph);
 }
 
@@ -171,7 +174,7 @@ struct graph *graph_duplicate(struct graph *source)
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);
-    graph->ops         = source->ops;
+    graph->ops         = get_graph_ops(graph->flags);
     graph->bits_source = source->bits_source;
     graph->bits_target = source->bits_target;
     graph->buckets     = buckets;

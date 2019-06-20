@@ -390,3 +390,44 @@ const struct graph_ops graph_positive_ops =
     generic_del,
     positive_mul_const,
 };
+
+static int readonly_clear(struct graph *graph)
+{
+    return 0;
+}
+
+static int readonly_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
+{
+    return 0;
+}
+
+static int readonly_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
+{
+    return 0;
+}
+
+static int readonly_del(struct graph *graph, uint64_t source, uint64_t target)
+{
+    return 0;
+}
+
+static int readonly_mul_const(struct graph *graph, float constant)
+{
+    return 0;
+}
+
+static int readonly_set_eps(struct graph *graph, float eps)
+{
+    return 0;
+}
+
+const struct graph_ops graph_readonly_ops =
+{
+    readonly_set_eps,
+    readonly_clear,
+    generic_get,
+    readonly_set,
+    readonly_add,
+    readonly_del,
+    readonly_mul_const,
+};

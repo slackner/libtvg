@@ -340,9 +340,6 @@ lib.tvg_memory_usage.restype = c_uint64
 lib.tvg_link_graph.argtypes = (c_tvg_p, c_graph_p, c_uint64)
 lib.tvg_link_graph.restype = c_int
 
-lib.tvg_alloc_graph.argtypes = (c_tvg_p, c_uint64)
-lib.tvg_alloc_graph.restype = c_graph_p
-
 lib.tvg_set_primary_key.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_set_primary_key.restype = c_int
 
@@ -1863,10 +1860,6 @@ class TVG(object):
         res = lib.tvg_link_graph(self._obj, graph._obj, ts)
         if not res:
             raise RuntimeError
-
-    def Graph(self, ts):
-        """ Create a new graph associated with the time-varying-graph object. """
-        return Graph(obj=lib.tvg_alloc_graph(self._obj, ts))
 
     def set_primary_key(self, key):
         """
@@ -3443,15 +3436,20 @@ if __name__ == '__main__':
             self.assertEqual(tvg.flags, TVG_FLAGS_POSITIVE)
             mem = tvg.memory_usage
 
-            g1 = tvg.Graph(100)
+            g1 = Graph(positive=True)
+            tvg.link_graph(g1, 100)
             self.assertEqual(g1.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g1.ts, 100)
             self.assertEqual(g1.id, None)
-            g2 = tvg.Graph(200)
+
+            g2 = Graph(positive=True)
+            tvg.link_graph(g2, 200)
             self.assertEqual(g2.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g2.ts, 200)
             self.assertEqual(g2.id, None)
-            g3 = tvg.Graph(300)
+
+            g3 = Graph(positive=True)
+            tvg.link_graph(g3, 300)
             self.assertEqual(g3.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(g3.ts, 300)
             self.assertEqual(g3.id, None)
@@ -3523,8 +3521,9 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
 
             for t, s in enumerate(source):
-                g = tvg.Graph(t)
+                g = Graph()
                 g[0, 0] = s
+                tvg.link_graph(g, t)
 
             tvg.compress(step=5, offset=100)
 
@@ -3769,12 +3768,17 @@ if __name__ == '__main__':
         def test_sum_edges(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[0, 1] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowSumEdges(0, 0)
@@ -3817,8 +3821,9 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
             beta = 0.3
 
-            g = tvg.Graph(0)
+            g = Graph()
             g[0, 0] = 1.0
+            tvg.link_graph(g, 0)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowSumEdgesExp(0, beta)
@@ -3846,8 +3851,9 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
 
             for t, s in enumerate(source):
-                g = tvg.Graph(t)
+                g = Graph()
                 g[0, 0] = s
+                tvg.link_graph(g, t)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowSumEdgesExpNorm(0, beta)
@@ -3884,12 +3890,17 @@ if __name__ == '__main__':
         def test_count_edges(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[0, 1] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowCountEdges(0, 0)
@@ -3930,13 +3941,18 @@ if __name__ == '__main__':
         def test_count_nodes(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[0, 1] = 2.0
             g[1, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowCountNodes(0, 0)
@@ -3977,18 +3993,29 @@ if __name__ == '__main__':
         def test_topics(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 1] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[0, 1] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[1, 2] = 0.5
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[0, 1] = 0.5
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 300)
+
+            g = Graph()
             g[0, 1] = 1.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 300)
+
+            g = Graph()
             g[1, 2] = 1.0
+            tvg.link_graph(g, 300)
 
             with self.assertRaises(MemoryError):
                 tvg.WindowTopics(0, 0)
@@ -4034,12 +4061,13 @@ if __name__ == '__main__':
         def test_sparse_topics(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 1] = 1.0
             g[0, 2] = 0.5
             g[1, 2] = 0.5
             g[0, 3] = 0.25
             g[1, 3] = 0.25
+            tvg.link_graph(g, 100)
 
             window = tvg.WindowTopics(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4057,13 +4085,18 @@ if __name__ == '__main__':
         def test_multi(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[0, 1] = 2.0
             g[1, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.Window(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4115,12 +4148,18 @@ if __name__ == '__main__':
         def test_sample_eigenvectors(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
+
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4137,12 +4176,17 @@ if __name__ == '__main__':
         def test_sample_edges(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4159,15 +4203,20 @@ if __name__ == '__main__':
         def test_metric_entropy(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = g[0, 1] = g[0, 2] = 1.0
             g[1, 1] = g[1, 2] = 1.0
             g[2, 2] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = g[1, 2] = 2.0
             g[2, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4200,15 +4249,20 @@ if __name__ == '__main__':
         def test_metric_entropy_local(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = g[0, 1] = g[0, 2] = 1.0
             g[1, 1] = g[1, 2] = 1.0
             g[2, 2] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = g[1, 2] = 2.0
             g[2, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4243,15 +4297,20 @@ if __name__ == '__main__':
         def test_metric_entropy_2d(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = g[0, 1] = g[0, 2] = 1.0
             g[1, 1] = g[1, 2] = 1.0
             g[2, 2] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = g[1, 2] = 2.0
             g[2, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4284,15 +4343,20 @@ if __name__ == '__main__':
         def test_metric_trend(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = g[0, 1] = g[0, 2] = 1.0
             g[1, 1] = g[1, 2] = 1.0
             g[2, 2] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = g[1, 2] = 2.0
             g[2, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4324,15 +4388,20 @@ if __name__ == '__main__':
         def test_metric_stability(self):
             tvg = TVG(positive=True)
 
-            g = tvg.Graph(100)
+            g = Graph()
             g[0, 0] = g[0, 1] = g[0, 2] = 1.0
             g[1, 1] = g[1, 2] = 1.0
             g[2, 2] = 1.0
-            g = tvg.Graph(200)
+            tvg.link_graph(g, 100)
+
+            g = Graph()
             g[1, 1] = g[1, 2] = 2.0
             g[2, 2] = 2.0
-            g = tvg.Graph(300)
+            tvg.link_graph(g, 200)
+
+            g = Graph()
             g[2, 2] = 3.0
+            tvg.link_graph(g, 300)
 
             window = tvg.WindowSumEdges(-50, 50)
             self.assertEqual(window.width, 100)
@@ -4365,8 +4434,9 @@ if __name__ == '__main__':
             tvg = TVG(positive=True)
 
             for t in range(50):
-                g = tvg.Graph(t)
+                g = Graph()
                 g[t, t] = 1.0
+                tvg.link_graph(g, t)
 
             window = tvg.WindowSumEdges(-1000, 0)
             self.assertEqual(window.width, 1000)
@@ -4383,8 +4453,9 @@ if __name__ == '__main__':
                 self.assertEqual(g[t, t], 1.0)
 
             for t in range(50, 500):
-                g = tvg.Graph(t)
+                g = Graph()
                 g[t, t] = 1.0
+                tvg.link_graph(g, t)
 
             g = window.update(999)
             for t in range(500):

@@ -1446,7 +1446,6 @@ void tvg_debug(struct tvg *tvg);
 uint64_t tvg_memory_usage(struct tvg *tvg);
 
 int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts);
-struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts);
 
 int tvg_set_primary_key(struct tvg *tvg, const char *key);
 int tvg_link_node(struct tvg *tvg, struct node *node, struct node **ret_node, uint64_t index);

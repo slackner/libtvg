@@ -185,30 +185,10 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
     if (tvg->mongodb)
         graph->flags |= TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV;
 
+    graph->ops = &graph_readonly_ops;  /* block changes */
     graph->tvg = tvg;
     grab_graph(graph);  /* grab extra reference */
     return 1;
-}
-
-struct graph *tvg_alloc_graph(struct tvg *tvg, uint64_t ts)
-{
-    struct graph *graph;
-    uint32_t graph_flags;
-
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
-                                TVG_FLAGS_DIRECTED);
-
-    if (!(graph = alloc_graph(graph_flags)))
-        return NULL;
-
-    if (!tvg_link_graph(tvg, graph, ts))
-    {
-        free_graph(graph);
-        return NULL;
-    }
-
-    return graph;
 }
 
 int tvg_set_primary_key(struct tvg *tvg, const char *key)
@@ -363,6 +343,7 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
     long long unsigned int source, target;
     long long unsigned int ts;
     struct graph *graph = NULL;
+    uint32_t graph_flags;
     uint64_t numlines = 0;
     uint64_t maxlines = 0;
     uint64_t ticks;
@@ -372,6 +353,10 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
     char *line = NULL;
     int ret = 0;
     FILE *fp;
+
+    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
+                                TVG_FLAGS_POSITIVE |
+                                TVG_FLAGS_DIRECTED);
 
     if (!(fp = fopen(filename, "r")))
     {
@@ -409,13 +394,24 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
 
         if (!graph || ts != graph->ts)
         {
-            if (graph) graph->revision = 0;
-            free_graph(graph);
-            if (!(graph = tvg_alloc_graph(tvg, ts)))
+            if (graph)
+            {
+                graph->revision = 0;
+                if (!tvg_link_graph(tvg, graph, graph->ts))
+                {
+                    fprintf(stderr, "%s: Failed to link graph!\n", __func__);
+                    goto error;
+                }
+                free_graph(graph);
+            }
+
+            if (!(graph = alloc_graph(graph_flags)))
             {
                 fprintf(stderr, "%s: Out of memory!\n", __func__);
                 goto error;
             }
+
+            graph->ts = ts;
         }
 
         /* We use graph_set_edge() instead of graph_add_edge() to ensure this method
@@ -433,12 +429,17 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
         goto error;
     }
 
+    graph->revision = 0;
+    if (!tvg_link_graph(tvg, graph, graph->ts))
+    {
+        fprintf(stderr, "%s: Failed to link graph!\n", __func__);
+        goto error;
+    }
+
     /* Success if we read at least one edge. */
     ret = 1;
 
 error:
-    if (graph) graph->revision = 0;
-    if (!ret) unlink_graph(graph);
     free_graph(graph);
     fclose(fp);
     free(line);
@@ -679,12 +680,16 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
 {
     struct graph *graph, *next_graph;
     struct graph *prev_graph = NULL;
+    uint64_t ts;
+    int ret;
 
     if (tvg->mongodb)
         return 0;
 
     if (step)
         offset -= (offset / step) * step;
+
+    /* FIXME: Invalidate metrics. */
 
     AVL_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {
@@ -695,22 +700,44 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
          * reduce the full TVG to a single timestamp. */
 
         if (!step)
-            graph->ts = offset;
+            ts = offset;
         else if (graph->ts >= offset)
-            graph->ts = offset + ((graph->ts - offset) / step) * step;
+            ts = offset + ((graph->ts - offset) / step) * step;
         else
-            graph->ts = 0;
+            ts = 0;
 
-        if (prev_graph && graph->ts == prev_graph->ts)
+        if (prev_graph && ts == prev_graph->ts)
         {
             if (!graph_add_graph(prev_graph, graph, 1.0))
+            {
+                tvg_link_graph(tvg, prev_graph, prev_graph->ts);
+                free_graph(prev_graph);
                 return 0;
+            }
 
             unlink_graph(graph);
             continue;
         }
 
-        prev_graph = graph;
+        if (prev_graph)
+        {
+            ret = tvg_link_graph(tvg, prev_graph, prev_graph->ts);
+            free_graph(prev_graph);
+            if (!ret) return 0;
+        }
+
+        prev_graph = grab_graph(graph);
+        unlink_graph(graph);
+
+        prev_graph->ts = ts;
+        prev_graph->objectid.type = OBJECTID_NONE;
+    }
+
+    if (prev_graph)
+    {
+        ret = tvg_link_graph(tvg, prev_graph, prev_graph->ts);
+        free_graph(prev_graph);
+        if (!ret) return 0;
     }
 
     return 1;

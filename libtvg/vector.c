@@ -8,10 +8,19 @@
 #include "tvg.h"
 #include "internal.h"
 
+static const struct vector_ops *get_vector_ops(uint32_t flags)
+{
+    if (flags & TVG_FLAGS_POSITIVE)
+        return &vector_positive_ops;
+    else if (flags & TVG_FLAGS_NONZERO)
+        return &vector_nonzero_ops;
+    else
+        return &vector_generic_ops;
+}
+
 struct vector *alloc_vector(uint32_t flags)
 {
     static const uint32_t bits = 0;
-    const struct vector_ops *ops;
     struct vector *vector;
     struct bucket1 *buckets;
     uint64_t i, num_buckets;
@@ -19,6 +28,9 @@ struct vector *alloc_vector(uint32_t flags)
     if (flags & ~(TVG_FLAGS_NONZERO |
                   TVG_FLAGS_POSITIVE))
         return NULL;
+
+    if (flags & TVG_FLAGS_POSITIVE)
+        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
 
     num_buckets = 1ULL << bits;
     if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
@@ -33,21 +45,11 @@ struct vector *alloc_vector(uint32_t flags)
         return NULL;
     }
 
-    if (flags & TVG_FLAGS_POSITIVE)
-    {
-        ops = &vector_positive_ops;
-        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
-    }
-    else if (flags & TVG_FLAGS_NONZERO)
-        ops = &vector_nonzero_ops;
-    else
-        ops = &vector_generic_ops;
-
     vector->refcount = 1;
     vector->flags    = flags;
     vector->revision = 0;
     vector->eps      = 0.0;
-    vector->ops      = ops;
+    vector->ops      = get_vector_ops(flags);
     vector->bits     = bits;
     vector->buckets  = buckets;
     vector->optimize = 0;
