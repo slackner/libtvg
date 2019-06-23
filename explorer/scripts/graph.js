@@ -118,6 +118,42 @@ const resizeDateRangePicker = function (item) {
     }
 };
 
+const initColorPicker = function (context) {
+    const listElement = document.getElementById('colorizeList');
+
+    while (listElement.firstChild) {
+        listElement.removeChild(listElement.firstChild);
+    }
+
+    $.each(context.nodeTypes, (type, element) => {
+        const divRow = document.createElement('div');
+        divRow.classList.add('row');
+
+        const divCol = document.createElement('div');
+        divCol.classList.add('col-md-12');
+
+        const i = document.createElement('i');
+        i.className = element.class;
+        i.setAttribute('data-toggle', 'tooltip');
+        i.setAttribute('data-placement', 'top');
+        i.setAttribute('title', element.title);
+
+        const input = document.createElement('input');
+        input.setAttribute('id', `nodeColor-${type}`);
+        input.setAttribute('type', 'color');
+        input.setAttribute('value', element.color);
+        input.className = 'nodeColor';
+
+        listElement.appendChild(divRow);
+        divRow.appendChild(divCol);
+        divCol.appendChild(i);
+        divCol.appendChild(input);
+
+        const node = document.querySelector(`#nodeColor-${type}`);
+        node.addEventListener('change', watchColorPicker, false);
+    });
+};
+
 const onMessage = function (event) {
     console.log('get message');
     const msg = JSON.parse(event.data);
@@ -256,42 +292,6 @@ const initDateRangePicker = function () {
     });
 };
 
-const initColorPicker = function (context) {
-    const listElement = document.getElementById('colorizeList');
-
-    while (listElement.firstChild) {
-        listElement.removeChild(listElement.firstChild);
-    }
-
-    $.each(context.nodeTypes, (type, element) => {
-        const divRow = document.createElement('div');
-        divRow.classList.add('row');
-
-        const divCol = document.createElement('div');
-        divCol.classList.add('col-md-12');
-
-        const i = document.createElement('i');
-        i.className = element.class;
-        i.setAttribute('data-toggle', 'tooltip');
-        i.setAttribute('data-placement', 'top');
-        i.setAttribute('title', element.title);
-
-        const input = document.createElement('input');
-        input.setAttribute('id', `nodeColor-${type}`);
-        input.setAttribute('type', 'color');
-        input.setAttribute('value', element.color);
-        input.className = 'nodeColor';
-
-        listElement.appendChild(divRow);
-        divRow.appendChild(divCol);
-        divCol.appendChild(i);
-        divCol.appendChild(input);
-
-        const node = document.querySelector(`#nodeColor-${type}`);
-        node.addEventListener('change', watchColorPicker, false);
-    });
-};
-
 const initNetwork = function () {
     const data = {
         nodes,
@@ -424,54 +424,53 @@ const initTimeline = function () {
 
 const floatString = function (num) {
     if (Number.isInteger(num)) {
-        return num + ".0";
-    } else {
-        return num.toString();
+        return `${num}.0`;
     }
-}
 
+    return num.toString();
+};
+
+// eslint-disable-next-line no-unused-vars
 const downloadSnapshot = function () {
-    let lines = [];
-    let base64;
-    let link;
-    let pos = network.getPositions();
+    const lines = [];
+    const pos = network.getPositions();
 
-    lines.push("graph");
-    lines.push("[");
-    lines.push("  directed 0");
+    lines.push('graph');
+    lines.push('[');
+    lines.push('  directed 0');
 
     nodes.forEach((node) => {
-        lines.push("  node");
-        lines.push("  [");
-        lines.push("    id " + node.id);
-        lines.push("    label \"" + node.label + "\"");
-        lines.push("    weight " + floatString(node.value));
-        lines.push("    graphics");
-        lines.push("    [");
-        lines.push("      x " + floatString( pos[node.id].x));
-        lines.push("      y " + floatString(-pos[node.id].y));
-        lines.push("    ]");
-        lines.push("  ]");
+        lines.push('  node');
+        lines.push('  [');
+        lines.push(`    id ${node.id}`);
+        lines.push(`    label "${node.label}"`);
+        lines.push(`    weight ${floatString(node.value)}`);
+        lines.push('    graphics');
+        lines.push('    [');
+        lines.push(`      x ${floatString(pos[node.id].x)}`);
+        lines.push(`      y ${floatString(-pos[node.id].y)}`);
+        lines.push('    ]');
+        lines.push('  ]');
     });
 
     edges.forEach((edge) => {
-        lines.push("  edge");
-        lines.push("  [");
-        lines.push("    source " + edge.from);
-        lines.push("    target " + edge.to);
-        lines.push("    weight " + floatString(edge.value));
-        lines.push("  ]");
+        lines.push('  edge');
+        lines.push('  [');
+        lines.push(`    source ${edge.from}`);
+        lines.push(`    target ${edge.to}`);
+        lines.push(`    weight ${floatString(edge.value)}`);
+        lines.push('  ]');
     });
 
-    lines.push("]");
+    lines.push(']');
 
-    base64 = window.btoa(lines.join("\n"));
+    const base64 = window.btoa(lines.join('\n'));
 
-    link = document.createElement('a');
-    link.href = "data:application/octet-stream;base64," + encodeURI(base64);
-    link.download = "snapshot_" + moment().format('YYYY-MM-DD_HH-mm') + ".gml";
+    const link = document.createElement('a');
+    link.href = `data:application/octet-stream;base64,${encodeURI(base64)}`;
+    link.download = `snapshot_${moment().format('YYYY-MM-DD_HH-mm')}.gml`;
     link.click();
-}
+};
 
 const init = function () {
     initDateRangePicker();
