@@ -104,7 +104,7 @@
             <div class="input-group mb-3">
               <input id="nodeWeight" class="form-control" type="text" disabled value="eigenvector"></input>
               <div class="input-group-append">
-                <button type="button" class="btn btn-secondary noBoxShadow dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <button id="dropdownNodeSize" type="button" class="btn btn-secondary noBoxShadow dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 </button>
                 <div class="dropdown-menu dropdown-menu-right" style="cursor: pointer;">
                   <b class="dropdown-item" name="in_degrees" onclick="changeNodeWeight(event)">in degrees</b>
@@ -149,7 +149,7 @@
           </div>
 
           <div style="width: 100%; margin-top: 10px;">
-            <button type="button" class="btn btn-secondary btn-block" onclick="downloadSnapshot()">Download GML File</button>
+            <button id="downloadGML" type="button" class="btn btn-secondary btn-block" onclick="downloadSnapshot()">Download GML File</button>
           </div>
         </div>
       </div>

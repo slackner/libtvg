@@ -82,6 +82,8 @@ const onOpen = function (/* event */) {
     $('#serverConnection').css('color', '#00f100');
     $('#serverConnection').attr('title', 'server connected');
     $('#daterangepicker').attr('disabled', false);
+    $('#downloadGML').attr('disabled', false);
+    $('#dropdownNodeSize').attr('disabled', false);
 };
 
 const onClose = function (/* event */) {
@@ -92,6 +94,8 @@ const onClose = function (/* event */) {
     $('#serverConnection').css('color', 'red');
     $('#serverConnection').attr('title', 'server disconnected');
     $('#daterangepicker').attr('disabled', true);
+    $('#downloadGML').attr('disabled', true);
+    $('#dropdownNodeSize').attr('disabled', true);
 
     times.update({
         id: 1,
