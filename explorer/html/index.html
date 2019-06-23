@@ -10,7 +10,7 @@
     <!-- AngularJS -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular.min.js"></script>
 
-    <!-- popper.js -->
+    <!-- Popper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 
     <!-- Bootstrap -->
@@ -27,11 +27,11 @@
     <!-- Moment.js -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 
-    <!-- daterangepicker -->
+    <!-- Daterangepicker -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
-    <!-- custom -->
+    <!-- Developer -->
     <script type="text/javascript" src="../scripts/graph.js"></script>
     <link rel="stylesheet" href="../styles/design.css" type="text/css" media="screen">
   </head>
@@ -140,14 +140,17 @@
 
           <hr>
 
-          <div style="margin-top: 10px;">
+          <div>
             <span style="float: left; width: 50%;">
-              <a href="#" onclick="downloadSnapshot()" class="card-link" title="Download snapshot">
-                <i class="fas fa-file-download"></i>
-              </a>
+              <b>download</b>
+            </span>
+            <span class="fas fa-file-download" style="text-align: right; width: 50%">
             </span>
           </div>
 
+          <div style="width: 100%; margin-top: 10px;">
+            <button type="button" class="btn btn-secondary btn-block" onclick="downloadSnapshot()">Download GML File</button>
+          </div>
         </div>
       </div>
     </right>
