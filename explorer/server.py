@@ -342,8 +342,7 @@ if __name__ == "__main__":
         if 'nodes' not in source:
             source['nodes'] = None
 
-        dataset_tvg = pytvg.TVG.load(source['graph'], nodes=source['nodes'],
-                                     positive=True, streaming=True)
+        dataset_tvg = pytvg.TVG.load(source['graph'], nodes=source['nodes'], positive=True, streaming=True)
 
     else:
         raise RuntimeError("Config does not have expected format")
