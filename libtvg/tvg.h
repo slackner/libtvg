@@ -1319,7 +1319,8 @@ int vector_clear(struct vector *vector);
 int vector_has_entry(struct vector *vector, uint64_t index);
 
 float vector_get_entry(struct vector *vector, uint64_t index);
-uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t max_edges);
+uint64_t vector_num_entries(struct vector *vector);
+uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t max_entries);
 
 int vector_set_entry(struct vector *vector, uint64_t index, float weight);
 int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries);

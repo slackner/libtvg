@@ -150,6 +150,9 @@ lib.vector_has_entry.restype = c_int
 lib.vector_get_entry.argtypes = (c_vector_p, c_uint64)
 lib.vector_get_entry.restype = c_float
 
+lib.vector_num_entries.argtypes = (c_vector_p,)
+lib.vector_num_entries.restype = c_uint64
+
 lib.vector_get_entries.argtypes = (c_vector_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.vector_get_entries.restype = c_uint64
 
@@ -751,7 +754,7 @@ class Vector(object):
         `(indices, weights)` or dictionary
         """
 
-        num_entries = 100 # FIXME: Arbitrary limit.
+        num_entries = self.num_entries
         while True:
             max_entries = num_entries
             indices = np.empty(shape=(max_entries,), dtype=np.uint64,  order='C') if ret_indices else None
@@ -774,7 +777,7 @@ class Vector(object):
     @cacheable
     def num_entries(self):
         """ Return the number of entries of a vector. """
-        return lib.vector_get_entries(self._obj, None, None, 0)
+        return lib.vector_num_entries(self._obj)
 
     def __len__(self):
         """ Return the number of entries of a vector. """

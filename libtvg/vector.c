@@ -282,14 +282,28 @@ int vector_clear(struct vector *vector)
     return vector->ops->clear(vector);
 }
 
-uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t max_edges)
+uint64_t vector_num_entries(struct vector *vector)
+{
+    uint64_t i, num_buckets;
+    uint64_t num_entries;
+
+    num_buckets = 1ULL << vector->bits;
+
+    num_entries = 0;
+    for (i = 0; i < num_buckets; i++)
+        num_entries += vector->buckets[i].num_entries;
+
+    return num_entries;
+}
+
+uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t max_entries)
 {
     uint64_t count = 0;
     struct entry1 *entry;
 
     VECTOR_FOR_EACH_ENTRY(vector, entry)
     {
-        if (count++ >= max_edges) continue;
+        if (count++ >= max_entries) continue;
         if (indices)
         {
             *indices++ = entry->index;
