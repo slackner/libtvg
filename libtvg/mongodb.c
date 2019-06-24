@@ -806,7 +806,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
             assert(other_graph->cache != 0);
             list_remove(&other_graph->cache_entry);
             list_add_head(&todo, &other_graph->cache_entry);
-            tvg->cache_used -= other_graph->cache;
+            tvg->graph_cache_used -= other_graph->cache;
             cache_reserve += other_graph->cache;
 
             jump = 0;
@@ -890,11 +890,11 @@ error:
     mongoc_collection_destroy(articles);
     mongodb_push_client(mongodb, client);
 
-    LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->cache, struct graph, cache_entry)
+    LIST_FOR_EACH_SAFE(graph, next_graph, &tvg->graph_cache, struct graph, cache_entry)
     {
         assert(graph->tvg == tvg);
         assert(graph->cache != 0);
-        if (tvg->cache_used + cache_reserve <= tvg->cache_size) break;
+        if (tvg->graph_cache_used + cache_reserve <= tvg->graph_cache_size) break;
         if (__sync_fetch_and_add(&graph->refcount, 0) > 1) continue;  /* cannot free space */
 
         /* FIXME: Ensure that user cannot get reference while we are deleting
@@ -907,8 +907,8 @@ error:
         assert(graph->tvg == tvg);
         assert(graph->cache != 0);
         list_remove(&graph->cache_entry);
-        list_add_tail(&tvg->cache, &graph->cache_entry);
-        tvg->cache_used += graph->cache;
+        list_add_tail(&tvg->graph_cache, &graph->cache_entry);
+        tvg->graph_cache_used += graph->cache;
     }
 }
 

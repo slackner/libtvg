@@ -124,7 +124,7 @@ void unlink_graph(struct graph *graph)
     if (graph->cache)
     {
         list_remove(&graph->cache_entry);
-        tvg->cache_used -= graph->cache;
+        tvg->graph_cache_used -= graph->cache;
         graph->cache = 0;
     }
 
@@ -187,7 +187,7 @@ void graph_refresh_cache(struct graph *graph)
     if (!graph->cache) return;
     assert(graph->tvg != NULL);
     list_remove(&graph->cache_entry);
-    list_add_tail(&graph->tvg->cache, &graph->cache_entry);
+    list_add_tail(&graph->tvg->graph_cache, &graph->cache_entry);
 }
 
 void graph_debug(struct graph *graph)

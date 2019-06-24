@@ -164,9 +164,9 @@ struct tvg
     struct list primary_key;
     uint64_t    next_node;
 
-    struct list cache;
-    uint64_t    cache_used;
-    uint64_t    cache_size;
+    struct list graph_cache;
+    uint64_t    graph_cache_used;
+    uint64_t    graph_cache_size;
 };
 
 struct source

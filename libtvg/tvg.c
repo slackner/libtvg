@@ -90,9 +90,9 @@ struct tvg *alloc_tvg(uint32_t flags)
     avl_init(&tvg->nodes_key, _nodes_key_compar, _nodes_key_lookup, tvg);
     list_init(&tvg->primary_key);
     tvg->next_node  = 0;
-    list_init(&tvg->cache);
-    tvg->cache_used = 0;
-    tvg->cache_size = 0;
+    list_init(&tvg->graph_cache);
+    tvg->graph_cache_used = 0;
+    tvg->graph_cache_size = 0;
 
     return tvg;
 }
@@ -131,8 +131,8 @@ void free_tvg(struct tvg *tvg)
     }
 
     assert(avl_empty(&tvg->nodes_key));
-    assert(list_empty(&tvg->cache));
-    assert(!tvg->cache_used);
+    assert(list_empty(&tvg->graph_cache));
+    assert(!tvg->graph_cache_used);
     free(tvg);
 }
 
@@ -530,7 +530,7 @@ int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
     free_mongodb(tvg->mongodb);
     tvg->mongodb = grab_mongodb(mongodb);
     tvg->batch_size = batch_size;
-    tvg->cache_size = cache_size;
+    tvg->graph_cache_size = cache_size;
 
     AVL_FOR_EACH(graph, &tvg->graphs, struct graph, entry)
     {
