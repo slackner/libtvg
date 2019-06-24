@@ -554,6 +554,19 @@ int graph_clear(struct graph *graph)
     return graph->ops->clear(graph);
 }
 
+uint64_t graph_num_edges(struct graph *graph)
+{
+    struct entry2 *edge;
+    uint64_t num_edges = 0;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        num_edges++;
+    }
+
+    return num_edges;
+}
+
 uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges)
 {
     uint64_t count = 0;

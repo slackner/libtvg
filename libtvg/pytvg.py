@@ -233,6 +233,9 @@ lib.graph_has_edge.restype = c_int
 lib.graph_get_edge.argtypes = (c_graph_p, c_uint64, c_uint64)
 lib.graph_get_edge.restype = c_float
 
+lib.graph_num_edges.argtypes = (c_graph_p,)
+lib.graph_num_edges.restype = c_uint64
+
 lib.graph_get_edges.argtypes = (c_graph_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_get_edges.restype = c_uint64
 
@@ -1235,7 +1238,7 @@ class Graph(object):
     @cacheable
     def num_edges(self):
         """ Return the number of edges of a graph. """
-        return lib.graph_get_edges(self._obj, None, None, 0)
+        return lib.graph_num_edges(self._obj)
 
     @cacheable
     def nodes(self):

@@ -1370,6 +1370,7 @@ int graph_clear(struct graph *graph);
 int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target);
 
 float graph_get_edge(struct graph *graph, uint64_t source, uint64_t target);
+uint64_t graph_num_edges(struct graph *graph);
 uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges);
 uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges);
 uint64_t graph_get_adjacent_edges(struct graph *graph, uint64_t source, uint64_t *indices, float *weights, uint64_t max_edges);
