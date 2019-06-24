@@ -83,33 +83,6 @@ Structure/Union member
 ### refcount
 Structure/Union member
 
-## c_metric
-```python
-c_metric(*args, **kwargs)
-```
-
-
-### refcount
-Structure/Union member
-
-## c_window
-```python
-c_window(*args, **kwargs)
-```
-
-
-### refcount
-Structure/Union member
-
-### ts
-Structure/Union member
-
-### window_l
-Structure/Union member
-
-### window_r
-Structure/Union member
-
 ## c_mongodb_config
 ```python
 c_mongodb_config(*args, **kwargs)
@@ -293,6 +266,9 @@ Get/set the current value of epsilon. This is used to determine whether an
 entry is equal to zero. Whenever |x| < eps, it is treated as zero.
 
 
+### memory_usage
+Return the memory usage currently associated with the vector.
+
 ### num_entries
 Return the number of entries of a vector.
 
@@ -379,6 +355,12 @@ __Arguments__
 - __weights__: List of weights to add (list or 1d numpy array).
 
 
+### add_vector
+```python
+Vector.add_vector(other, weight=1.0)
+```
+Add entries specified by a second vector, optionally multiplied by `weight`.
+
 ### sub_entry
 ```python
 Vector.sub_entry(index, weight)
@@ -398,6 +380,12 @@ __Arguments__
 - __indices__: List of indices (list or 1d numpy array).
 - __weights__: List of weights to subtract (list or 1d numpy array).
 
+
+### sub_vector
+```python
+Vector.sub_vector(other, weight=1.0)
+```
+Subtract entries specified by a second vector, optionally multiplied by `weight`.
 
 ### del_entries
 ```python
@@ -646,6 +634,12 @@ __Arguments__
 - __weights__: List of weights to set (list or 1d numpy array).
 
 
+### add_graph
+```python
+Graph.add_graph(other, weight=1.0)
+```
+Add edges specified by a second graph, optionally multiplied by `weight`.
+
 ### sub_edge
 ```python
 Graph.sub_edge(indices, weight)
@@ -665,6 +659,12 @@ __Arguments__
 - __indices__: List of indices (list of tuples or 2d numpy array).
 - __weights__: List of weights to set (list or 1d numpy array).
 
+
+### sub_graph
+```python
+Graph.sub_graph(other, weight=1.0)
+```
+Subtract edges specified by a second graph, optionally multiplied by `weight`.
 
 ### del_edges
 ```python
@@ -902,12 +902,6 @@ __Arguments__
 - __ts__: Time-stamp of the graph (as uint64, typically UNIX timestamp in milliseconds).
 
 
-### Graph
-```python
-TVG.Graph(ts)
-```
-Create a new graph associated with the time-varying-graph object.
-
 ### set_primary_key
 ```python
 TVG.set_primary_key(key)
@@ -1025,8 +1019,8 @@ TVG.enable_mongodb_sync(mongodb, batch_size=0, cache_size=0)
 Enable synchronization with a MongoDB server. Whenever more data is needed
 (e.g., querying the previous or next graph, or looking up graphs in a certain
 range), requests are sent to the database. Each request loads up to
-`batch_size` graphs. The total amount of data kept in memory can be controlled
-with the `cache_size` parameter.
+`batch_size` graphs. The maximum amount of data kept in memory can be
+controlled with the `cache_size` parameter.
 
 __Arguments__
 
@@ -1041,107 +1035,160 @@ TVG.disable_mongodb_sync()
 ```
 Disable synchronization with a MongoDB server.
 
-### Window
+### enable_query_cache
 ```python
-TVG.Window(window_l, window_r)
+TVG.enable_query_cache(cache_size=0)
 ```
 
-Create a new sliding window to aggregate data in a specific range around a
-fixed timestmap. Only graphs in [ts + window_l, ts + window_r] are
-considered.
+Enable the query cache. This can be used to speed up query performance, at the
+cost of higher memory usage. The maximum amount of data kept in memory can be
+controlled with the `cache_size` parameter.
 
 __Arguments__
 
-- __window_l__: Left boundary of the interval, relative to the timestamp.
-- __window_r__: Right boundary of the interval, relative to the timestamp.
+- __cache_size__: Maximum size of the cache (in bytes).
 
 
-### WindowSumEdges
+### disable_query_cache
 ```python
-TVG.WindowSumEdges(window_l, window_r, eps=0.0)
+TVG.disable_query_cache()
+```
+Disable the query cache.
+
+### sum_edges
+```python
+TVG.sum_edges(ts_min, ts_max, eps=None)
 ```
 
-Create a new rectangular filter window to aggregate data in a specific range
-around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-considered.
+Add edges in a given timeframe [ts_min, ts_max].
 
 __Arguments__
 
-- __window_l__: Left boundary of the interval, relative to the timestamp.
-- __window_r__: Right boundary of the interval, relative to the timestamp.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
 
 
-### WindowSumEdgesExp
+### sum_edges_exp
 ```python
-TVG.WindowSumEdgesExp(window, beta=None, log_beta=None, eps=0.0)
+TVG.sum_edges_exp(ts_min,
+                  ts_max,
+                  beta=None,
+                  log_beta=None,
+                  weight=1.0,
+                  eps=None)
 ```
 
-Create a new exponential decay window to aggregate data in a specific range
-around a fixed timestamp. Only graphs in [ts - window, window] are considered.
+Add edges in a given timeframe [ts_min, ts_max], weighted by an exponential
+decay function.
 
 __Arguments__
 
-- __window__: Amount of data in the past to consider.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
 - __beta__: Exponential decay constant.
 
 
-### WindowSumEdgesExpNorm
+### sum_edges_exp_norm
 ```python
-TVG.WindowSumEdgesExpNorm(window, beta=None, log_beta=None, eps=0.0)
+TVG.sum_edges_exp_norm(ts_min, ts_max, beta=None, log_beta=None, eps=None)
 ```
 
-Create a new exponential smoothing window to aggregate data in a specific range
-around a fixed timestamp. Only graphs in [ts - window, window] are considered.
+Add edges in a given timeframe [ts_min, ts_max], weighted by an exponential
+smoothing function.
 
 __Arguments__
 
-- __window__: Amount of data in the past to consider.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
 - __beta__: Exponential decay constant.
 
 
-### WindowCountEdges
+### count_edges
 ```python
-TVG.WindowCountEdges(window_l, window_r)
+TVG.count_edges(ts_min, ts_max)
 ```
 
-Create a new rectangular filter window to count edges in a specific range
-around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-considered.
+Count edges in a given timeframe [ts_min, ts_max].
 
 __Arguments__
 
-- __window_l__: Left boundary of the interval, relative to the timestamp.
-- __window_r__: Right boundary of the interval, relative to the timestamp.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
 
 
-### WindowCountNodes
+### count_nodes
 ```python
-TVG.WindowCountNodes(window_l, window_r)
+TVG.count_nodes(ts_min, ts_max)
 ```
 
-Create a new rectangular filter window to count nodes in a specific range
-around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-considered.
+Count nodes in a given timeframe [ts_min, ts_max].
 
 __Arguments__
 
-- __window_l__: Left boundary of the interval, relative to the timestamp.
-- __window_r__: Right boundary of the interval, relative to the timestamp.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
 
 
-### WindowTopics
+### topics
 ```python
-TVG.WindowTopics(window_l, window_r)
+TVG.topics(ts_min, ts_max)
 ```
 
-Create a new rectangular filter window to detect topics in a specific range
-around a fixed timestamp. Only graphs in [ts + window_l, ts + window_r] are
-considered.
+Extract network topics in the timeframe [ts_min, ts_max].
 
 __Arguments__
 
-- __window_l__: Left boundary of the interval, relative to the timestamp.
-- __window_r__: Right boundary of the interval, relative to the timestamp.
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+
+
+### sample_eigenvectors
+```python
+TVG.sample_eigenvectors(ts_min,
+                        ts_max,
+                        sample_width,
+                        sample_steps=9,
+                        eps=None,
+                        tolerance=None)
+```
+
+Iterative power iteration algorithm to track eigenvectors of a graph over time.
+Collection of eigenvectors starts at t = (ts - sample_width) and continues up
+to t = ts. Each entry of the returned dictionary contains sample_steps values
+collected at equidistant time steps.
+
+__Arguments__
+
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+- __tolerance__: Tolerance for the power_iteration algorithm.
+
+__Returns__
+
+Dictionary containing lists of collected values for each node.
+
+
+### sample_edges
+```python
+TVG.sample_edges(ts_min, ts_max, sample_width, sample_steps=9, eps=None)
+```
+
+Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
+Each entry of the returned dictionary contains sample_steps value collected
+at equidistant time steps.
+
+__Arguments__
+
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+- __sample_width__: Width of the region to collect samples.
+- __sample_steps__: Number of values to collect.
+
+__Returns__
+
+Dictionary containing lists of collected values for each edge.
 
 
 ### lookup_ge
@@ -1167,242 +1214,6 @@ Search for a graph with a timestamp close to `ts`.
 TVG.compress(step, offset=0)
 ```
 Compress the graph by aggregating timestamps differing by at most `step`.
-
-## Metric
-```python
-Metric(obj=None)
-```
-
-
-### ts
-Return the current timestamp of the window.
-
-### width
-Return the width of the window.
-
-### window
-Get the associated window.
-
-### reset
-```python
-Metric.reset()
-```
-Clear all additional data associated with the metric.
-
-### update
-```python
-Metric.update(ts)
-```
-Move the sliding window to a new timestamp.
-
-### sources
-```python
-Metric.sources()
-```
-Return all graphs of the current window.
-
-## MetricGraph
-```python
-MetricGraph(obj=None)
-```
-
-
-### sample_eigenvectors
-```python
-MetricGraph.sample_eigenvectors(ts,
-                                sample_width,
-                                sample_steps=9,
-                                tolerance=None)
-```
-
-Iterative power iteration algorithm to track eigenvectors of a graph over time.
-Collection of eigenvectors starts at t = (ts - sample_width) and continues up
-to t = ts. Each entry of the returned dictionary contains sample_steps values
-collected at equidistant time steps.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-- __tolerance__: Tolerance for the power_iteration algorithm.
-
-__Returns__
-
-Dictionary containing lists of collected values for each node.
-
-
-### sample_edges
-```python
-MetricGraph.sample_edges(ts, sample_width, sample_steps=9)
-```
-
-Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
-Each entry of the returned dictionary contains sample_steps value collected
-at equidistant time steps.
-
-__Arguments__
-
-- __ts__: Timestamp of the window.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-
-__Returns__
-
-Dictionary containing lists of collected values for each edge.
-
-
-## MetricSumEdges
-```python
-MetricSumEdges(obj=None)
-```
-
-
-### eps
-Get the epsilon parameter.
-
-### result
-Get the current graph based on the rectangle window.
-
-## MetricSumEdgesExp
-```python
-MetricSumEdgesExp(obj=None)
-```
-
-
-### eps
-Get the epsilon parameter.
-
-### log_beta
-Get the log_beta parameter.
-
-### result
-Get the current graph based on the exponential decay window.
-
-### weight
-Get the weight parameter.
-
-## MetricCountEdges
-```python
-MetricCountEdges(obj=None)
-```
-
-
-### result
-Get the current graph based on edge counts.
-
-## MetricCountNodes
-```python
-MetricCountNodes(obj=None)
-```
-
-
-### result
-Get the current graph based on node counts.
-
-## MetricTopics
-```python
-MetricTopics(obj=None)
-```
-
-
-### result
-Get the current graph based on network topics.
-
-## Window
-```python
-Window(obj=None)
-```
-
-This object represents a sliding window, which can be used to extract and aggregate
-data in a specific timeframe. Once the object has been created, most parameters can
-not be changed anymore. Only the timestamp can be changed.
-
-
-### ts
-Return the current timestamp of the window.
-
-### width
-Return the width of the window.
-
-### SumEdges
-```python
-Window.SumEdges(eps=0.0)
-```
-Create a new rectangular filter metric.
-
-### SumEdgesExp
-```python
-Window.SumEdgesExp(weight=1.0, beta=None, log_beta=None, eps=0.0)
-```
-
-Create a new exponential decay metric.
-
-__Arguments__
-
-- __beta__: Exponential decay constant.
-
-
-### SumEdgesExpNorm
-```python
-Window.SumEdgesExpNorm(beta=None, log_beta=None, eps=0.0)
-```
-
-Create a new exponential smoothing metric.
-
-__Arguments__
-
-- __beta__: Exponential decay constant.
-
-
-### CountEdges
-```python
-Window.CountEdges()
-```
-Create a new edge count metric.
-
-### CountNodes
-```python
-Window.CountNodes()
-```
-Create a new node count metric.
-
-### Topics
-```python
-Window.Topics()
-```
-Create a new topic metric.
-
-### reset
-```python
-Window.reset()
-```
-"
-Clear all additional data associated with the window, and force a full recompute
-when the `update` function is used the next time.
-
-
-### update
-```python
-Window.update(ts)
-```
-
-Move the sliding window to a new timestamp. Whenever possible, the previous state
-will be reused to speed up the computation. For rectangular windows, for example,
-it is sufficient to add data points that are moved into the interval, and to remove
-data points that are now outside of the interval. For exponential windows, it is
-also necessary to perform a multiplication of the full graph.
-
-__Arguments__
-
-- __ts__: New timestamp of the window.
-
-
-### sources
-```python
-Window.sources()
-```
-Return all graphs of the current window.
 
 ## MongoDB
 ```python
