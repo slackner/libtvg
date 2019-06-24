@@ -209,6 +209,7 @@ struct entry1 *bucket1_get_entry(struct bucket1 *bucket, uint64_t index, int all
 
     entry->index  = index;
     entry->weight = 0.0;
+    entry->reserved = 0;
     return entry;
 }
 

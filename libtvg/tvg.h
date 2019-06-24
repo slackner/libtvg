@@ -61,8 +61,9 @@ struct rwlock
 
 struct entry1
 {
-    uint64_t index;
-    float    weight;
+    uint64_t    index;
+    float       weight;
+    uint32_t    reserved;
 };
 
 struct bucket1
@@ -94,6 +95,7 @@ struct entry2
     uint64_t    source;
     uint64_t    target;
     float       weight;
+    uint32_t    reserved;
 };
 
 struct bucket2

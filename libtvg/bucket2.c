@@ -217,6 +217,7 @@ struct entry2 *bucket2_get_entry(struct bucket2 *bucket, uint64_t source, uint64
     entry->source = source;
     entry->target = target;
     entry->weight = 0.0;
+    entry->reserved = 0;
     return entry;
 }
 
