@@ -23,13 +23,17 @@ with open("news_nodelist.tsv") as f:
         assert values[1] in "LOADTSP"
 
         id1 	= int(values[0])
-        label 	= "%s (%s)" % (values[3], values[1])
+        label 	= values[3]
+        type1   = { 'L': 'LOC', 'O': 'ORG', 'A': 'ACT',
+                    'D': 'DAT', 'T': 'TER' }[values[1]]
         # values[2] -> wikidata ID (empty if type=T)
 
-        labels.append((id1, label))
+        label = label.replace("\t", " ")
+        type1 = type1.replace("\t", " ")
+        labels.append((id1, label, type1))
 
 labels.sort(key=lambda x: x[0])
 
 with open("result.nodes", "w") as g:
-    for id1, label in labels:
-        g.write("%d\t%s\n" % (id1, label))
+    for id1, label, type1 in labels:
+        g.write("%d\t%s\t%s\n" % (id1, label, type1))
