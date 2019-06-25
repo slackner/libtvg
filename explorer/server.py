@@ -340,10 +340,9 @@ if __name__ == "__main__":
         dataset_tvg.enable_mongodb_sync(mongodb, batch_size=256, cache_size=0x10000000) # 256 MB
 
     elif 'graph' in source:
-        if 'nodes' not in source:
-            source['nodes'] = None
-
-        dataset_tvg = pytvg.TVG.load(source['graph'], nodes=source['nodes'], positive=True, streaming=True)
+        dataset_tvg = pytvg.TVG.load(source['graph'], positive=True, streaming=True)
+        if 'nodes' in source:
+            dataset_tvg.load_nodes_from_file(source['nodes'], source.get('attributes', None))
 
     else:
         raise RuntimeError("Config does not have expected format")
