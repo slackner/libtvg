@@ -145,6 +145,8 @@ void free_tvg(struct tvg *tvg)
     assert(!tvg->graph_cache_used);
     assert(list_empty(&tvg->query_cache));
     assert(!tvg->query_cache_used);
+
+    free_mongodb(tvg->mongodb);
     free(tvg);
 }
 
