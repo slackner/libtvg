@@ -353,7 +353,7 @@ lib.tvg_get_node_by_primary_key.restype = c_node_p
 lib.tvg_load_graphs_from_file.argtypes = (c_tvg_p, c_char_p)
 lib.tvg_load_graphs_from_file.restype = c_int
 
-lib.tvg_load_nodes_from_file.argtypes = (c_tvg_p, c_char_p)
+lib.tvg_load_nodes_from_file.argtypes = (c_tvg_p, c_char_p, c_char_p)
 lib.tvg_load_nodes_from_file.restype = c_int
 
 lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint64)
@@ -1940,9 +1940,14 @@ class TVG(object):
         if not res:
             raise IOError
 
-    def load_nodes_from_file(self, filename):
+    def load_nodes_from_file(self, filename, key=None):
         """ Load node attributes from a file. """
-        res = lib.tvg_load_nodes_from_file(self._obj, filename.encode("utf-8"))
+
+        if key is None:
+            key = "text"
+        if isinstance(key, list):
+            key = ";".join(key)
+        res = lib.tvg_load_nodes_from_file(self._obj, filename.encode("utf-8"), key.encode("utf-8"))
         if not res:
             raise IOError
 

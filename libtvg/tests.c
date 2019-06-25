@@ -1015,7 +1015,7 @@ static void test_load_nodes_from_file(void)
     ret = tvg_set_primary_key(tvg, "text");
     assert(ret);
 
-    ret = tvg_load_nodes_from_file(tvg, "../datasets/example/example-tvg.nodes");
+    ret = tvg_load_nodes_from_file(tvg, "../datasets/example/example-tvg.nodes", "text");
     assert(ret);
 
     free_tvg(tvg);

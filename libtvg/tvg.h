@@ -1437,7 +1437,7 @@ struct node *tvg_get_node_by_index(struct tvg *tvg, uint64_t index);
 struct node *tvg_get_node_by_primary_key(struct tvg *tvg, struct node *primary_key);
 
 int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename);
-int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename);
+int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename, const char *key);
 
 int tvg_enable_mongodb_sync(struct tvg *tvg, struct mongodb *mongodb,
                             uint64_t batch_size, uint64_t cache_size);

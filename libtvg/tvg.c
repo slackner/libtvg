@@ -392,7 +392,6 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
 
         if (line[read - 1] == '\n') line[--read] = 0;
         if (read > 0 && line[read - 1] == '\r') line[--read] = 0;
-
         if (!line[0] || line[0] == '#' || line[0] == ';') continue;
 
         /* FIXME: Check that the full line was parsed. */
@@ -462,11 +461,44 @@ error:
     return ret;
 }
 
-int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
+static int load_node_attributes(struct node *node, const char *key, char *text)
+{
+    const char *next_key;
+    char *next_text;
+    size_t keylen;
+
+    for (;;)
+    {
+        next_key = strchr(key, ';');
+        keylen = next_key ? (next_key - key) : strlen(key);
+
+        if (!keylen)
+            goto skip;
+
+        next_text = strchr(text, '\t');
+        if (next_text) *next_text = 0;
+
+        if (!node_set_attribute_internal(node, key, keylen, text))
+        {
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
+            return 0;
+        }
+
+        if (!next_text) break;
+        text = next_text + 1;
+
+    skip:
+        if (!next_key) break;
+        key = next_key + 1;
+    }
+
+    return 1;
+}
+
+int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename, const char *key)
 {
     long long unsigned int index;
     struct node *node;
-    const char *text;
     ssize_t read;
     size_t len = 0;
     char *line = NULL;
@@ -484,7 +516,6 @@ int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
     {
         if (line[read - 1] == '\n') line[--read] = 0;
         if (read > 0 && line[read - 1] == '\r') line[--read] = 0;
-
         if (!line[0] || line[0] == '#' || line[0] == ';') continue;
 
         if (sscanf(line, "%llu%n", &index, &offset) < 1)
@@ -493,13 +524,11 @@ int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
             goto error;
         }
 
-        text = &line[offset];
-        if (*text != ' ' && *text != '\t')
+        if (line[offset++] != '\t')
         {
             fprintf(stderr, "%s: Line does not match expected format\n", __func__);
             goto error;
         }
-        while (*text == ' ' || *text == '\t') text++;
 
         if (!(node = alloc_node()))
         {
@@ -507,16 +536,15 @@ int tvg_load_nodes_from_file(struct tvg *tvg, const char *filename)
             goto error;
         }
 
-        if (!node_set_attribute(node, "text", text))
+        if (!load_node_attributes(node, key, &line[offset]))
         {
-            fprintf(stderr, "%s: Out of memory!\n", __func__);
             free_node(node);
             goto error;
         }
 
         if (!tvg_link_node(tvg, node, NULL, index))
         {
-            fprintf(stderr, "%s: Index %llu or text '%s' already used?\n", __func__, index, text);
+            fprintf(stderr, "%s: Node %llu appears to be a duplicate\n", __func__, index);
             free_node(node);
             continue;
         }
