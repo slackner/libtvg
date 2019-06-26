@@ -1,4 +1,5 @@
-## Loading TVGs from external data sources
+Loading TVGs from external data sources
+=======================================
 
 Time Varying Graph Explorer supports different file formats and data sources.
 In the following, we discuss these different options and provide short code
@@ -10,8 +11,7 @@ of edges associated with weights and a timestamp. Nodes (`pytvg.Node` class)
 are assumed to be always present (i.e., they do not have any dynamic aspects),
 and are only used to store additional attributes.
 
-Load a TVG from a file
-======================
+## Load a TVG from a file
 
 For small or medium sized datasets, it makes sense to store time varying graphs
 explicitly on the hard disk. With this framework, a time varying graph consists
@@ -69,8 +69,7 @@ tvg = pytvg.TVG.load("path/to/dataset.graph", nodes="path/to/dataset.nodes",
                      nonzero=True, positive=True)
 ```
 
-Load TVGs from a MongoDB
-========================
+## Load TVGs from a MongoDB
 
 This method is currently limited to co-occurrence networks, since raw graph data
 is not supported yet. To use this import method, the MongoDB should contain two
@@ -138,8 +137,7 @@ As soon as the total memory consumption of graphs exceeds the size specified by
 `cache_size`, those that are no longer needed will be pruned from the cache
 (starting from the oldest one).
 
-Creating an in-memory TVG
-=========================
+## Creating an in-memory TVG
 
 Creating graphs in-memory is the most flexible (but also slowest) option to
 load time varying graphs. The first step is to create a time-varying graph
