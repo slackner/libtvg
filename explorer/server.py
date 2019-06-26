@@ -300,8 +300,24 @@ class Client(WebSocket):
         pass
 
 if __name__ == "__main__":
+    def cache_size(s):
+        if s.endswith("K") or s.endswith("k"):
+            s, mul = s[:-1], 1024
+        elif s.endswith("M"):
+            s, mul = s[:-1], 1024 * 1024
+        elif s.endswith("G"):
+            s, mul = s[:-1], 1024 * 1024 * 1024
+        else:
+            mul = 1
+        try:
+            return int(float(s) * mul)
+        except ValueError:
+            raise argparse.ArgumentTypeError("%r is not a valid cache size" % s)
+
     parser = argparse.ArgumentParser(description="TVG Explorer")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print debug information")
+    parser.add_argument("--graph-cache", type=cache_size, help="Set graph cache size", default=0x10000000) # 256 MB
+    parser.add_argument("--query-cache", type=cache_size, help="Set query cache size", default=0x10000000) # 256 MB
     parser.add_argument("config", help="Path to a configuration file")
     args = parser.parse_args()
 
@@ -338,7 +354,7 @@ if __name__ == "__main__":
 
         dataset_tvg = pytvg.TVG(positive=True, streaming=True)
         dataset_tvg.set_primary_key(primary_key)
-        dataset_tvg.enable_mongodb_sync(mongodb, batch_size=256, cache_size=0x10000000) # 256 MB
+        dataset_tvg.enable_mongodb_sync(mongodb, batch_size=256, cache_size=args.graph_cache)
 
     elif 'graph' in source:
         dataset_tvg = pytvg.TVG.load(source['graph'], positive=True, streaming=True)
@@ -348,7 +364,7 @@ if __name__ == "__main__":
     else:
         raise RuntimeError("Config does not have expected format")
 
-    dataset_tvg.enable_query_cache(cache_size=0x10000000) # 256 MB
+    dataset_tvg.enable_query_cache(cache_size=args.query_cache)
     dataset_tvg.verbosity = args.verbose
 
     server = SimpleWebSocketServer('', 8000, Client)
