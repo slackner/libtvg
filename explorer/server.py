@@ -301,6 +301,7 @@ class Client(WebSocket):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TVG Explorer")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Print debug information")
     parser.add_argument("config", help="Path to a configuration file")
     args = parser.parse_args()
 
@@ -348,6 +349,7 @@ if __name__ == "__main__":
         raise RuntimeError("Config does not have expected format")
 
     dataset_tvg.enable_query_cache(cache_size=0x10000000) # 256 MB
+    dataset_tvg.verbosity = args.verbose
 
     server = SimpleWebSocketServer('', 8000, Client)
     server.serveforever()

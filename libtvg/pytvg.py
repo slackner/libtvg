@@ -66,7 +66,8 @@ class c_node(Structure):
 
 class c_tvg(Structure):
     _fields_ = [("refcount", c_uint64),
-                ("flags",    c_uint)]
+                ("flags",    c_uint),
+                ("verbosity", c_int)]
 
 class c_mongodb_config(Structure):
     _fields_ = [("uri",          c_char_p),
@@ -331,6 +332,8 @@ lib.alloc_tvg.argtypes = (c_uint,)
 lib.alloc_tvg.restype = c_tvg_p
 
 lib.free_tvg.argtypes = (c_tvg_p,)
+
+lib.tvg_set_verbosity.argtypes = (c_tvg_p, c_int)
 
 lib.tvg_memory_usage.argtypes = (c_tvg_p,)
 lib.tvg_memory_usage.restype = c_uint64
@@ -1803,6 +1806,14 @@ class TVG(object):
     @property
     def flags(self):
         return self._obj.contents.flags
+
+    @property
+    def verbosity(self):
+        return self._obj.contents.verbosity
+
+    @verbosity.setter
+    def verbosity(self, verbosity):
+        lib.tvg_set_verbosity(self._obj, verbosity)
 
     @property
     def memory_usage(self):
@@ -3543,6 +3554,8 @@ if __name__ == '__main__':
 
         def test_sum_edges(self):
             tvg = TVG(positive=True)
+            tvg.verbosity = True
+            self.assertEqual(tvg.verbosity, True)
 
             g = Graph()
             g[0, 0] = 1.0
@@ -4161,6 +4174,8 @@ if __name__ == '__main__':
         def test_sync(self):
             tvg = TVG()
             tvg.enable_mongodb_sync(self.db, batch_size=2, cache_size=0x8000) # 32 kB cache
+            tvg.verbosity = True
+            self.assertEqual(tvg.verbosity, True)
 
             future = mockupdb.go(tvg.lookup_ge, 0)
 

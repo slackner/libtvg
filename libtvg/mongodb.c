@@ -705,7 +705,9 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
     struct graph *graph;
     bson_error_t error;
     const bson_t *doc;
+    uint64_t duration;
     struct list todo;
+    uint64_t loaded = 0;
     uint64_t count;
     uint64_t ts;
     bson_t *opts;
@@ -713,6 +715,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
     int res;
 
     assert(direction == 1 || direction == -1);
+    duration = clock_monotonic();
 
     opts = BCON_NEW("sort", "{", config->article_time, BCON_INT32(direction),
                                  config->article_id,   BCON_INT32(direction), "}",
@@ -847,6 +850,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         graph->cache = graph_memory_usage(graph);
         list_add_head(&todo, &graph->cache_entry);
         cache_reserve += graph->cache;
+        loaded++;
 
         other_graph = graph;
         jump = 0;
@@ -909,6 +913,19 @@ error:
         list_remove(&graph->cache_entry);
         list_add_tail(&tvg->graph_cache, &graph->cache_entry);
         tvg->graph_cache_used += graph->cache;
+    }
+
+    if (tvg->verbosity)
+    {
+        duration = clock_monotonic() - duration;
+
+        fprintf(stderr, "%s: Loaded %llu/%llu graphs in %llu ms (%.03f ms/graph)\n", __func__,
+                (long long unsigned int)loaded, (long long unsigned int)count,
+                (long long unsigned int)duration, loaded ? (float)duration / loaded : 0.0);
+        fprintf(stderr, "%s: Graph cache usage %llu / %llu (%.03f%%)\n", __func__,
+                (long long unsigned int)tvg->graph_cache_used,
+                (long long unsigned int)tvg->graph_cache_size,
+                tvg->graph_cache_size ? (float)tvg->graph_cache_used * 100.0 / tvg->graph_cache_size : 100.0);
     }
 }
 

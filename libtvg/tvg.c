@@ -83,6 +83,7 @@ struct tvg *alloc_tvg(uint32_t flags)
 
     tvg->refcount   = 1;
     tvg->flags      = flags;
+    tvg->verbosity  = 0;
     avl_init(&tvg->graphs, _graph_compar, _graph_lookup, NULL);
     tvg->mongodb    = NULL;
     tvg->batch_size = 0;
@@ -148,6 +149,11 @@ void free_tvg(struct tvg *tvg)
 
     free_mongodb(tvg->mongodb);
     free(tvg);
+}
+
+void tvg_set_verbosity(struct tvg *tvg, int verbosity)
+{
+    tvg->verbosity = verbosity;
 }
 
 void tvg_debug(struct tvg *tvg)

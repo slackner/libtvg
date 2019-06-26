@@ -155,6 +155,7 @@ struct tvg
 {
     uint64_t    refcount;
     uint32_t    flags;
+    int         verbosity;
 
     /* private: */
     struct avl_tree graphs;
@@ -1426,6 +1427,7 @@ struct tvg *alloc_tvg(uint32_t flags);
 struct tvg *grab_tvg(struct tvg *tvg);
 void free_tvg(struct tvg *tvg);
 
+void tvg_set_verbosity(struct tvg *tvg, int verbosity);
 void tvg_debug(struct tvg *tvg);
 uint64_t tvg_memory_usage(struct tvg *tvg);
 

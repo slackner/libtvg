@@ -105,7 +105,10 @@ static void *query_compute(struct query *current)
     struct graph *graph;
     struct list compatible;
     struct tvg *tvg = current->tvg;
+    uint64_t duration;
     void *result = NULL;
+
+    duration = clock_monotonic();
 
     if (!(ranges = alloc_ranges()))
         goto done;
@@ -229,6 +232,18 @@ done:
         if (tvg->query_cache_size && !query->ops->can_free(query)) continue;  /* cannot free space */
 
         free_query(query);
+    }
+
+    if (result && tvg->verbosity)
+    {
+        duration = clock_monotonic() - duration;
+
+        fprintf(stderr, "%s: Computed query in %llu ms\n", __func__,
+                (long long unsigned int)duration);
+        fprintf(stderr, "%s: Query cache usage %llu / %llu (%.03f%%)\n", __func__,
+                (long long unsigned int)tvg->query_cache_used,
+                (long long unsigned int)tvg->query_cache_size,
+                tvg->query_cache_size ? (float)tvg->query_cache_used * 100.0 / tvg->query_cache_size : 100.0);
     }
 
     return result;
