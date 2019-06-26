@@ -6,9 +6,10 @@ import traceback
 import argparse
 import math
 import json
+import copy
+import time
 import sys
 import os
-import copy
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../libtvg"))
 import pytvg
@@ -299,6 +300,39 @@ class Client(WebSocket):
     def event_close(self):
         pass
 
+class PreloadTask(object):
+    def __init__(self, tvg, step=86400000):
+        self.tvg    = tvg                # dataset to preload
+        self.time   = time.time() + 1.0  # next time to run
+        self.ts_min = tvg.lookup_ge().ts # minimum timestamp
+        self.ts_max = None               # maximum timestamp
+        self.ts     = self.ts_min        # current timestamp
+        self.step   = step               # step size
+        self.refs   = []                 # references to preloaded results
+
+    def run(self):
+        if time.time() < self.time:
+            return
+
+        if self.ts_max is None:
+            self.ts_max = self.tvg.lookup_le().ts
+
+        if self.ts + self.step - 1 >= self.ts_max:
+            self.time = time.time() + 600.0
+            self.ts_max = None
+            return
+
+        print("Preloading interval %u-%u (%f%%)" % (self.ts, self.ts + self.step - 1,
+              (self.ts - self.ts_min) * 100.0 / (self.ts_max - self.ts_min)))
+
+        args = (self.ts, self.ts + self.step - 1)
+        self.refs.append(self.tvg.sum_edges(*args))
+        self.refs.append(self.tvg.count_edges(*args))
+        self.refs.append(self.tvg.count_nodes(*args))
+
+        self.time = time.time() + 0.5
+        self.ts += self.step
+
 if __name__ == "__main__":
     def cache_size(s):
         if s.endswith("K") or s.endswith("k"):
@@ -316,6 +350,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="TVG Explorer")
     parser.add_argument("--verbose", "-v", action="store_true", help="Print debug information")
+    parser.add_argument("--preload", action="store_true", help="Preload query results")
     parser.add_argument("--graph-cache", type=cache_size, help="Set graph cache size", default=0x10000000) # 256 MB
     parser.add_argument("--query-cache", type=cache_size, help="Set query cache size", default=0x10000000) # 256 MB
     parser.add_argument("config", help="Path to a configuration file")
@@ -368,4 +403,12 @@ if __name__ == "__main__":
     dataset_tvg.verbosity = args.verbose
 
     server = SimpleWebSocketServer('', 8000, Client)
-    server.serveforever()
+
+    tasks = []
+    if args.preload:
+        tasks.append(PreloadTask(dataset_tvg))
+
+    while True:
+        server.serveonce()
+        for task in tasks:
+            task.run()
