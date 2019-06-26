@@ -3781,6 +3781,71 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_query_cache(self):
+            tvg = TVG(positive=True)
+            tvg.verbosity = True
+
+            g = Graph()
+            g[0, 0] = 1.0
+            tvg.link_graph(g, 100)
+
+            g = Graph()
+            g[0, 1] = 2.0
+            tvg.link_graph(g, 200)
+
+            g = Graph()
+            g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
+
+            # test 1
+            g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+            del g
+            g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+            del g
+
+            # test 2
+            g1 = tvg.sum_edges(51, 150, eps=0.5)
+            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g2[0, 0], 1.0)
+            self.assertEqual(g2[0, 1], 0.0)
+            self.assertEqual(g2[0, 2], 0.0)
+            del g2
+            del g1
+
+            tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
+
+            # test 3
+            g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+            del g
+            g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+            del g
+
+            tvg.disable_query_cache()
+            tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
+
+            # test 4
+            g1 = tvg.sum_edges(51, 150, eps=0.5)
+            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g2[0, 0], 1.0)
+            self.assertEqual(g2[0, 1], 0.0)
+            self.assertEqual(g2[0, 2], 0.0)
+            del g2
+            del g1
+
+            del tvg
+
         def test_sparse_topics(self):
             tvg = TVG(positive=True)
 
