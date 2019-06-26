@@ -1,7 +1,7 @@
-## Time Varying Graph Explorer
+Time Varying Graph Explorer
+===========================
 
-Installation
-============
+## Installation
 
 As a first step, please make sure that all required dependencies are installed.
 The following commands can be used to install missing build, test and runtime
@@ -35,8 +35,7 @@ and preprocesses additional datasets. If everything goes well, the program
 terminates with exitcode 0. All compiled programs will be located within the
 src/ directory.
 
-Self-Test
-=========
+## Self-Test
 
 This program comes with an extensive set of self-tests to ensure everything
 works as expected and to detect regressions during the development process.
@@ -52,16 +51,14 @@ To run tests for the Python 3 bindings, execute:
 ./libtvg/pytvg.py
 ```
 
-Documentation
-=============
+## Documentation
 
 Documentation can be found in the `docs/` directory.
 
 * `docs/pytvg.md` describes how to use API functions provided by `pytvg`.
 * `docs/load-tvg.md` describes different ways to load time varying graphs.
 
-Usage Example
-=============
+## Usage Example
 
 To start a server with the example dataset, run the following command:
 
