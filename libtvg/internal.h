@@ -76,7 +76,6 @@ struct graph_ops
 struct query_ops
 {
     void     *(*grab)(struct query *);
-    int       (*can_free)(struct query *);
     void      (*free)(struct query *);
 
     /* helpers for query_compute: */
@@ -237,5 +236,6 @@ void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts) DECL_
 void graph_refresh_cache(struct graph *graph) DECL_INTERNAL;
 
 void free_query(struct query *query) DECL_INTERNAL;
+void unlink_query(struct query *query, int invalidate) DECL_INTERNAL;
 
 #endif /* _INTERNAL_H_ */

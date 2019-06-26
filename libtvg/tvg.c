@@ -85,6 +85,7 @@ struct tvg *alloc_tvg(uint32_t flags)
     tvg->flags      = flags;
     tvg->verbosity  = 0;
     avl_init(&tvg->graphs, _graph_compar, _graph_lookup, NULL);
+    list_init(&tvg->queries);
     tvg->mongodb    = NULL;
     tvg->batch_size = 0;
     avl_init(&tvg->nodes_ind, _nodes_ind_compar, _nodes_ind_lookup, NULL);
@@ -117,16 +118,16 @@ void free_tvg(struct tvg *tvg)
     if (!tvg) return;
     if (__sync_sub_and_fetch(&tvg->refcount, 1)) return;
 
-    LIST_FOR_EACH_SAFE(query, next_query, &tvg->query_cache, struct query, cache_entry)
-    {
-        assert(query->tvg == tvg);
-        free_query(query);
-    }
-
     AVL_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
     {
         assert(graph->tvg == tvg);
         unlink_graph(graph);
+    }
+
+    LIST_FOR_EACH_SAFE(query, next_query, &tvg->queries, struct query, entry)
+    {
+        assert(query->tvg == tvg);
+        unlink_query(query, 1);
     }
 
     AVL_FOR_EACH_SAFE(node, next_node, &tvg->nodes_ind, struct node, entry_ind)
@@ -849,6 +850,6 @@ void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
     {
         if (query->ts_max < ts_min) continue;
         if (query->ts_min > ts_max) continue;
-        free_query(query);
+        unlink_query(query, 1);
     }
 }

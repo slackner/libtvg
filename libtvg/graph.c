@@ -58,6 +58,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->eps         = 0.0;
     graph->ts          = 0.0;
     objectid_init(&graph->objectid);
+    graph->query       = NULL;
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);
@@ -95,6 +96,7 @@ void free_graph(struct graph *graph)
     assert(!graph->tvg);
     assert(!graph->cache);
 
+    free_query(graph->query);
     free(graph->buckets);
     free(graph);
 }
@@ -103,12 +105,12 @@ void unlink_graph(struct graph *graph)
 {
     struct graph *other_graph;
     struct tvg *tvg;
-    int external;
+    int cache;
 
     if (!graph || !(tvg = graph->tvg))
         return;
 
-    if ((external = (graph->cache != 0)))  /* we have to reload later */
+    if ((cache = (graph->cache != 0)))  /* we have to reload later */
     {
         graph->flags |= (TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV);
         list_remove(&graph->cache_entry);
@@ -131,7 +133,7 @@ void unlink_graph(struct graph *graph)
     graph->tvg = NULL;
     graph->ops = get_graph_ops(graph->flags);  /* re-enable graph ops */
 
-    if (!external)
+    if (!cache)
         tvg_invalidate_queries(tvg, graph->ts, graph->ts);
 
     free_graph(graph);
@@ -174,6 +176,7 @@ struct graph *graph_duplicate(struct graph *source)
     graph->eps         = source->eps;
     graph->ts          = source->ts;
     graph->objectid    = source->objectid;
+    graph->query       = NULL;
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);

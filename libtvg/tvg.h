@@ -84,6 +84,8 @@ struct vector
     float       eps;
 
     /* private: */
+    struct query *query;
+
     const struct vector_ops *ops;
     uint32_t    bits;
     struct bucket1 *buckets;
@@ -118,6 +120,8 @@ struct graph
     struct objectid objectid;
 
     /* private: */
+    struct query *query;
+
     struct tvg *tvg;         /* NULL for disconnected graphs */
     struct avl_entry entry;
 
@@ -159,6 +163,7 @@ struct tvg
 
     /* private: */
     struct avl_tree graphs;
+    struct list queries;
     struct mongodb *mongodb;
     uint64_t    batch_size;
 
@@ -182,9 +187,10 @@ struct query
 {
     /* private: */
     struct tvg *tvg;
+    struct list entry;
 
+    uint64_t    cache;       /* 0 if not cached, otherwise size of graph */
     struct list cache_entry;
-    uint64_t    cache;       /* size of the cache entry */
 
     struct list todo_entry;
 

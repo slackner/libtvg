@@ -81,18 +81,27 @@ error:
     return ret;
 }
 
-static void query_init(struct query *query, struct tvg *tvg, const struct query_ops *ops,
+static void query_init(struct query *query, const struct query_ops *ops,
                        uint64_t ts_min, uint64_t ts_max)
 {
-    query->tvg      = tvg;
-    list_init(&query->cache_entry);
+    query->tvg      = NULL;
+    list_init(&query->entry);
     query->cache    = 0;
+    list_init(&query->cache_entry);
     query->ops      = ops;
     query->ts_min   = ts_min;
     query->ts_max   = ts_max;
 }
 
-static void *query_compute(struct query *current)
+static void query_refresh_cache(struct query *query)
+{
+    if (!query->cache) return;
+    assert(query->tvg != NULL);
+    list_remove(&query->cache_entry);
+    list_add_tail(&query->tvg->query_cache, &query->cache_entry);
+}
+
+static void *query_compute(struct tvg *tvg, struct query *current)
 {
     struct range *range, *next_range;
     struct query *query, *next_query;
@@ -104,7 +113,6 @@ static void *query_compute(struct query *current)
     struct ranges *ranges = NULL;
     struct graph *graph;
     struct list compatible;
-    struct tvg *tvg = current->tvg;
     uint64_t duration;
     void *result = NULL;
 
@@ -120,7 +128,7 @@ static void *query_compute(struct query *current)
         goto done;
 
     list_init(&compatible);
-    LIST_FOR_EACH(query, &tvg->query_cache, struct query, cache_entry)
+    LIST_FOR_EACH(query, &tvg->queries, struct query, entry)
     {
         if (!current->ops->compatible(current, query)) continue;
         list_add_tail(&compatible, &query->todo_entry);
@@ -148,8 +156,7 @@ static void *query_compute(struct query *current)
             break;
 
         list_remove(&best_query->todo_entry);
-        list_remove(&best_query->cache_entry);
-        list_add_tail(&tvg->query_cache, &best_query->cache_entry);
+        query_refresh_cache(best_query);
 
         operation.query     = best_query;
         operation.ts_min    = best_query->ts_min;
@@ -212,6 +219,9 @@ static void *query_compute(struct query *current)
     current->ops->finalize(current);
     result = current->ops->grab(current);
 
+    current->tvg = tvg;
+    list_add_head(&tvg->queries, &current->entry);
+
     if (current->cache)
     {
         list_add_tail(&tvg->query_cache, &current->cache_entry);
@@ -222,16 +232,15 @@ static void *query_compute(struct query *current)
 done:
     free_minheap(queue);
     free_ranges(ranges);
-    free_query(current);
+    if (current) current->ops->free(current);
 
     LIST_FOR_EACH_SAFE(query, next_query, &tvg->query_cache, struct query, cache_entry)
     {
         assert(query->tvg == tvg);
         assert(query->cache != 0);
         if (tvg->query_cache_used <= tvg->query_cache_size) break;
-        if (tvg->query_cache_size && !query->ops->can_free(query)) continue;  /* cannot free space */
 
-        free_query(query);
+        unlink_query(query, 0);
     }
 
     if (result && tvg->verbosity)
@@ -263,12 +272,6 @@ static void *query_sum_edges_grab(struct query *query_base)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
     return grab_graph(query->result);
-}
-
-static int query_sum_edges_can_free(struct query *query_base)
-{
-    struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
-    return (__sync_fetch_and_add(&query->result->refcount, 0) <= 1);
 }
 
 static void query_sum_edges_free(struct query *query_base)
@@ -316,7 +319,6 @@ static void query_sum_edges_finalize(struct query *query_base)
 const struct query_ops query_sum_edges_ops =
 {
     query_sum_edges_grab,
-    query_sum_edges_can_free,
     query_sum_edges_free,
 
     query_sum_edges_compatible,
@@ -336,7 +338,7 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
     if (!(query = malloc(sizeof(*query))))
         return NULL;
 
-    query_init(&query->base, tvg, &query_sum_edges_ops, ts_min, ts_max);
+    query_init(&query->base, &query_sum_edges_ops, ts_min, ts_max);
 
     query->eps = eps;
 
@@ -352,8 +354,9 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
     }
 
     graph_set_eps(query->result, eps);
+    query->result->query = &query->base;
 
-    return (struct graph *)query_compute(&query->base);
+    return (struct graph *)query_compute(tvg, &query->base);
 }
 
 /* query_sum_edges_exp functions */
@@ -370,12 +373,6 @@ static void *query_sum_edges_exp_grab(struct query *query_base)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
     return grab_graph(query->result);
-}
-
-static int query_sum_edges_exp_can_free(struct query *query_base)
-{
-    struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
-    return (__sync_fetch_and_add(&query->result->refcount, 0) <= 1);
 }
 
 static void query_sum_edges_exp_free(struct query *query_base)
@@ -436,7 +433,6 @@ static void query_sum_edges_exp_finalize(struct query *query_base)
 const struct query_ops query_sum_edges_exp_ops =
 {
     query_sum_edges_exp_grab,
-    query_sum_edges_exp_can_free,
     query_sum_edges_exp_free,
 
     query_sum_edges_exp_compatible,
@@ -457,7 +453,7 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
     if (!(query = malloc(sizeof(*query))))
         return NULL;
 
-    query_init(&query->base, tvg, &query_sum_edges_exp_ops, ts_min, ts_max);
+    query_init(&query->base, &query_sum_edges_exp_ops, ts_min, ts_max);
 
     query->weight      = weight;
     query->log_beta    = log_beta;
@@ -475,8 +471,9 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
     }
 
     graph_set_eps(query->result, eps);
+    query->result->query = &query->base;
 
-    return (struct graph *)query_compute(&query->base);
+    return (struct graph *)query_compute(tvg, &query->base);
 }
 
 /* query_count_edges functions */
@@ -493,12 +490,6 @@ static void *query_count_edges_grab(struct query *query_base)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
     return grab_graph(query->result);
-}
-
-static int query_count_edges_can_free(struct query *query_base)
-{
-    struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
-    return (__sync_fetch_and_add(&query->result->refcount, 0) <= 1);
 }
 
 static void query_count_edges_free(struct query *query_base)
@@ -535,7 +526,6 @@ static void query_count_edges_finalize(struct query *query_base)
 const struct query_ops query_count_edges_ops =
 {
     query_count_edges_grab,
-    query_count_edges_can_free,
     query_count_edges_free,
 
     query_count_edges_compatible,
@@ -555,7 +545,7 @@ struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
     if (!(query = malloc(sizeof(*query))))
         return NULL;
 
-    query_init(&query->base, tvg, &query_count_edges_ops, ts_min, ts_max);
+    query_init(&query->base, &query_count_edges_ops, ts_min, ts_max);
 
     /* Enforce TVG_FLAGS_POSITIVE and TVG_FLAGS_NONZERO, our update mechanism relies on it. */
     graph_flags = tvg->flags & TVG_FLAGS_DIRECTED;
@@ -569,8 +559,9 @@ struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
     }
 
     graph_set_eps(query->result, 0.5);
+    query->result->query = &query->base;
 
-    return (struct graph *)query_compute(&query->base);
+    return (struct graph *)query_compute(tvg, &query->base);
 }
 
 /* query_count_nodes functions */
@@ -587,12 +578,6 @@ static void *query_count_nodes_grab(struct query *query_base)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
     return grab_vector(query->result);
-}
-
-static int query_count_nodes_can_free(struct query *query_base)
-{
-    struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
-    return (__sync_fetch_and_add(&query->result->refcount, 0) <= 1);
 }
 
 static void query_count_nodes_free(struct query *query_base)
@@ -629,7 +614,6 @@ static void query_count_nodes_finalize(struct query *query_base)
 const struct query_ops query_count_nodes_ops =
 {
     query_count_nodes_grab,
-    query_count_nodes_can_free,
     query_count_nodes_free,
 
     query_count_nodes_compatible,
@@ -649,7 +633,7 @@ struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max
     if (!(query = malloc(sizeof(*query))))
         return NULL;
 
-    query_init(&query->base, tvg, &query_count_nodes_ops, ts_min, ts_max);
+    query_init(&query->base, &query_count_nodes_ops, ts_min, ts_max);
 
     if (!(query->result = alloc_vector(vector_flags)))
     {
@@ -659,8 +643,9 @@ struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max
     }
 
     vector_set_eps(query->result, 0.5);
+    query->result->query = &query->base;
 
-    return (struct vector *)query_compute(&query->base);
+    return (struct vector *)query_compute(tvg, &query->base);
 }
 
 /* query_topics functions */
@@ -743,12 +728,42 @@ error:
 
 /* generic functions */
 
+/* called via free_vector() or free_graph() */
 void free_query(struct query *query)
 {
     if (!query) return;
 
-    list_remove(&query->cache_entry);
-    query->tvg->query_cache_used -= query->cache;
-    query->ops->free(query);
+    if (query->tvg)
+    {
+        list_remove(&query->entry);
+        query->tvg = NULL;
+    }
+
+    assert(!query->cache);
     free(query);
+}
+
+void unlink_query(struct query *query, int invalidate)
+{
+    struct tvg *tvg;
+    int cache;
+
+    if (!query || !(tvg = query->tvg))
+        return;
+
+    if ((cache = (query->cache != 0)))
+    {
+        list_remove(&query->cache_entry);
+        tvg->query_cache_used -= query->cache;
+        query->cache = 0;
+    }
+
+    if (invalidate)
+    {
+        list_remove(&query->entry);
+        query->tvg = NULL;
+    }
+
+    if (cache)
+        query->ops->free(query);
 }

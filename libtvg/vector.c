@@ -49,6 +49,7 @@ struct vector *alloc_vector(uint32_t flags)
     vector->flags    = flags;
     vector->revision = 0;
     vector->eps      = 0.0;
+    vector->query    = NULL;
     vector->ops      = get_vector_ops(flags);
     vector->bits     = bits;
     vector->buckets  = buckets;
@@ -76,6 +77,7 @@ void free_vector(struct vector *vector)
     for (i = 0; i < num_buckets; i++)
         free_bucket1(&vector->buckets[i]);
 
+    free_query(vector->query);
     free(vector->buckets);
     free(vector);
 }
@@ -114,6 +116,7 @@ struct vector *vector_duplicate(struct vector *source)
     vector->flags    = source->flags;
     vector->revision = source->revision;
     vector->eps      = source->eps;
+    vector->query    = NULL;
     vector->ops      = get_vector_ops(vector->flags);
     vector->bits     = source->bits;
     vector->buckets  = buckets;
