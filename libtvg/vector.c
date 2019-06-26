@@ -114,7 +114,7 @@ struct vector *vector_duplicate(struct vector *source)
     vector->flags    = source->flags;
     vector->revision = source->revision;
     vector->eps      = source->eps;
-    vector->ops      = source->ops;
+    vector->ops      = get_vector_ops(vector->flags);
     vector->bits     = source->bits;
     vector->buckets  = buckets;
     vector->optimize = source->optimize;
