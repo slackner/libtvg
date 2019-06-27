@@ -369,6 +369,8 @@ lib.tvg_enable_query_cache.restype = c_int
 
 lib.tvg_disable_query_cache.argtypes = (c_tvg_p,)
 
+lib.tvg_invalidate_queries.argtypes = (c_tvg_p, c_uint64, c_uint64)
+
 lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
 
@@ -2007,6 +2009,10 @@ class TVG(object):
     def disable_query_cache(self):
         """ Disable the query cache. """
         lib.tvg_disable_query_cache(self._obj)
+
+    def invalidate_queries(self, ts_min, ts_max):
+        """ Invalidate queries in a given timeframe [ts_min, ts_max]. """
+        lib.tvg_invalidate_queries(self._obj, ts_min, ts_max)
 
     def __iter__(self):
         """ Iterates through all graphs of a time-varying-graph object. """
@@ -3816,6 +3822,12 @@ if __name__ == '__main__':
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
             del g2
+            tvg.invalidate_queries(100, 100)
+            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g2[0, 0], 1.0)
+            self.assertEqual(g2[0, 1], 0.0)
+            self.assertEqual(g2[0, 2], 0.0)
+            del g2
             del g1
 
             tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
@@ -3831,12 +3843,24 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
             del g
+            tvg.invalidate_queries(100, 100)
+            g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 0.0)
+            self.assertEqual(g[0, 2], 0.0)
+            del g
 
             tvg.disable_query_cache()
             tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
 
             # test 4
             g1 = tvg.sum_edges(51, 150, eps=0.5)
+            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g2[0, 0], 1.0)
+            self.assertEqual(g2[0, 1], 0.0)
+            self.assertEqual(g2[0, 2], 0.0)
+            del g2
+            tvg.invalidate_queries(100, 100)
             g2 = tvg.sum_edges(51, 150, eps=0.5)
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)

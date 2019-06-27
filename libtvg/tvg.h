@@ -1453,6 +1453,7 @@ void tvg_disable_mongodb_sync(struct tvg *tvg);
 
 int tvg_enable_query_cache(struct tvg *tvg, uint64_t cache_size);
 void tvg_disable_query_cache(struct tvg *tvg);
+void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
 struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
@@ -1462,8 +1463,6 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset);
 
 struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(struct graph *,
                           uint64_t, void *), void *userdata);
-
-void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
 /* Query functions */
 
