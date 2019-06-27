@@ -5,11 +5,12 @@ import datetime
 import os
 import pymongo
 import sys
-# import kafka
 import spacy
 import datetime
 import logging
 import re
+import json
+import argparse
 
 class NewsArticle:
 
@@ -26,7 +27,7 @@ class SpacyModel:
         self.nlp = spacy.load(model_name)
 
 def getCollection(host, port, database, collection):
-    mongoClient = client = pymongo.MongoClient(host, port)
+    mongoClient = pymongo.MongoClient(host, port)
     return mongoClient[database][collection]
 
 def get_spacy_model_name(language):
@@ -77,29 +78,41 @@ def parse_date_format(date_string, crawltime):
     return crawltime
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="News Pipeline")
+    parser.add_argument("config", help="Path to a configuration file")
+    args = parser.parse_args()
+
+    with open(args.config) as fp:
+        config = json.load(fp)
+
+    source = config['source']
+
+    if 'article_extract_host' not in source:
+        raise RuntimeError("No host for article_extract specified")
+    if 'article_extract_port' not in source:
+        raise RuntimeError("No port for article_extract specified")
+    if 'article_extract_database' not in source:
+        raise RuntimeError("No database for article_extract specified")
+    if 'article_extract_collection' not in source:
+        raise RuntimeError("No collection for article_extract specified")
+    if 'article_and_entity_host' not in source:
+        raise RuntimeError("No host for article_processed and entity specified")
+    if 'article_and_entity_port' not in source:
+        raise RuntimeError("No port for article_processed and entity specified")
+    if 'article_and_entity_database' not in source:
+        raise RuntimeError("No database for article and entity specified")
+    if 'article_processed_collection' not in source:
+        raise RuntimeError("article_processed_collection not specified")
+    if 'entity_collection' not in source:
+        raise RuntimeError("entity_collection not specified")
+
+    article_extract_collection = getCollection(source['article_extract_host'], int(source['article_extract_port']), source['article_extract_database'], source['article_extract_collection'])
+    article_processed_collection = getCollection(source['article_and_entity_host'], int(source['article_and_entity_port']), source['article_and_entity_database'], source['article_processed_collection'])
+    entity_collection = getCollection(source['article_and_entity_host'], int(source['article_and_entity_port']), source['article_and_entity_database'], source['entity_collection'])
+
     logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/unprocessed_date_formats.log'
     logging.basicConfig(filename=logging_filename, level=logging.INFO)
-
-    if len(sys.argv) == 1:
-        htmlFolder = os.getcwd()  # default: current working directory
-    elif len(sys.argv) > 2:
-        print("Too many command line arguments, [0] or [1] accepted.")
-        sys.exit()
-    elif len(sys.argv) == 2:
-        htmlFolder = sys.argv[1]
-
-    article_extract_collection = getCollection('localhost', 27019, 'LiveNews', 'extract')
-    article_processed_collection = getCollection('localhost', 27017, 'tvg', 'article')
-    entity_collection = getCollection('localhost', 27017, 'tvg', 'entity')
-
-    # get the KafkaConsumer
-    # consumer = kafka.KafkaConsumer('news-extract-available',
-    #                     group_id='pipeline-extension-group',
-    #                     bootstrap_servers=['localhost:9092'])
-
-    # listen to kafka messages
-    # for message in consumer:
-        # url = message.key.decode('utf-8')
 
     # Process latest article using extracttime from the last processed article collection
     latest_record = article_processed_collection.find().sort("extracttime", pymongo.DESCENDING).limit(1)
@@ -108,9 +121,11 @@ if __name__ == "__main__":
         d = last_processed_article['extracttime']
     except:
         print("No data found!")
-        d = datetime.datetime(2019, 5, 29)
+        # Use manually set datetime
+        d = datetime.datetime.strptime(source['default_date'], '%Y-%m-%d')
+        # d = datetime.datetime(2019, 5, 29)
 
-    for post in article_extract_collection.find({"extracttime": {"$gte": d}}).sort("extracttime", pymongo.ASCENDING).limit(5):
+    for post in article_extract_collection.find({"extracttime": {"$gte": d}}).sort("extracttime", pymongo.ASCENDING):
         processedElement = article_processed_collection.find_one({"url":post['_id']})
         if processedElement == None:
             try:

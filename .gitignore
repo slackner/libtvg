@@ -1,6 +1,7 @@
 *.so
 *.dSYM
 *.dylib
+*.log
 libtvg/tests
 libtvg/coverage
 __pycache__

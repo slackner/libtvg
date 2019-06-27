@@ -75,6 +75,53 @@ const changeNodeWeight = function (event) {
     $('#loading').show();
 };
 
+const initTimelineUpdate = function () {
+    globalContext._privates.live_update_timer = setInterval(function() { sendMessageJson({cmd: 'check_for_new_articles'}); }, 10000);
+};
+
+const updateTimeline = function (end) {
+    if (document.getElementById("liveMonitoring").checked) {
+        // Update grey background and selected area
+        var date_range_picker = times.get(1);
+        var date_range_picker_width = date_range_picker.end - date_range_picker.start;
+        var start = (end - date_range_picker_width);
+
+        times.update([
+            {
+                id: 1,
+                start: start,
+                end: end
+            },
+            {
+                id: 2,
+                end: end
+            }
+        ]);
+
+        resizeDateRangePicker({
+            start: moment(start),
+            end: moment(end)
+        });
+
+        timeline.focus(1);
+
+        sendMessageJson({
+            cmd: 'timeline_seek',
+            start: start,
+            end: end,
+        });
+        $('#loading').show();
+    } else {
+        // Update only grey backround
+        times.update([
+            {
+                id: 2,
+                end: end
+            }
+        ]);
+    }
+};
+
 const onOpen = function (/* event */) {
     console.log('connected');
     globalContext.connected = true;
@@ -241,6 +288,11 @@ const onMessage = function (event) {
             console.log('focus_timeline');
 
             timeline.focus(1);
+            break;
+
+        case 'updateTimeline':
+            console.log('updateTimeline');
+            updateTimeline(msg.max);
             break;
 
         default:
@@ -480,6 +532,7 @@ const init = function () {
     initDateRangePicker();
     initNetwork();
     initTimeline();
+    initTimelineUpdate();
 
     setTimeout(doConnect, 1000);
 

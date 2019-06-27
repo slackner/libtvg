@@ -198,15 +198,16 @@ class Client(WebSocket):
             for i in values.keys():
                 values[i] = max(math.log(values[i]) + 10.0, 1.0) if values[i] > 0.0 else 1.0
 
-        # rescale the values of selected nodes to [0.0, 1.0]
-        min_value = min(values.values())
-        max_value = max(values.values())
-        if min_value != max_value:
-            for i in values.keys():
-                values[i] = (values[i] - min_value) / (max_value - min_value)
-        else:
-            for i in values.keys():
-                values[i] = 1.0
+        if len(values.values()) != 0:
+            # rescale the values of selected nodes to [0.0, 1.0]
+            min_value = min(values.values())
+            max_value = max(values.values())
+            if min_value != max_value:
+                for i in values.keys():
+                    values[i] = (values[i] - min_value) / (max_value - min_value)
+            else:
+                for i in values.keys():
+                    values[i] = 1.0
 
         nodes = []
         for i in subgraph.nodes():
@@ -218,7 +219,7 @@ class Client(WebSocket):
                 node = {}
 
             label = "Node %d" % i
-            for key in ['label', 'norm', 'text']:
+            for key in ['label', 'norm', 'text', 'entity_name']:
                 try:
                     label = node[key]
                 except KeyError:
@@ -257,6 +258,12 @@ class Client(WebSocket):
         self.ts_min = ts_min
         self.ts_max = ts_max
 
+    def check_for_new_articles(self):
+        max_ts = dataset_tvg.lookup_le().ts
+        if max_ts > self.latest_displayed_timestamp:
+            self.latest_displayed_timestamp = max_ts
+            self.send_message_json(cmd='updateTimeline', max=max_ts)
+
     def event_connected(self):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
@@ -266,6 +273,7 @@ class Client(WebSocket):
         # Set timeline min/max. The client can then seek to any position.
         data_ts_min = dataset_tvg.lookup_ge().ts
         data_ts_max = dataset_tvg.lookup_le().ts
+        self.latest_displayed_timestamp = data_ts_max
         self.send_message_json(cmd='timeline_set_options', min=data_ts_min, max=data_ts_max)
 
         self.send_message_json(cmd='set_context', context=self.context)
@@ -292,6 +300,10 @@ class Client(WebSocket):
             context['nodeWeight'] = msg['value']
 
             self.timeline_seek()
+            return
+
+        elif msg['cmd'] == 'check_for_new_articles':
+            self.check_for_new_articles()
             return
 
         print('Unimplemented command "%s"!' % msg['cmd'])
