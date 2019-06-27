@@ -846,7 +846,7 @@ void tvg_invalidate_queries(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
     if (ts_max < ts_min)
         return;
 
-    LIST_FOR_EACH_SAFE(query, next_query, &tvg->query_cache, struct query, cache_entry)
+    LIST_FOR_EACH_SAFE(query, next_query, &tvg->queries, struct query, entry)
     {
         if (query->ts_max < ts_min) continue;
         if (query->ts_min > ts_max) continue;
