@@ -113,6 +113,8 @@ static void *query_compute(struct tvg *tvg, struct query *current)
     struct ranges *ranges = NULL;
     struct graph *graph;
     struct list compatible;
+    uint64_t num_queries = 0;
+    uint64_t num_graphs = 0;
     uint64_t duration;
     void *result = NULL;
 
@@ -176,7 +178,10 @@ static void *query_compute(struct tvg *tvg, struct query *current)
     if (ranges_empty(ranges) && minheap_count(queue) == 1)
     {
         if (minheap_pop(queue, &operation))
+        {
             result = operation.query->ops->grab(operation.query);
+            num_queries = 1;
+        }
 
         goto done;
     }
@@ -202,6 +207,7 @@ static void *query_compute(struct tvg *tvg, struct query *current)
             if (!current->ops->add_query(current, operation.query, operation.weight))
                 goto done;
 
+            num_queries++;
             continue;
         }
 
@@ -213,6 +219,7 @@ static void *query_compute(struct tvg *tvg, struct query *current)
                 free_graph(graph);
                 goto done;
             }
+            num_graphs++;
         }
     }
 
@@ -247,7 +254,8 @@ done:
     {
         duration = clock_monotonic() - duration;
 
-        fprintf(stderr, "%s: Computed query in %llu ms\n", __func__,
+        fprintf(stderr, "%s: Computed query (using %llu queries and %llu graphs) in %llu ms\n", __func__,
+                (long long unsigned int)num_queries, (long long unsigned int)num_graphs,
                 (long long unsigned int)duration);
         fprintf(stderr, "%s: Query cache usage %llu / %llu (%.03f%%)\n", __func__,
                 (long long unsigned int)tvg->query_cache_used,
