@@ -141,6 +141,6 @@ if __name__ == "__main__":
                 spacy_model = SpacyModel(spacy_model_name)
                 entites_with_sentence_ind = get_entites_with_sentence_ind(spacy_model, post['body'], article_primary_key.inserted_id)
                 entity_collection.insert_many(entites_with_sentence_ind)
-            except Exception as e:
+            except:
                 article_processed_collection.delete_one({'_id': article_primary_key.inserted_id})
-                print(e)
+                raise
