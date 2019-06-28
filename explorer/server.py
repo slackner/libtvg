@@ -16,35 +16,16 @@ import pytvg
 
 clients = []
 default_context = {
-    'nodeTypes': {
-        'LOC': {
-            'title': 'location',
-            'color': '#bf8080',
-            'class': 'mr-3 far fa-compass',
-        },
-        'ORG': {
-            'title': 'organisation',
-            'color': '#b3a6c1',
-            'class': 'mr-3 fas fa-globe',
-        },
-        'ACT': {
-            'title': 'actor',
-            'color': '#80b2e5',
-            'class': 'mr-3 far fa-user-circle',
-        },
-        'DAT': {
-            'title': 'date',
-            'color': '#80c7bf',
-            'class': 'mr-3 far fa-clock',
-        },
-        'TER': {
-            'title': 'term',
-            'color': '#cbcbcb',
-            'class': 'mr-3 fas fa-exclamation-circle',
-        },
-    },
-    'defaultColor': '#bf8080',
-    'nodeWeight': 'eigenvector',
+# is setup in the config file
+#    'nodeTypes': {
+#        'LOC': {
+#            'title': 'location',
+#            'color': '#bf8080',
+#            'class': 'mr-3 far fa-compass',
+#        },
+#    },
+#    'defaultColor': '#bf8080',
+#    'nodeWeight': 'eigenvector',
 }
 
 class ComplexEncoder(json.JSONEncoder):
@@ -371,7 +352,10 @@ if __name__ == "__main__":
     with open(args.config) as fp:
         config = json.load(fp)
 
-    source = config['source']
+    source = config.get('source', {})
+    default_context['nodeTypes'] = config.get('nodeTypes', {})
+    default_context['defaultColor'] = config.get('defaultColor', '#bf8080')
+    default_context['nodeWeight'] = config.get('nodeWeight', 'eigenvector')
 
     if 'uri' in source:
         if 'database' not in source:

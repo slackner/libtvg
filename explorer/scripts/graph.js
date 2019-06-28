@@ -5,6 +5,7 @@
 const globalContext = {
     _privates: {},
     _now: moment(),
+    disableElements: [],
 };
 
 const nodes = new vis.DataSet([]);
@@ -128,9 +129,10 @@ const onOpen = function (/* event */) {
 
     $('#serverConnection').css('color', '#00f100');
     $('#serverConnection').attr('title', 'server connected');
-    $('#daterangepicker').attr('disabled', false);
-    $('#downloadGML').attr('disabled', false);
-    $('#dropdownNodeSize').attr('disabled', false);
+
+    globalContext.disableElements.forEach((id) => {
+        $(`#${id}`).attr('disabled', false);
+    });
 };
 
 const onClose = function (/* event */) {
@@ -140,9 +142,10 @@ const onClose = function (/* event */) {
 
     $('#serverConnection').css('color', 'red');
     $('#serverConnection').attr('title', 'server disconnected');
-    $('#daterangepicker').attr('disabled', true);
-    $('#downloadGML').attr('disabled', true);
-    $('#dropdownNodeSize').attr('disabled', true);
+
+    globalContext.disableElements.forEach((id) => {
+        $(`#${id}`).attr('disabled', true);
+    });
 
     times.update({
         id: 1,
@@ -173,7 +176,15 @@ const initColorPicker = function (context) {
     const listElement = document.getElementById('colorizeList');
 
     while (listElement.firstChild) {
-        listElement.removeChild(listElement.firstChild);
+        const removed = listElement.removeChild(listElement.firstChild);
+
+        globalContext.disableElements = globalContext.disableElements.filter((key) => {
+            if (key === removed.querySelector('input').id) {
+                return false;
+            }
+
+            return true;
+        });
     }
 
     $.each(context.nodeTypes, (type, element) => {
@@ -186,7 +197,7 @@ const initColorPicker = function (context) {
         const i = document.createElement('i');
         i.className = element.class;
         i.setAttribute('data-toggle', 'tooltip');
-        i.setAttribute('data-placement', 'top');
+        i.setAttribute('data-placement', 'left');
         i.setAttribute('title', element.title);
 
         const input = document.createElement('input');
@@ -194,6 +205,7 @@ const initColorPicker = function (context) {
         input.setAttribute('type', 'color');
         input.setAttribute('value', element.color);
         input.className = 'nodeColor';
+        globalContext.disableElements.push(`nodeColor-${type}`);
 
         listElement.appendChild(divRow);
         divRow.appendChild(divCol);
@@ -297,7 +309,7 @@ const onMessage = function (event) {
 
         default:
             console.log(msg.cmd);
-            console.log('response:', evt.data);
+            console.log('response:', msg.data);
             break;
     }
 };
@@ -533,6 +545,10 @@ const init = function () {
     initNetwork();
     initTimeline();
     initTimelineUpdate();
+
+    globalContext.disableElements.push('dropdownNodeSize');
+    globalContext.disableElements.push('downloadGML');
+    globalContext.disableElements.push('daterangepicker');
 
     setTimeout(doConnect, 1000);
 
