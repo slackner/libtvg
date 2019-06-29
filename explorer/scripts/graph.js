@@ -66,7 +66,7 @@ const watchColorPicker = function (event) {
 const changeNodeWeight = function (event) {
     const selected = $(event.target).html();
     const selectedVal = $(event.target).attr('name');
-    $('#nodeWeight').attr('value', selected);
+    $('#nodeWeight').html(selected);
 
     sendMessageJson({
         cmd: 'change_node_weight',
@@ -77,39 +77,42 @@ const changeNodeWeight = function (event) {
 };
 
 const initTimelineUpdate = function () {
-    globalContext._privates.live_update_timer = setInterval(function() { sendMessageJson({cmd: 'check_for_new_articles'}); }, 10000);
+    globalContext._privates.live_update_timer = setInterval(() => {
+        sendMessageJson({ cmd: 'check_for_new_articles' });
+    }, 10000);
 };
 
 const updateTimeline = function (end) {
-    if (document.getElementById("liveMonitoring").checked) {
+    if (document.getElementById('liveMonitoring').checked) {
         // Update grey background and selected area
-        var date_range_picker = times.get(1);
-        var date_range_picker_width = date_range_picker.end - date_range_picker.start;
-        var start = (end - date_range_picker_width);
+        const dateRangePicker = times.get(1);
+        const dateRangePickerWidth = dateRangePicker.end - dateRangePicker.start;
+        const start = (end - dateRangePickerWidth);
 
         times.update([
             {
                 id: 1,
-                start: start,
-                end: end
+                start,
+                end,
             },
             {
                 id: 2,
-                end: end
-            }
+                end,
+            },
         ]);
 
+        // eslint-disable-next-line no-use-before-define
         resizeDateRangePicker({
             start: moment(start),
-            end: moment(end)
+            end: moment(end),
         });
 
         timeline.focus(1);
 
         sendMessageJson({
             cmd: 'timeline_seek',
-            start: start,
-            end: end,
+            start,
+            end,
         });
         $('#loading').show();
     } else {
@@ -117,8 +120,8 @@ const updateTimeline = function (end) {
         times.update([
             {
                 id: 2,
-                end: end
-            }
+                end,
+            },
         ]);
     }
 };
