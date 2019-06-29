@@ -219,6 +219,7 @@ class Client(WebSocket):
                 'value': 0.2 + 0.8 * value,
                 'label': label,
                 'color': color,
+                'nodeType': ne,
                 'font':  { 'size': 5 + value * 35 }
             }
 
@@ -268,13 +269,11 @@ class Client(WebSocket):
             self.send_message_json(cmd='focus_timeline');
             return
 
-        elif msg['cmd'] == 'recolor_graph_nodes':
+        elif msg['cmd'] == 'save_custom_color':
             if 'flag' in msg:
                 context['nodeTypes'][msg['flag']]['color'] = msg['color']
             else:
                 context['defaultColor'] = msg['color']
-
-            self.timeline_seek()
             return
 
         elif msg['cmd'] == 'change_node_weight':

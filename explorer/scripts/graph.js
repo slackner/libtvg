@@ -42,24 +42,25 @@ const sendMessageJson = function (message) {
 };
 
 const watchColorPicker = function (event) {
-    globalContext._privates.nodeColor = event.target.value;
+    const flag = event.target.id.split('-')[1];
+    const color = event.target.value;
 
-    if (!globalContext.watchDog) {
-        globalContext.watchDog = true;
+    sendMessageJson({
+        cmd: 'save_custom_color',
+        color,
+        flag,
+    });
 
-        setTimeout(() => {
-            delete globalContext.watchDog;
-            const flag = event.target.id.split('-')[1];
-
-            sendMessageJson({
-                cmd: 'recolor_graph_nodes',
-                color: globalContext._privates.nodeColor,
-                flag,
+    const recolorSet = [];
+    nodes.forEach((item) => {
+        if (flag === item.nodeType) {
+            recolorSet.push({
+                id: item.id,
+                color,
             });
-
-            $('#loading').show();
-        }, 250);
-    }
+        }
+    });
+    nodes.update(recolorSet);
 };
 
 // eslint-disable-next-line no-unused-vars
