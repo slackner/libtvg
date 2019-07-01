@@ -1753,6 +1753,9 @@ class Node(object):
         lib.free_node(self._obj)
         return self
 
+    def __repr__(self):
+        return "Node(%s)" % self.as_dict().__repr__()
+
     @property
     def index(self):
         """ Return the index of the node. """
@@ -3189,6 +3192,14 @@ if __name__ == '__main__':
             expected = "Graph({(0, 1): X, (1, 1): X, (1, 2): X, (1, 3): X, (1, 4): X, (1, 5): X, (1, 6): X, (1, 7): X, (1, 8): X, (1, 9): X, ...})"
             self.assertEqual(repr(g).replace("1.000000", "X"), expected)
             del g
+
+            l = Node()
+            self.assertEqual(repr(l), "Node({})")
+            l["attr1"] = "sample attr1"
+            l["attr2"] = "sample attr2"
+            l["attr3"] = "sample attr3"
+            self.assertEqual(repr(l), "Node({'attr1': 'sample attr1', 'attr2': 'sample attr2', 'attr3': 'sample attr3'})")
+            del l
 
         def test_filter_nodes(self):
             g = Graph(directed=True)
