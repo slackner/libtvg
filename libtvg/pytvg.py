@@ -1693,6 +1693,20 @@ class Graph(object):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
 
+    @staticmethod
+    def from_dict(edges, *args, **kwargs):
+        """ Generate a Graph object from a dictionary. """
+        graph = Graph(*args, **kwargs)
+
+        indices = np.zeros((len(edges), 2), dtype=np.uint64)
+        weights = np.zeros((len(edges),), dtype=np.float32)
+        for j, (i, w) in enumerate(edges.items()):
+            indices[j, :] = i
+            weights[j] = w
+
+        graph.set_edges(indices, weights)
+        return graph
+
 class GraphIter(object):
     def __init__(self, graph):
         self._graph = graph
@@ -3204,6 +3218,16 @@ if __name__ == '__main__':
             for i in range(100):
                 s, t = i//10, i%10
                 self.assertEqual(result[s, t], i)
+
+            del g
+            g = Graph.from_dict(result, directed=True)
+
+            result = g.as_dict()
+            self.assertEqual(len(result), 100)
+            for i in range(100):
+                s, t = i//10, i%10
+                self.assertEqual(result[s, t], i)
+
             del g
 
         def test_top_edges(self):
