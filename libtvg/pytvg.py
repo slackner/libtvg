@@ -1006,6 +1006,20 @@ class Vector(object):
         """ Return a dictionary containing all vector entries. """
         return self.entries(as_dict=True)
 
+    @staticmethod
+    def from_dict(entries, *args, **kwargs):
+        """ Generate a Vector object from a dictionary. """
+        vector = Vector(*args, **kwargs)
+
+        indices = np.zeros((len(entries),), dtype=np.uint64)
+        weights = np.zeros((len(entries),), dtype=np.float32)
+        for j, (i, w) in enumerate(entries.items()):
+            indices[j] = i
+            weights[j] = w
+
+        vector.set_entries(indices, weights)
+        return vector
+
 @libtvgobject
 class Graph(object):
     """
@@ -2650,6 +2664,14 @@ if __name__ == '__main__':
             result = v.as_dict()
             self.assertEqual(result, {0: 0.0, 1: 1.0, 2: 4.0, 3: 9.0, 4: 16.0,
                                       5: 25.0, 6: 36.0, 7: 49.0, 8: 64.0, 9: 81.0})
+
+            del v
+            v = Vector.from_dict(result)
+
+            result = v.as_dict()
+            self.assertEqual(result, {0: 0.0, 1: 1.0, 2: 4.0, 3: 9.0, 4: 16.0,
+                                      5: 25.0, 6: 36.0, 7: 49.0, 8: 64.0, 9: 81.0})
+
             del v
 
         def test_duplicate(self):
