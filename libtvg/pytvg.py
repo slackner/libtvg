@@ -1235,6 +1235,9 @@ class Graph(object):
         `(indices, weights)` or dictionary
         """
 
+        if as_dict and not ret_indices:
+            raise ValueError("Invalid parameter combination")
+
         num_edges = 100 # FIXME: Arbitrary limit.
         while True:
             max_edges = num_edges
@@ -1250,6 +1253,8 @@ class Graph(object):
             weights.resize((num_edges,), refcheck=False)
 
         if as_dict:
+            if weights is None:
+                weights = [None] * num_edges
             return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
         return indices, weights
@@ -3224,6 +3229,15 @@ if __name__ == '__main__':
             for i in range(100):
                 s, t = i//10, i%10
                 g[s, t] = i
+
+            with self.assertRaises(ValueError):
+                g.edges(ret_indices=False, as_dict=True)
+
+            result = g.edges(ret_weights=False, as_dict=True)
+            self.assertEqual(len(result), 100)
+            for i in range(100):
+                s, t = i//10, i%10
+                self.assertEqual(result[s, t], None)
 
             result = g.as_dict()
             self.assertEqual(len(result), 100)
