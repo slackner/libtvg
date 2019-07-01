@@ -826,6 +826,40 @@ class Vector(object):
         if not res:
             raise MemoryError
 
+    @staticmethod
+    def _convert_indices_weights(indices, weights=None):
+        if weights is not None:
+            indices = np.asarray(indices, dtype=np.uint64)
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return indices, weights
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        elif isinstance(indices, dict):
+            entries = indices
+
+            indices = np.zeros((len(entries),), dtype=np.uint64)
+            weights = np.zeros((len(entries),), dtype=np.float32)
+            for j, (i, w) in enumerate(entries.items()):
+                indices[j] = i
+                weights[j] = w
+
+        else:
+            indices = np.asarray(indices, dtype=np.uint64)
+
+            if indices.size == 0:
+                return indices, weights
+            if len(indices.shape) != 1:
+                raise ValueError("indices array does not have correct dimensions")
+
+        return indices, weights
+
     def set_entries(self, indices, weights=None):
         """
         Short-cut to set multiple entries of a vector.
@@ -836,26 +870,7 @@ class Vector(object):
         weights: List of weights to set (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.vector_set_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -876,26 +891,7 @@ class Vector(object):
         weights: List of weights to add (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.vector_add_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -927,26 +923,7 @@ class Vector(object):
         weights: List of weights to subtract (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 1:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.vector_sub_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1015,14 +992,7 @@ class Vector(object):
     def from_dict(entries, *args, **kwargs):
         """ Generate a Vector object from a dictionary. """
         vector = Vector(*args, **kwargs)
-
-        indices = np.zeros((len(entries),), dtype=np.uint64)
-        weights = np.zeros((len(entries),), dtype=np.float32)
-        for j, (i, w) in enumerate(entries.items()):
-            indices[j] = i
-            weights[j] = w
-
-        vector.set_entries(indices, weights)
+        vector.set_entries(entries)
         return vector
 
 @libtvgobject
