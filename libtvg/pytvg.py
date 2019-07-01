@@ -833,7 +833,7 @@ class Vector(object):
             weights = np.asarray(weights, dtype=np.float32, order='C')
 
             if indices.size == 0 and weights.size == 0:
-                return indices, weights
+                return None, None
             if len(indices.shape) != 1:
                 raise ValueError("indices array does not have correct dimensions")
             if len(weights.shape) != 1:
@@ -843,6 +843,8 @@ class Vector(object):
 
         elif isinstance(indices, dict):
             entries = indices
+            if len(entries) == 0:
+                return None, None
 
             indices = np.zeros((len(entries),), dtype=np.uint64, order='C')
             weights = np.zeros((len(entries),), dtype=np.float32, order='C')
@@ -854,7 +856,7 @@ class Vector(object):
             indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
-                return indices, weights
+                return None, None
             if len(indices.shape) != 1:
                 raise ValueError("indices array does not have correct dimensions")
 
@@ -871,6 +873,9 @@ class Vector(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.vector_set_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -892,6 +897,9 @@ class Vector(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.vector_add_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -924,6 +932,9 @@ class Vector(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.vector_sub_entries(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1335,7 +1346,7 @@ class Graph(object):
             weights = np.asarray(weights, dtype=np.float32, order='C')
 
             if indices.size == 0 and weights.size == 0:
-                return indices, weights
+                return None, None
             if len(indices.shape) != 2 or indices.shape[1] != 2:
                 raise ValueError("indices array does not have correct dimensions")
             if len(weights.shape) != 1:
@@ -1345,6 +1356,8 @@ class Graph(object):
 
         elif isinstance(indices, dict):
             edges = indices
+            if len(edges) == 0:
+                return None, None
 
             indices = np.zeros((len(edges), 2), dtype=np.uint64, order='C')
             weights = np.zeros((len(edges),), dtype=np.float32, order='C')
@@ -1356,7 +1369,7 @@ class Graph(object):
             indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
-                return indices, weights
+                return None, None
             if len(indices.shape) != 2 or indices.shape[1] != 2:
                 raise ValueError("indices array does not have correct dimensions")
 
@@ -1373,6 +1386,9 @@ class Graph(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.graph_set_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1395,6 +1411,9 @@ class Graph(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.graph_add_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1428,6 +1447,9 @@ class Graph(object):
         """
 
         indices, weights = self._convert_indices_weights(indices, weights)
+        if indices is None:
+            return
+
         res = lib.graph_sub_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
