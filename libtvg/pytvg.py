@@ -829,8 +829,8 @@ class Vector(object):
     @staticmethod
     def _convert_indices_weights(indices, weights=None):
         if weights is not None:
-            indices = np.asarray(indices, dtype=np.uint64)
-            weights = np.asarray(weights, dtype=np.float32)
+            indices = np.asarray(indices, dtype=np.uint64, order='C')
+            weights = np.asarray(weights, dtype=np.float32, order='C')
 
             if indices.size == 0 and weights.size == 0:
                 return indices, weights
@@ -844,14 +844,14 @@ class Vector(object):
         elif isinstance(indices, dict):
             entries = indices
 
-            indices = np.zeros((len(entries),), dtype=np.uint64)
-            weights = np.zeros((len(entries),), dtype=np.float32)
+            indices = np.zeros((len(entries),), dtype=np.uint64, order='C')
+            weights = np.zeros((len(entries),), dtype=np.float32, order='C')
             for j, (i, w) in enumerate(entries.items()):
                 indices[j] = i
                 weights[j] = w
 
         else:
-            indices = np.asarray(indices, dtype=np.uint64)
+            indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
                 return indices, weights
@@ -953,7 +953,7 @@ class Vector(object):
         indices: List of indices (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
+        indices = np.asarray(indices, dtype=np.uint64, order='C')
 
         if indices.size == 0:
             return # nothing to do for empty array
@@ -1331,8 +1331,8 @@ class Graph(object):
     @staticmethod
     def _convert_indices_weights(indices, weights=None):
         if weights is not None:
-            indices = np.asarray(indices, dtype=np.uint64)
-            weights = np.asarray(weights, dtype=np.float32)
+            indices = np.asarray(indices, dtype=np.uint64, order='C')
+            weights = np.asarray(weights, dtype=np.float32, order='C')
 
             if indices.size == 0 and weights.size == 0:
                 return indices, weights
@@ -1346,14 +1346,14 @@ class Graph(object):
         elif isinstance(indices, dict):
             edges = indices
 
-            indices = np.zeros((len(edges), 2), dtype=np.uint64)
-            weights = np.zeros((len(edges),), dtype=np.float32)
+            indices = np.zeros((len(edges), 2), dtype=np.uint64, order='C')
+            weights = np.zeros((len(edges),), dtype=np.float32, order='C')
             for j, (i, w) in enumerate(edges.items()):
                 indices[j, :] = i
                 weights[j] = w
 
         else:
-            indices = np.asarray(indices, dtype=np.uint64)
+            indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
                 return indices, weights
@@ -1458,7 +1458,7 @@ class Graph(object):
         indices: List of indices (list of tuples or 2d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
+        indices = np.asarray(indices, dtype=np.uint64, order='C')
 
         if indices.size == 0:
             return # nothing to do for empty array
