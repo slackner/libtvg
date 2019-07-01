@@ -853,6 +853,8 @@ class Vector(object):
                 weights[j] = w
 
         else:
+            if isinstance(indices, set):
+                indices = list(indices)
             indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
@@ -964,6 +966,8 @@ class Vector(object):
         indices: List of indices (list or 1d numpy array).
         """
 
+        if isinstance(indices, set):
+            indices = list(indices)
         indices = np.asarray(indices, dtype=np.uint64, order='C')
 
         if indices.size == 0:
@@ -1376,6 +1380,8 @@ class Graph(object):
                 weights[j] = w
 
         else:
+            if isinstance(indices, set):
+                indices = list(indices)
             indices = np.asarray(indices, dtype=np.uint64, order='C')
 
             if indices.size == 0:
@@ -1490,6 +1496,8 @@ class Graph(object):
         indices: List of indices (list of tuples or 2d numpy array).
         """
 
+        if isinstance(indices, set):
+            indices = list(indices)
         indices = np.asarray(indices, dtype=np.uint64, order='C')
 
         if indices.size == 0:
@@ -1571,9 +1579,6 @@ class Graph(object):
         # Returns
         Resulting graph.
         """
-
-        if isinstance(nodes, set):
-            nodes = list(nodes)
 
         if not isinstance(nodes, Vector):
             vector = Vector()
@@ -2487,6 +2492,18 @@ if __name__ == '__main__':
             self.assertEqual(v.num_entries, 0)
             self.assertEqual(len(v), 0)
 
+            v.set_entries(set())
+            v.set_entries(set(test_indices.tolist()))
+            indices, weights = v.entries()
+            self.assertEqual(indices.tolist(), [0, 1, 2])
+            self.assertEqual(weights.tolist(), [1.0, 1.0, 1.0])
+
+            v.del_entries(set())
+            v.del_entries(set(test_indices.tolist()))
+            self.assertEqual(v.entries()[0].tolist(), [])
+            self.assertEqual(v.num_entries, 0)
+            self.assertEqual(len(v), 0)
+
             for i in range(1000):
                 v.add_entry(i, 1.0)
             indices, _ = v.entries(ret_weights=False)
@@ -2924,6 +2941,20 @@ if __name__ == '__main__':
 
             g.del_edges([])
             g.del_edges(test_indices)
+            self.assertEqual(g.edges()[0].tolist(), [])
+            self.assertEqual(g.num_edges, 0)
+            self.assertEqual(len(g), 0)
+            self.assertEqual(g.nodes().tolist(), [])
+            self.assertEqual(g.num_nodes, 0)
+
+            g.set_edges(set())
+            g.set_edges(set([tuple(i) for i in test_indices]))
+            indices, weights = g.edges()
+            self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
+            self.assertEqual(weights.tolist(), [1.0, 1.0, 1.0])
+
+            g.del_edges(set())
+            g.del_edges(set([tuple(i) for i in test_indices]))
             self.assertEqual(g.edges()[0].tolist(), [])
             self.assertEqual(g.num_edges, 0)
             self.assertEqual(len(g), 0)
