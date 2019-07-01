@@ -786,6 +786,9 @@ class Vector(object):
         `(indices, weights)` or dictionary
         """
 
+        if as_dict and not ret_indices:
+            raise ValueError("Invalid parameter combination")
+
         num_entries = self.num_entries
         while True:
             max_entries = num_entries
@@ -801,6 +804,8 @@ class Vector(object):
             weights.resize((num_entries,), refcheck=False)
 
         if as_dict:
+            if weights is None:
+                weights = [None] * num_entries
             return dict(zip(indices, weights))
 
         return indices, weights
@@ -2674,6 +2679,13 @@ if __name__ == '__main__':
             v = Vector()
             for i in range(10):
                 v[i] = i * i
+
+            with self.assertRaises(ValueError):
+                v.entries(ret_indices=False, as_dict=True)
+
+            result = v.entries(ret_weights=False, as_dict=True)
+            self.assertEqual(result, {0: None, 1: None, 2: None, 3: None, 4: None,
+                                      5: None, 6: None, 7: None, 8: None, 9: None})
 
             result = v.as_dict()
             self.assertEqual(result, {0: 0.0, 1: 1.0, 2: 4.0, 3: 9.0, 4: 16.0,
