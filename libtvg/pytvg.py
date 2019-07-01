@@ -600,9 +600,33 @@ def metric_trend(values):
 
     return result
 
+def metric_relative_std(values):
+    """
+    Rate the instability of individual nodes/edges by their relative standard deviation.
+
+    # Arguments
+    values: Values for each node or edge.
+
+    # Returns
+    Dictionary containing the metric for each node or edge.
+    """
+
+    if len(values) == 0:
+        return {}
+
+    result = {}
+    for i in values.keys():
+        mean = np.abs(np.mean(values[i]))
+        if mean > 0.0:
+            result[i] = np.std(values[i]) / mean
+        else:
+            result[i] = np.inf
+
+    return result
+
 def metric_stability(values):
     """
-    Rate the stability of individual nodes by ranking their average and standard deviation.
+    Rate the stability of individual nodes/edges by ranking their average and standard deviation.
 
     # Arguments
     values: Values for each node or edge.
@@ -4112,6 +4136,23 @@ if __name__ == '__main__':
             self.assertTrue(abs(result[0, 1] - 1.0) < 1e-7)
             self.assertTrue(abs(result[1, 1] + 1.0) < 1e-7)
             self.assertTrue(abs(result[2, 2] - 0.0) < 1e-7)
+
+        def test_metric_relative_std_edges(self):
+            values = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+                (3, 3): [0.0, 0.0, 0.0],
+            }
+
+            result = metric_relative_std(values)
+            self.assertEqual(len(result), 5)
+            self.assertEqual(result[0, 0], 0.0)
+            self.assertTrue(abs(result[0, 1] - 0.81649658) < 1e-7)
+            self.assertTrue(abs(result[1, 1] - 0.81649658) < 1e-7)
+            self.assertEqual(result[2, 2], 0.0)
+            self.assertEqual(result[3, 3], np.inf)
 
         def test_metric_stability(self):
             tvg = TVG(positive=True)
