@@ -1269,7 +1269,7 @@ class Graph(object):
         if as_dict:
             if weights is None:
                 weights = [None] * num_edges
-            return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
+            return collections.OrderedDict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
         return indices, weights
 
