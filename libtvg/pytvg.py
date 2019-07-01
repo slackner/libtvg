@@ -846,8 +846,8 @@ class Vector(object):
             if len(entries) == 0:
                 return None, None
 
-            indices = np.zeros((len(entries),), dtype=np.uint64, order='C')
-            weights = np.zeros((len(entries),), dtype=np.float32, order='C')
+            indices = np.empty(shape=(len(entries),), dtype=np.uint64, order='C')
+            weights = np.empty(shape=(len(entries),), dtype=np.float32, order='C')
             for j, (i, w) in enumerate(entries.items()):
                 indices[j] = i
                 weights[j] = w
@@ -1359,8 +1359,8 @@ class Graph(object):
             if len(edges) == 0:
                 return None, None
 
-            indices = np.zeros((len(edges), 2), dtype=np.uint64, order='C')
-            weights = np.zeros((len(edges),), dtype=np.float32, order='C')
+            indices = np.empty(shape=(len(edges), 2), dtype=np.uint64, order='C')
+            weights = np.empty(shape=(len(edges),), dtype=np.float32, order='C')
             for j, (i, w) in enumerate(edges.items()):
                 indices[j, :] = i
                 weights[j] = w
