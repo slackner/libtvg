@@ -1254,6 +1254,9 @@ class Graph(object):
         `(indices, weights)` or dictionary
         """
 
+        if as_dict and not ret_indices:
+            raise ValueError("Invalid parameter combination")
+
         indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
         weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C') if ret_weights else None
         num_edges = lib.graph_get_top_edges(self._obj, indices, weights, max_edges)
@@ -1264,6 +1267,8 @@ class Graph(object):
             weights.resize((num_edges,), refcheck=False)
 
         if as_dict:
+            if weights is None:
+                weights = [None] * num_edges
             return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
         return indices, weights
@@ -3249,6 +3254,16 @@ if __name__ == '__main__':
 
             _, weights = g.top_edges(5, ret_indices=False)
             self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
+
+            with self.assertRaises(ValueError):
+                g.top_edges(5, ret_indices=False, as_dict=True)
+
+            result = g.top_edges(5, ret_weights=False, as_dict=True)
+            self.assertEqual(result, {(2, 3): None, (4, 6): None, (6, 9): None, (9, 2): None, (1, 5): None})
+
+            result = g.top_edges(5, as_dict=True)
+            self.assertEqual(result, {(2, 3): 99.0, (4, 6): 98.0, (6, 9): 97.0, (9, 2): 96.0, (1, 5): 95.0})
+
             del g
 
         def test_duplicate(self):
