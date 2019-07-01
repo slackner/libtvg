@@ -1328,6 +1328,40 @@ class Graph(object):
         if not res:
             raise MemoryError
 
+    @staticmethod
+    def _convert_indices_weights(indices, weights=None):
+        if weights is not None:
+            indices = np.asarray(indices, dtype=np.uint64)
+            weights = np.asarray(weights, dtype=np.float32)
+
+            if indices.size == 0 and weights.size == 0:
+                return indices, weights
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
+            if len(weights.shape) != 1:
+                raise ValueError("weights array does not have correct dimensions")
+            if indices.shape[0] != weights.shape[0]:
+                raise ValueError("indices/weights arrays have different length")
+
+        elif isinstance(indices, dict):
+            edges = indices
+
+            indices = np.zeros((len(edges), 2), dtype=np.uint64)
+            weights = np.zeros((len(edges),), dtype=np.float32)
+            for j, (i, w) in enumerate(edges.items()):
+                indices[j, :] = i
+                weights[j] = w
+
+        else:
+            indices = np.asarray(indices, dtype=np.uint64)
+
+            if indices.size == 0:
+                return indices, weights
+            if len(indices.shape) != 2 or indices.shape[1] != 2:
+                raise ValueError("indices array does not have correct dimensions")
+
+        return indices, weights
+
     def set_edges(self, indices, weights=None):
         """
         Short-cut to set multiple edges in a graph.
@@ -1338,26 +1372,7 @@ class Graph(object):
         weights: List of weights to set (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.graph_set_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1379,25 +1394,7 @@ class Graph(object):
         weights: List of weights to set (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.graph_add_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1430,26 +1427,7 @@ class Graph(object):
         weights: List of weights to set (list or 1d numpy array).
         """
 
-        indices = np.asarray(indices, dtype=np.uint64)
-
-        if weights is not None:
-            weights = np.asarray(weights, dtype=np.float32)
-
-            if indices.size == 0 and weights.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-            if len(weights.shape) != 1:
-                raise ValueError("weights array does not have correct dimensions")
-            if indices.shape[0] != weights.shape[0]:
-                raise ValueError("indices/weights arrays have different length")
-
-        else:
-            if indices.size == 0:
-                return # nothing to do for empty array
-            if len(indices.shape) != 2 or indices.shape[1] != 2:
-                raise ValueError("indices array does not have correct dimensions")
-
+        indices, weights = self._convert_indices_weights(indices, weights)
         res = lib.graph_sub_edges(self._obj, indices, weights, indices.shape[0])
         if not res:
             raise MemoryError
@@ -1677,14 +1655,7 @@ class Graph(object):
     def from_dict(edges, *args, **kwargs):
         """ Generate a Graph object from a dictionary. """
         graph = Graph(*args, **kwargs)
-
-        indices = np.zeros((len(edges), 2), dtype=np.uint64)
-        weights = np.zeros((len(edges),), dtype=np.float32)
-        for j, (i, w) in enumerate(edges.items()):
-            indices[j, :] = i
-            weights[j] = w
-
-        graph.set_edges(indices, weights)
+        graph.set_edges(edges)
         return graph
 
 class GraphIter(object):
