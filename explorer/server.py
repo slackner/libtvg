@@ -151,7 +151,7 @@ class Client(WebSocket):
 
         elif self.context['nodeWeight'] == 'stable_nodes':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
-            values = pytvg.metric_stability(values)
+            values = pytvg.metric_stability_pareto(values)
             for i in values.keys():
                 values[i] = -values[i]
             log_scale = False

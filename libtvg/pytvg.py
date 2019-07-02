@@ -600,9 +600,9 @@ def metric_trend(values):
 
     return result
 
-def metric_relative_std(values):
+def metric_stability_ratio(values):
     """
-    Rate the instability of individual nodes/edges by their relative standard deviation.
+    Rate the stability of individual nodes/edges by their inverse relative standard deviation.
 
     # Arguments
     values: Values for each node or edge.
@@ -616,15 +616,15 @@ def metric_relative_std(values):
 
     result = {}
     for i in values.keys():
-        mean = np.abs(np.mean(values[i]))
-        if mean > 0.0:
-            result[i] = np.std(values[i]) / mean
+        std = np.std(values[i])
+        if std > 0.0:
+            result[i] = np.abs(np.mean(values[i])) / std
         else:
             result[i] = np.inf
 
     return result
 
-def metric_stability(values):
+def metric_stability_pareto(values):
     """
     Rate the stability of individual nodes/edges by ranking their average and standard deviation.
 
@@ -4243,7 +4243,7 @@ if __name__ == '__main__':
             self.assertTrue(abs(result[1, 1] + 1.0) < 1e-7)
             self.assertTrue(abs(result[2, 2] - 0.0) < 1e-7)
 
-        def test_metric_relative_std_edges(self):
+        def test_metric_stability_ratio_edges(self):
             values = {
                 (0, 0): [1.0, 1.0, 1.0],
                 (0, 1): [0.0, 1.0, 2.0],
@@ -4252,15 +4252,15 @@ if __name__ == '__main__':
                 (3, 3): [0.0, 0.0, 0.0],
             }
 
-            result = metric_relative_std(values)
+            result = metric_stability_ratio(values)
             self.assertEqual(len(result), 5)
-            self.assertEqual(result[0, 0], 0.0)
-            self.assertTrue(abs(result[0, 1] - 0.81649658) < 1e-7)
-            self.assertTrue(abs(result[1, 1] - 0.81649658) < 1e-7)
-            self.assertEqual(result[2, 2], 0.0)
+            self.assertEqual(result[0, 0], np.inf)
+            self.assertTrue(abs(result[0, 1] - 1.22474487) < 1e-7)
+            self.assertTrue(abs(result[1, 1] - 1.22474487) < 1e-7)
+            self.assertEqual(result[2, 2], np.inf)
             self.assertEqual(result[3, 3], np.inf)
 
-        def test_metric_stability(self):
+        def test_metric_stability_pareto(self):
             tvg = TVG(positive=True)
 
             g = Graph()
@@ -4279,7 +4279,7 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
-            values = metric_stability(values)
+            values = metric_stability_pareto(values)
 
             self.assertEqual(len(values), 3)
             self.assertEqual(values[2], 1.0)
@@ -4288,7 +4288,7 @@ if __name__ == '__main__':
 
             del tvg
 
-        def test_metric_stability_edges(self):
+        def test_metric_stability_pareto_edges(self):
             values = {
                 (0, 0): [1.0, 1.0, 1.0],
                 (0, 1): [0.0, 1.0, 2.0],
@@ -4296,7 +4296,7 @@ if __name__ == '__main__':
                 (2, 2): [2.0, 2.0, 2.0],
             }
 
-            result = metric_stability(values)
+            result = metric_stability_pareto(values)
             self.assertEqual(len(result), 4)
             self.assertEqual(result[0, 0], 2.0)
             self.assertEqual(result[0, 1], 3.0)
