@@ -24,7 +24,7 @@
        __typeof__ (b) __b = (b); \
        (__a > __b) - (__a < __b); })
 
-#define SWAP(a, b, size)                        \
+#define SWAP_BYTES(a, b, size)                  \
     do                                          \
     {                                           \
         register size_t __size = (size);        \
@@ -36,6 +36,16 @@
             *__b++ = __tmp;                     \
         }                                       \
     }                                           \
+    while (0)
+
+#define SWAP(a, b)                                              \
+    do                                                          \
+    {                                                           \
+        char __temp[sizeof(a) == sizeof(b) ? sizeof(a) : -1];   \
+        memcpy(__temp, &b, sizeof(a));                          \
+        memcpy(&b, &a,     sizeof(a));                          \
+        memcpy(&a, __temp, sizeof(a));                          \
+    }                                                           \
     while (0)
 
 #ifdef __GNUC__

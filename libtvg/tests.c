@@ -1407,7 +1407,7 @@ static void test_ranges(void)
     {
         pos  = random_uint64() % 4096;
         pos2 = random_uint64() % 4096;
-        if (pos > pos2) SWAP((char *)&pos, (char *)&pos2, sizeof(pos));
+        if (pos > pos2) SWAP(pos, pos2);
         len = (pos2 - pos + 1);
         assert(pos + len <= 4096);
 
@@ -1425,7 +1425,7 @@ static void test_ranges(void)
 
         pos = random_uint64() % 4096;
         pos2 = random_uint64() % 4096;
-        if (pos > pos2) SWAP((char *)&pos, (char *)&pos2, sizeof(pos));
+        if (pos > pos2) SWAP(pos, pos2);
         len = (pos2 - pos + 1);
         assert(pos + len <= 4096);
 

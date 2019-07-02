@@ -87,7 +87,7 @@ void minheap_heapify(struct minheap *h, size_t i)
             h->entries + smallest * h->entry_size, h->userdata) < 0) smallest = right;
 
         if (smallest == i) break;
-        SWAP(h->entries + i * h->entry_size, h->entries + smallest * h->entry_size, h->entry_size);
+        SWAP_BYTES(h->entries + i * h->entry_size, h->entries + smallest * h->entry_size, h->entry_size);
         i = smallest;
     }
 }
