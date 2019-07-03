@@ -1071,3 +1071,40 @@ struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes
 
     return out;
 }
+
+struct graph *graph_normalize(const struct graph *graph)
+{
+    struct vector *out_weights;
+    struct vector *in_weights;
+    struct graph *result;
+    uint32_t graph_flags;
+    struct entry2 *edge;
+    float weight;
+
+    if (!(out_weights = graph_out_weights(graph)))
+        return NULL;
+
+    if (!(graph->flags & TVG_FLAGS_DIRECTED)) in_weights = out_weights;
+    else if (!(in_weights = graph_in_weights(graph)))
+    {
+        free_vector(out_weights);
+        return NULL;
+    }
+
+    graph_flags = graph->flags & TVG_FLAGS_DIRECTED;
+    if (!(result = alloc_graph(graph_flags)))
+        goto error;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        weight = vector_get_entry(out_weights, edge->source) *
+                 vector_get_entry(in_weights,  edge->target);
+        if (!graph_add_edge(result, edge->source, edge->target, edge->weight / weight))
+            return 0;
+    }
+
+error:
+    if (in_weights != out_weights) free_vector(in_weights);
+    free_vector(out_weights);
+    return result;
+}

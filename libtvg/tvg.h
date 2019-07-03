@@ -1413,6 +1413,8 @@ struct vector *graph_power_iteration(const struct graph *graph, struct vector *i
 
 struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes);
 
+struct graph *graph_normalize(const struct graph *graph);
+
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
               const struct bfs_entry *, void *), void *userdata);
 

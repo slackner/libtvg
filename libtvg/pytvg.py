@@ -305,6 +305,9 @@ lib.graph_power_iteration.restype = c_vector_p
 lib.graph_filter_nodes.argtypes = (c_graph_p, c_vector_p)
 lib.graph_filter_nodes.restype = c_graph_p
 
+lib.graph_normalize.argtypes = (c_graph_p,)
+lib.graph_normalize.restype = c_graph_p
+
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
@@ -1630,6 +1633,16 @@ class Graph(object):
             nodes = vector
 
         return Graph(obj=lib.graph_filter_nodes(self._obj, nodes._obj))
+
+    def normalize(self):
+        """
+        Normalize a graph based on the in and out-degrees of neighbors.
+
+        # Returns
+        Resulting graph.
+        """
+
+        return Graph(obj=lib.graph_normalize(self._obj))
 
     def sparse_subgraph(self, num_seeds=8, num_neighbors=3):
         """
@@ -3312,6 +3325,39 @@ if __name__ == '__main__':
 
             del g
             del h
+
+        def test_normalize(self):
+            g = Graph(directed=True)
+            g[0, 1] = 1.0
+            g[0, 2] = 0.5
+            g[0, 3] = 0.5
+            g2 = g.normalize()
+            self.assertEqual(g2.as_dict(), {(0, 1): 0.5, (0, 2): 0.5, (0, 3): 0.5})
+            del g2
+
+            g[2, 1] = 3.0
+            g2 = g.normalize()
+            self.assertEqual(g2.as_dict(), {(0, 1): 0.125, (0, 2): 0.5, (0, 3): 0.5, (2, 1): 0.25})
+            del g2
+            del g
+
+            g = Graph(directed=False)
+            g[0, 1] = 1.0
+            g[0, 2] = 0.5
+            g[0, 3] = 0.5
+            g2 = g.normalize()
+            self.assertEqual(g2.as_dict(), {(0, 1): 0.5, (0, 2): 0.5, (0, 3): 0.5})
+            del g2
+
+            g[2, 1] = 3.0
+            g2 = g.normalize()
+            self.assertEqual(g2.num_edges, 4)
+            self.assertEqual(g2[0, 1], 0.125)
+            self.assertTrue(abs(g2[0, 2] - 0.07142858) < 1e-7)
+            self.assertEqual(g2[0, 3], 0.5)
+            self.assertTrue(abs(g2[1, 2] - 0.21428572) < 1e-7)
+            del g2
+            del g
 
         def test_as_dict(self):
             g = Graph(directed=True)
