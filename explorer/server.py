@@ -25,7 +25,7 @@ default_context = {
 #        },
 #    },
 #    'defaultColor': '#bf8080',
-#    'nodeWeight': 'eigenvector',
+#    'nodeSize': 'eigenvector',
 }
 
 class ComplexEncoder(json.JSONEncoder):
@@ -102,57 +102,57 @@ class Client(WebSocket):
         log_scale = True
         custom_colors = {}
 
-        if self.context['nodeWeight'] == 'in_degrees':
+        if self.context['nodeSize'] == 'in_degrees':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.in_degrees()
 
-        elif self.context['nodeWeight'] == 'in_weights':
+        elif self.context['nodeSize'] == 'in_weights':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.in_weights()
 
-        elif self.context['nodeWeight'] == 'out_degrees':
+        elif self.context['nodeSize'] == 'out_degrees':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.out_degrees()
 
-        elif self.context['nodeWeight'] == 'out_weights':
+        elif self.context['nodeSize'] == 'out_weights':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.out_weights()
 
-        elif self.context['nodeWeight'] == 'degree_anomalies':
+        elif self.context['nodeSize'] == 'degree_anomalies':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.degree_anomalies()
 
-        elif self.context['nodeWeight'] == 'weight_anomalies':
+        elif self.context['nodeSize'] == 'weight_anomalies':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.weight_anomalies()
 
-        elif self.context['nodeWeight'] == 'eigenvector':
+        elif self.context['nodeSize'] == 'eigenvector':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values, _ = graph.power_iteration(tolerance=1e-3, ret_eigenvalue=False)
 
-        elif self.context['nodeWeight'] == 'stable_nodes':
+        elif self.context['nodeSize'] == 'stable_nodes':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_stability_pareto(values)
             for i in values.keys():
                 values[i] = -values[i]
             log_scale = False
 
-        elif self.context['nodeWeight'] == 'entropy':
+        elif self.context['nodeSize'] == 'entropy':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_entropy(values)
             log_scale = False
 
-        elif self.context['nodeWeight'] == 'entropy_local':
+        elif self.context['nodeSize'] == 'entropy_local':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_entropy_local(values)
             log_scale = False
 
-        elif self.context['nodeWeight'] == 'entropy_2d':
+        elif self.context['nodeSize'] == 'entropy_2d':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_entropy_2d(values)
             log_scale = False
 
-        elif self.context['nodeWeight'] == 'trend':
+        elif self.context['nodeSize'] == 'trend':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_trend(values)
             for i in values.keys():
@@ -161,7 +161,7 @@ class Client(WebSocket):
             log_scale = False
 
         else:
-            print('Error: Unimplemented node weight "%s"!' % self.context['nodeWeight'])
+            print('Error: Unimplemented node size "%s"!' % self.context['nodeSize'])
             raise NotImplementedError
 
         # Showing the full graph is not feasible. Limit the view
@@ -276,8 +276,8 @@ class Client(WebSocket):
                 context['defaultColor'] = msg['color']
             return
 
-        elif msg['cmd'] == 'change_node_weight':
-            context['nodeWeight'] = msg['value']
+        elif msg['cmd'] == 'change_node_size':
+            context['nodeSize'] = msg['value']
 
             self.timeline_seek()
             return
@@ -354,7 +354,7 @@ if __name__ == "__main__":
     source = config.get('source', {})
     default_context['nodeTypes'] = config.get('nodeTypes', {})
     default_context['defaultColor'] = config.get('defaultColor', '#bf8080')
-    default_context['nodeWeight'] = config.get('nodeWeight', 'eigenvector')
+    default_context['nodeSize'] = config.get('nodeSize', 'eigenvector')
 
     if 'uri' in source:
         if 'database' not in source:

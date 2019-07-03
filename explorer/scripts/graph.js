@@ -64,13 +64,13 @@ const watchColorPicker = function (event) {
 };
 
 // eslint-disable-next-line no-unused-vars
-const changeNodeWeight = function (event) {
+const changeNodeSize = function (event) {
     const selected = $(event.target).html();
     const selectedVal = $(event.target).attr('name');
-    $('#nodeWeight').html(selected);
+    $('#nodeSize').html(selected);
 
     sendMessageJson({
-        cmd: 'change_node_weight',
+        cmd: 'change_node_size',
         value: selectedVal,
     });
 
