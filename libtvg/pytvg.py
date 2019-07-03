@@ -653,8 +653,8 @@ def metric_stability_pareto(values):
         front = np.ones(costs.shape[0], dtype=bool)
         for i, c in enumerate(costs):
             if front[i]:
-                front[front] = np.any(costs[front] < c, axis=1)
-                front[i] = True
+                front[front] = np.any(costs[front] <  c, axis=1) | \
+                               np.all(costs[front] <= c, axis=1)
 
         for i in np.where(front)[0]:
             key = nodes[i]
@@ -4300,7 +4300,7 @@ if __name__ == '__main__':
             self.assertEqual(len(result), 4)
             self.assertEqual(result[0, 0], 2.0)
             self.assertEqual(result[0, 1], 3.0)
-            self.assertEqual(result[1, 1], 4.0)
+            self.assertEqual(result[1, 1], 3.0)
             self.assertEqual(result[2, 2], 1.0)
 
     class MongoDBTests(unittest.TestCase):
