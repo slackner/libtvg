@@ -213,6 +213,15 @@ int queue_put(struct queue *q, const void *element) DECL_INTERNAL;
 int queue_get(struct queue *q, void *element) DECL_INTERNAL;
 const void *queue_ptr(struct queue *q, size_t index) DECL_INTERNAL;
 
+struct array *alloc_array(size_t entry_size) DECL_INTERNAL;
+void free_array(struct array *a) DECL_INTERNAL;
+void *array_append_empty(struct array *a) DECL_INTERNAL;
+int array_append(struct array *a, const void *element) DECL_INTERNAL;
+int array_remove(struct array *a, void *element) DECL_INTERNAL;
+void array_sort(struct array *a, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
+const void *array_ptr(struct array *a, size_t index) DECL_INTERNAL;
+size_t array_count(struct array *a) DECL_INTERNAL;
+
 struct range
 {
     struct avl_entry entry;

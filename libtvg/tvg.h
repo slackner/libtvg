@@ -1304,7 +1304,7 @@ static inline int __node_next_primary_attribute2(struct _node_primary_attr_iter2
 
 int init_libtvg(uint64_t api_version);
 
-/* vector functions */
+/* Vector functions */
 
 struct vector *alloc_vector(uint32_t flags);
 struct vector *grab_vector(struct vector *vector);
@@ -1348,7 +1348,7 @@ double vector_norm(const struct vector *vector);
 double vector_mul_vector(const struct vector *vector1, const struct vector *vector2);
 double vector_sub_vector_norm(const struct vector *vector1, const struct vector *vector2);
 
-/* graph functions */
+/* Graph functions */
 
 struct graph *alloc_graph(uint32_t flags);
 struct graph *grab_graph(struct graph *graph);
@@ -1416,7 +1416,7 @@ struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes
 int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
               const struct bfs_entry *, void *), void *userdata);
 
-/* node functions */
+/* Node functions */
 
 struct node *alloc_node(void);
 struct node *grab_node(struct node *node);
@@ -1427,7 +1427,7 @@ int node_set_attribute(struct node *node, const char *key, const char *value);
 const char *node_get_attribute(struct node *node, const char *key);
 char **node_get_attributes(struct node *node);
 
-/* tvg functions */
+/* TVG functions */
 
 struct tvg *alloc_tvg(uint32_t flags);
 struct tvg *grab_tvg(struct tvg *tvg);
@@ -1472,6 +1472,11 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
 struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
+
+/* Metric functions */
+
+struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs, float base);
+struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors, float base);
 
 /* MongoDB functions */
 

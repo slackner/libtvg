@@ -123,7 +123,7 @@ lib.init_libtvg.restype = c_int
 if not lib.init_libtvg(LIBTVG_API_VERSION):
     raise RuntimeError("Incompatible %s library! Try to run 'make'." % libname)
 
-# vector functions
+# Vector functions
 
 lib.alloc_vector.argtypes = ()
 lib.alloc_vector.restype = c_vector_p
@@ -198,7 +198,7 @@ lib.vector_mul_vector.restype = c_double
 lib.vector_sub_vector_norm.argtypes = (c_vector_p, c_vector_p)
 lib.vector_sub_vector_norm.restype = c_double
 
-# graph functions
+# Graph functions
 
 lib.alloc_graph.argtypes = (c_uint,)
 lib.alloc_graph.restype = c_graph_p
@@ -308,7 +308,7 @@ lib.graph_filter_nodes.restype = c_graph_p
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
-# node functions
+# Node functions
 
 lib.alloc_node.argtypes = ()
 lib.alloc_node.restype = c_node_p
@@ -326,7 +326,7 @@ lib.node_get_attribute.restype = c_char_p
 lib.node_get_attributes.argtypes = (c_node_p,)
 lib.node_get_attributes.restype = POINTER(c_char_p)
 
-# tvg functions
+# TVG functions
 
 lib.alloc_tvg.argtypes = (c_uint,)
 lib.alloc_tvg.restype = c_tvg_p
@@ -399,6 +399,14 @@ lib.tvg_count_nodes.restype = c_vector_p
 
 lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_topics.restype = c_graph_p
+
+# Metric functions
+
+lib.metric_edge_stability_pareto.argtypes = (POINTER(c_graph_p), c_uint64, c_float)
+lib.metric_edge_stability_pareto.restype = c_graph_p
+
+lib.metric_node_stability_pareto.argtypes = (POINTER(c_vector_p), c_uint64, c_float)
+lib.metric_node_stability_pareto.restype = c_vector_p
 
 # MongoDB functions
 
@@ -667,6 +675,42 @@ def metric_stability_pareto(values):
         rank += 1.0
 
     return result
+
+def metric_edge_stability_pareto(graphs, base=0.0):
+    """
+    Rate the stability of edges by ranking their average and standard deviation.
+
+    # Arguments
+    graphs: List of graphs (e.g., sampled from a TVG).
+    base: Use `base**(index - 1)` as weight instead of `index`.
+
+    # Returns
+    Graph containing the metric for each edge.
+    """
+
+    graph_objs = (c_graph_p * len(graphs))()
+    for i, graph in enumerate(graphs):
+        graph_objs[i] = graph._obj
+
+    return Graph(obj=lib.metric_edge_stability_pareto(graph_objs, len(graphs), base))
+
+def metric_node_stability_pareto(vectors, base=0.0):
+    """
+    Rate the stability of nodes by ranking their average and standard deviation.
+
+    # Arguments
+    graphs: List of vectors (e.g., sampled from a TVG).
+    base: Use `base**(index - 1)` as weight instead of `index`.
+
+    # Returns
+    Vector containing the metric for each node.
+    """
+
+    vector_objs = (c_vector_p * len(vectors))()
+    for i, vector in enumerate(vectors):
+        vector_objs[i] = vector._obj
+
+    return Vector(obj=lib.metric_node_stability_pareto(vector_objs, len(vectors), base))
 
 @libtvgobject
 class Vector(object):
@@ -4323,6 +4367,67 @@ if __name__ == '__main__':
             self.assertEqual(result[0, 1], 3.0)
             self.assertEqual(result[1, 1], 3.0)
             self.assertEqual(result[2, 2], 1.0)
+
+        def test_metric_edge_stability_pareto(self):
+            g1 = Graph.from_dict({(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0})
+            g2 = Graph.from_dict({(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0})
+            g3 = Graph.from_dict({(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0})
+
+            result = metric_edge_stability_pareto([g1, g2, g3])
+            self.assertEqual(result.as_dict(), {(0, 0): 2.0, (0, 1): 3.0,
+                                                (1, 1): 3.0, (2, 2): 1.0})
+
+            del g1
+            del g2
+            del g3
+
+        def test_metric_node_stability_pareto(self):
+            v1 = Vector.from_dict({0: 1.0, 1: 0.0, 2: 2.0, 3: 2.0})
+            v2 = Vector.from_dict({0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0})
+            v3 = Vector.from_dict({0: 1.0, 1: 2.0, 2: 0.0, 3: 2.0})
+
+            result = metric_node_stability_pareto([v1, v2, v3])
+            self.assertEqual(result.as_dict(), {0: 2.0, 1: 3.0, 2: 3.0, 3: 1.0})
+
+            del v1
+            del v2
+            del v3
+
+        def test_metric_stability_pareto_compare(self):
+            values = {}
+            for i in range(100):
+                values[i] = np.random.random(20)
+
+            graphs = []
+            for j in range(20):
+                g = Graph()
+                for i in range(100):
+                    g[0, i] = values[i][j]
+                graphs.append(g)
+
+            vectors = []
+            for j in range(20):
+                v = Vector()
+                for i in range(100):
+                    v[i] = values[i][j]
+                vectors.append(v)
+
+            result1 = metric_stability_pareto(values)
+
+            result2 = metric_edge_stability_pareto(graphs)
+            self.assertEqual(result2.num_edges, 100)
+            for i in range(100):
+                self.assertEqual(result2[0, i], result1[i])
+            del result2
+
+            result2 = metric_node_stability_pareto(vectors)
+            self.assertEqual(result2.num_entries, 100)
+            for i in range(100):
+                self.assertEqual(result2[i], result1[i])
+            del result2
+
+            del graphs
+            del vectors
 
     class MongoDBTests(unittest.TestCase):
         def MongoDB(self, *args, **kwargs):
