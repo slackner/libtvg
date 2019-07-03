@@ -8,12 +8,6 @@
 #include "tvg.h"
 #include "internal.h"
 
-struct stability
-{
-    float value1;
-    float value2;
-};
-
 struct edge_stability
 {
     struct list entry;
@@ -53,7 +47,7 @@ struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_g
 {
     struct edge_stability *next_stability;
     struct edge_stability *stability;
-    struct stability best;
+    struct edge_stability *best;
     struct array *array = NULL;
     struct graph *result;
     uint32_t graph_flags;
@@ -121,21 +115,18 @@ struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_g
 
     while (!list_empty(&queue))
     {
-        best.value1 = INFINITY;
-        best.value2 = INFINITY;
+        best = NULL;
 
         LIST_FOR_EACH_SAFE(stability, next_stability, &queue, struct edge_stability, entry)
         {
-            if (stability->value2 < best.value2 ||
-                (stability->value1 == best.value1 && stability->value2 == best.value2))
+            if (!best || stability->value2 < best->value2 ||
+                (stability->value1 == best->value1 && stability->value2 == best->value2))
             {
-                list_remove(&stability->entry);
-
                 if (!graph_set_edge(result, stability->source, stability->target, weight))
                     goto error;
 
-                best.value1 = stability->value1;
-                best.value2 = stability->value2;
+                list_remove(&stability->entry);
+                best = stability;
             }
         }
 
@@ -161,7 +152,7 @@ struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t nu
 {
     struct node_stability *next_stability;
     struct node_stability *stability;
-    struct stability best;
+    struct node_stability *best;
     struct array *array = NULL;
     struct vector *result;
     struct entry1 *entry;
@@ -220,21 +211,18 @@ struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t nu
 
     while (!list_empty(&queue))
     {
-        best.value1 = INFINITY;
-        best.value2 = INFINITY;
+        best = NULL;
 
         LIST_FOR_EACH_SAFE(stability, next_stability, &queue, struct node_stability, entry)
         {
-            if (stability->value2 < best.value2 ||
-                (stability->value1 == best.value1 && stability->value2 == best.value2))
+            if (!best || stability->value2 < best->value2 ||
+                (stability->value1 == best->value1 && stability->value2 == best->value2))
             {
-                list_remove(&stability->entry);
-
                 if (!vector_set_entry(result, stability->index, weight))
                     goto error;
 
-                best.value1 = stability->value1;
-                best.value2 = stability->value2;
+                list_remove(&stability->entry);
+                best = stability;
             }
         }
 
