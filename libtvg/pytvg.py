@@ -2169,18 +2169,39 @@ class TVG(object):
 
         return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max))
 
-
-    def sample_eigenvectors(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None, tolerance=None):
+    def sample_graphs(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None):
         """
-        Iterative power iteration algorithm to track eigenvectors of a graph over time.
-        Collection of eigenvectors starts at t = (ts - sample_width) and continues up
-        to t = ts. Each entry of the returned dictionary contains sample_steps values
-        collected at equidistant time steps.
+        Sample graphs in the timeframe [ts_min, ts_max].
 
         # Arguments
         ts_min: Left boundary of the interval.
         ts_max: Right boundary of the interval.
-        sample_width: Width of the region to collect samples.
+        sample_width: Width of each sample.
+        sample_steps: Number of values to collect.
+
+        # Yields
+        Sampled graphs.
+        """
+
+        result = []
+
+        for ts in np.linspace(ts_min, ts_max - sample_width + 1, sample_steps):
+            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+            result.append(graph)
+
+        return result
+
+    def sample_eigenvectors(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None, tolerance=None):
+        """
+        Iterative power iteration algorithm to track eigenvectors of a graph over time.
+        Eigenvectors are collected within the timeframe [ts_min, ts_max]. Each entry
+        of the returned dictionary contains sample_steps values collected at equidistant
+        time steps.
+
+        # Arguments
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
+        sample_width: Width of each sample.
         sample_steps: Number of values to collect.
         tolerance: Tolerance for the power_iteration algorithm.
 
@@ -2194,8 +2215,9 @@ class TVG(object):
         eigenvector = None
         result = collections.defaultdict(list)
 
-        for step, ts in enumerate(np.linspace(ts_min, ts_max - sample_width + 1, sample_steps)):
-            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+        for step, graph in enumerate(self.sample_graphs(ts_min, ts_max, sample_width,
+                                                        sample_steps=sample_steps, eps=eps)):
+
             eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
                                                    ret_eigenvalue=False)
 
@@ -2211,14 +2233,13 @@ class TVG(object):
 
     def sample_edges(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None):
         """
-        Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
-        Each entry of the returned dictionary contains sample_steps value collected
-        at equidistant time steps.
+        Collect edges in the timeframe [ts_min, ts_max]. Each entry of the returned
+        dictionary contains sample_steps value collected at equidistant time steps.
 
         # Arguments
         ts_min: Left boundary of the interval.
         ts_max: Right boundary of the interval.
-        sample_width: Width of the region to collect samples.
+        sample_width: Width of each sample.
         sample_steps: Number of values to collect.
 
         # Returns
@@ -2230,8 +2251,8 @@ class TVG(object):
 
         result = collections.defaultdict(list)
 
-        for step, ts in enumerate(np.linspace(ts_min, ts_max - sample_width + 1, sample_steps)):
-            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+        for step, graph in enumerate(self.sample_graphs(ts_min, ts_max, sample_width,
+                                                        sample_steps=sample_steps, eps=eps)):
 
             indices, weights = graph.edges()
             for i, w in zip(indices, weights):
