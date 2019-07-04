@@ -18,7 +18,7 @@
 #include "list.h"
 #include "tree.h"
 
-#define LIBTVG_API_VERSION  0x00000008ULL
+#define LIBTVG_API_VERSION  0x00000009ULL
 
 #define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
@@ -247,6 +247,7 @@ struct mongodb_config
     int         use_pool;       /* use connection pool */
     int         load_nodes;
     int         sum_weights;
+    int         norm_weights;
 
     uint64_t    max_distance;
 };

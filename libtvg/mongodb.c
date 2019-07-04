@@ -98,6 +98,7 @@ static struct mongodb_config *alloc_mongodb_config(const struct mongodb_config *
     config->use_pool        = orig->use_pool;
     config->load_nodes      = orig->load_nodes;
     config->sum_weights     = orig->sum_weights;
+    config->norm_weights    = orig->norm_weights;
     config->max_distance    = orig->max_distance;
     return config;
 
@@ -560,6 +561,16 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
     {
         fprintf(stderr, "%s: Query failed: %s\n", __func__, error.message);
         goto error;
+    }
+
+    if (config->norm_weights)
+    {
+        weight = 1.0 / graph_sum_weights(graph);
+        if (!graph_mul_const(graph, weight))
+        {
+            fprintf(stderr, "%s: Failed to normalize graph\n", __func__);
+            goto error;
+        }
     }
 
     /* Success if we didn't encounter any error. */
