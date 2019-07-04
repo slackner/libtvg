@@ -1408,6 +1408,8 @@ struct vector *graph_out_weights(const struct graph *graph);
 struct vector *graph_degree_anomalies(const struct graph *graph);
 struct vector *graph_weight_anomalies(const struct graph *graph);
 
+double graph_sum_weights(const struct graph *graph);
+
 struct vector *graph_power_iteration(const struct graph *graph, struct vector *initial_guess,
                                      uint32_t num_iterations, double tolerance, double *ret_eigenvalue);
 

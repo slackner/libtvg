@@ -980,6 +980,19 @@ struct vector *graph_weight_anomalies(const struct graph *graph)
     return vector;
 }
 
+double graph_sum_weights(const struct graph *graph)
+{
+    struct entry2 *edge;
+    double sum = 0.0;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        sum += edge->weight;
+    }
+
+    return sum;
+}
+
 struct vector *graph_power_iteration(const struct graph *graph, struct vector *initial_guess,
                                      uint32_t num_iterations, double tolerance, double *ret_eigenvalue)
 {

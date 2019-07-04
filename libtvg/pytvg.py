@@ -299,6 +299,9 @@ lib.graph_degree_anomalies.restype = c_vector_p
 lib.graph_weight_anomalies.argtypes = (c_graph_p,)
 lib.graph_weight_anomalies.restype = c_vector_p
 
+lib.graph_sum_weights.argtypes = (c_graph_p,)
+lib.graph_sum_weights.restype = c_double
+
 lib.graph_power_iteration.argtypes = (c_graph_p, c_vector_p, c_uint, c_double, c_double_p)
 lib.graph_power_iteration.restype = c_vector_p
 
@@ -1591,6 +1594,11 @@ class Graph(object):
         """ Compute and return a vector of weight anomalies. """
         return Vector(obj=lib.graph_weight_anomalies(self._obj))
 
+    @cacheable
+    def sum_weights(self):
+        """ Compute the sum of all weights. """
+        return lib.graph_sum_weights(self._obj)
+
     def power_iteration(self, initial_guess=None, num_iterations=0, tolerance=None, ret_eigenvalue=True):
         """
         Compute and return the eigenvector (and optionally the eigenvalue).
@@ -2804,6 +2812,7 @@ if __name__ == '__main__':
             g = Graph(directed=True)
             self.assertTrue(g.empty())
             self.assertTrue(g.empty(drop_cache=True))
+            self.assertEqual(g.sum_weights(), 0.0)
             revisions = [g.revision]
             mem = g.memory_usage
 
@@ -2814,6 +2823,7 @@ if __name__ == '__main__':
             self.assertFalse(g.empty())
             self.assertNotIn(g.revision, revisions)
             self.assertGreater(g.memory_usage, mem)
+            self.assertEqual(g.sum_weights(), 4950.0)
             revisions.append(g.revision)
 
             for i in range(100):
@@ -2826,11 +2836,13 @@ if __name__ == '__main__':
                 self.assertEqual(g[s, t], i)
 
             self.assertNotIn(g.revision, revisions)
+            self.assertEqual(g.sum_weights(), 4950.0)
             revisions.append(g.revision)
 
             g.mul_const(2.0)
 
             self.assertNotIn(g.revision, revisions)
+            self.assertEqual(g.sum_weights(), 9900.0)
             revisions.append(g.revision)
 
             for i in range(100):
@@ -2842,6 +2854,7 @@ if __name__ == '__main__':
                 self.assertEqual(g[s, t], 0.0)
 
             self.assertTrue(g.empty())
+            self.assertEqual(g.sum_weights(), 0.0)
             self.assertNotIn(g.revision, revisions)
             del g
 
