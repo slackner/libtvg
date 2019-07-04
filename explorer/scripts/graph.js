@@ -390,6 +390,9 @@ const initNetwork = function () {
             scaling: {
                 min: 2,
                 max: 30,
+                label: {
+                    enabled: true,
+                },
             },
             font: {
                 size: 16,

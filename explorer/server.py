@@ -196,17 +196,6 @@ class Client(WebSocket):
             for i in values.keys():
                 values[i] = max(math.log(values[i]) + 10.0, 1.0) if values[i] > 0.0 else 1.0
 
-        if len(values.values()) != 0:
-            # rescale the values of selected nodes to [0.0, 1.0]
-            min_value = min(values.values())
-            max_value = max(values.values())
-            if min_value != max_value:
-                for i in values.keys():
-                    values[i] = (values[i] - min_value) / (max_value - min_value)
-            else:
-                for i in values.keys():
-                    values[i] = 1.0
-
         nodes = []
         for i in subgraph.nodes():
             value = values.get(i, 0.0)
@@ -233,11 +222,10 @@ class Client(WebSocket):
 
             attrs = {
                 'id':    i,
-                'value': 0.2 + 0.8 * value,
+                'value': value,
                 'label': label,
                 'color': color,
-                'nodeType': ne,
-                'font':  { 'size': 5 + value * 35 }
+                'nodeType': ne
             }
 
             if i in custom_colors:
