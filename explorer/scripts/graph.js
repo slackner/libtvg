@@ -64,6 +64,20 @@ const watchColorPicker = function (event) {
 };
 
 // eslint-disable-next-line no-unused-vars
+const changeEdgeWeight = function (event) {
+    const selected = $(event.target).html();
+    const selectedVal = $(event.target).attr('name');
+    $('#edgeWeight').html(selected);
+
+    sendMessageJson({
+        cmd: 'change_edge_weight',
+        value: selectedVal,
+    });
+
+    $('#loading').show();
+};
+
+// eslint-disable-next-line no-unused-vars
 const changeNodeSize = function (event) {
     const selected = $(event.target).html();
     const selectedVal = $(event.target).attr('name');
@@ -550,6 +564,7 @@ const init = function () {
     initTimeline();
     initTimelineUpdate();
 
+    globalContext.disableElements.push('dropdownEdgeWeight');
     globalContext.disableElements.push('dropdownNodeSize');
     globalContext.disableElements.push('downloadGML');
     globalContext.disableElements.push('daterangepicker');

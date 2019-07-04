@@ -94,7 +94,31 @@
 
           <div>
             <span style="float: left; width: 50%;">
-              <b>node size</b>
+              <b>edge weights</b>
+            </span>
+            <span class="fas fa-weight-hanging" style="text-align: right; width: 50%;">
+            </span>
+          </div>
+
+          <div style="width: 100%; margin-top: 10px;">
+            <div class="input-group mb-3">
+              <button id="dropdownEdgeWeight" type="button" class="btn btn-secondary noBoxShadow" style="width: 100%; text-align: left;"data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span id="edgeWeight">topics</span>
+                <span class="pull-right fas fa-caret-down" style="position: absolute; top: 10px; right: 12px;"></span>
+              </button>
+              <div class="dropdown-menu dropdown-menu-right" style="cursor: pointer;">
+                <b class="dropdown-item" name="sum_edges" onclick="changeEdgeWeight(event)">edge sum</b>
+                <b class="dropdown-item" name="count_edges" onclick="changeEdgeWeight(event)">edge count</b>
+                <b class="dropdown-item" name="topics" onclick="changeEdgeWeight(event)">topics</b>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div>
+            <span style="float: left; width: 50%;">
+              <b>node sizes</b>
             </span>
             <span class="far fa-circle" style="text-align: right; width: 50%;">
             </span>

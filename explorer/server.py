@@ -25,6 +25,7 @@ default_context = {
 #        },
 #    },
 #    'defaultColor': '#bf8080',
+#    'edgeWeight': 'topics',
 #    'nodeSize': 'eigenvector',
 }
 
@@ -102,6 +103,28 @@ class Client(WebSocket):
         log_scale = True
         custom_colors = {}
 
+        # Handle edge weights. Unfortunately, showing the full
+        # graph is not feasible. Limit the view to a sparse
+        # subgraph of about ~40 nodes.
+
+        if self.context['edgeWeight'] == 'sum_edges':
+            graph = dataset_tvg.sum_edges(ts_min, ts_max)
+            subgraph = graph.sparse_subgraph()
+
+        elif self.context['edgeWeight'] == 'count_edges':
+            graph = dataset_tvg.count_edges(ts_min, ts_max)
+            subgraph = graph.sparse_subgraph()
+
+        elif self.context['edgeWeight'] == 'topics':
+            graph = dataset_tvg.topics(ts_min, ts_max)
+            subgraph = graph.sparse_subgraph()
+
+        else:
+            print('Error: Unimplemented edge weight "%s"!' % self.context['edgeWeight'])
+            raise NotImplementedError
+
+        # Handle node weights
+
         if self.context['nodeSize'] == 'in_degrees':
             graph = dataset_tvg.sum_edges(ts_min, ts_max)
             values = graph.in_degrees()
@@ -164,12 +187,6 @@ class Client(WebSocket):
             print('Error: Unimplemented node size "%s"!' % self.context['nodeSize'])
             raise NotImplementedError
 
-        # Showing the full graph is not feasible. Limit the view
-        # to a sparse subgraph of about ~40 nodes.
-
-        graph = dataset_tvg.topics(ts_min, ts_max)
-        subgraph = graph.sparse_subgraph()
-
         # convert values to dictionary
         if isinstance(values, pytvg.Vector):
             values = values.as_dict()
@@ -192,7 +209,7 @@ class Client(WebSocket):
 
         nodes = []
         for i in subgraph.nodes():
-            value = values[i]
+            value = values.get(i, 0.0)
 
             try:
                 node = dataset_tvg.node_by_index(i)
@@ -282,6 +299,12 @@ class Client(WebSocket):
             self.timeline_seek()
             return
 
+        elif msg['cmd'] == 'change_edge_weight':
+            context['edgeWeight'] = msg['value']
+
+            self.timeline_seek()
+            return
+
         elif msg['cmd'] == 'check_for_new_articles':
             self.check_for_new_articles()
             return
@@ -354,6 +377,7 @@ if __name__ == "__main__":
     source = config.get('source', {})
     default_context['nodeTypes'] = config.get('nodeTypes', {})
     default_context['defaultColor'] = config.get('defaultColor', '#bf8080')
+    default_context['edgeWeight'] = config.get('edgeWeight', 'topics')
     default_context['nodeSize'] = config.get('nodeSize', 'eigenvector')
 
     if 'uri' in source:
