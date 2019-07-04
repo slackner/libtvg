@@ -119,6 +119,18 @@ class Client(WebSocket):
             graph = dataset_tvg.topics(ts_min, ts_max)
             subgraph = graph.sparse_subgraph()
 
+        elif self.context['edgeWeight'] == 'sum_edges_norm':
+            graph = dataset_tvg.sum_edges(ts_min, ts_max).normalize()
+            subgraph = graph.sparse_subgraph()
+
+        elif self.context['edgeWeight'] == 'count_edges_norm':
+            graph = dataset_tvg.count_edges(ts_min, ts_max).normalize()
+            subgraph = graph.sparse_subgraph()
+
+        elif self.context['edgeWeight'] == 'topics_norm':
+            graph = dataset_tvg.topics(ts_min, ts_max).normalize()
+            subgraph = graph.sparse_subgraph()
+
         else:
             print('Error: Unimplemented edge weight "%s"!' % self.context['edgeWeight'])
             raise NotImplementedError
