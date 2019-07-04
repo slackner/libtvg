@@ -131,6 +131,12 @@ class Client(WebSocket):
             graph = dataset_tvg.topics(ts_min, ts_max).normalize()
             subgraph = graph.sparse_subgraph()
 
+        elif self.context['edgeWeight'] == 'stable_edges':
+            graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
+            graphs = [g.normalize() for g in graphs]
+            graph = pytvg.metric_edge_stability_pareto(graphs, base=0.5)
+            subgraph = graph.sparse_subgraph()
+
         else:
             print('Error: Unimplemented edge weight "%s"!' % self.context['edgeWeight'])
             raise NotImplementedError
