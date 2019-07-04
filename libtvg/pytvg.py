@@ -4017,32 +4017,29 @@ if __name__ == '__main__':
             with self.assertRaises(MemoryError):
                 tvg.topics(1, 0)
 
-            # |D(0)| = 1.0
-            # |D(1)| = 1.0
+            # |D(0) \cup D(1)| = 1.0
             # |D((0, 1))| = 1.0
             # |L((0, 1))| = 1.0
             # \sum exp(-\delta) = 1.0
 
             g = tvg.topics(51, 150)
-            self.assertTrue(abs(g[0, 1] - 2.0 / 3.0) < 1e-7)
+            self.assertTrue(abs(g[0, 1] - 1.0) < 1e-7)
 
-            # |D(0)| = 1.0
-            # |D(1)| = 2.0
+            # |D(0) \cup D(1)| = 2.0
             # |D((0, 1))| = 1.0
             # |L((0, 1))| = 1.0
             # \sum exp(-\delta) = 1.0
 
             g = tvg.topics(151, 250)
-            self.assertTrue(abs(g[0, 1] - 0.5) < 1e-7)
+            self.assertTrue(abs(g[0, 1] - 2.0 / 3.0) < 1e-7)
 
-            # |D(0)| = 2.0
-            # |D(1)| = 3.0
+            # |D(0) \cup D(1)| = 3.0
             # |D((0, 1))| = 2.0
             # |L((0, 1))| = 2.0
             # \sum exp(-\delta) = 1.5
 
             g = tvg.topics(251, 350)
-            self.assertTrue(abs(g[0, 1] - 12.0 / 23.0) < 1e-7)
+            self.assertTrue(abs(g[0, 1] - 12.0 / 17.0) < 1e-7)
 
             del tvg
 
@@ -4143,9 +4140,9 @@ if __name__ == '__main__':
             g = tvg.topics(51, 150)
             h = g.sparse_subgraph(num_seeds=1, num_neighbors=1)
             self.assertEqual(h.num_edges, 3)
-            self.assertTrue(abs(h[0, 1] - 2.0 / 3.0) < 1e-7)
-            self.assertTrue(abs(h[0, 2] - 0.5) < 1e-7)
-            self.assertTrue(abs(h[1, 2] - 0.5) < 1e-7)
+            self.assertTrue(abs(h[0, 1] - 1.0) < 1e-7)
+            self.assertTrue(abs(h[0, 2] - 2.0 / 3.0) < 1e-7)
+            self.assertTrue(abs(h[1, 2] - 2.0 / 3.0) < 1e-7)
 
             del tvg
 

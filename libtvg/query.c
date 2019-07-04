@@ -708,14 +708,15 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
     GRAPH_FOR_EACH_EDGE(count_edges, edge)
     {
-        /* article jaccard weight */
+        /* Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)| */
         w_jaccard = (vector_get_entry(count_nodes, edge->source) +
-                     vector_get_entry(count_nodes, edge->target)) / edge->weight;
+                     vector_get_entry(count_nodes, edge->target) -
+                     edge->weight) / edge->weight;
 
-        /* min distance per article weight */
+        /* Min distance per article weight: |L(e)| / \sum exp(-\delta) */
         w_mindist = edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
 
-        /* merge results */
+        /* Merge results */
         weight = 2.0 / (w_jaccard + w_mindist);
         if (!graph_set_edge(result, edge->source, edge->target, weight))
         {
