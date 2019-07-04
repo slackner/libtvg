@@ -1644,12 +1644,13 @@ class Graph(object):
 
         return Graph(obj=lib.graph_normalize(self._obj))
 
-    def sparse_subgraph(self, num_seeds=8, num_neighbors=3):
+    def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3):
         """
         Create a sparse subgraph by seleting a few seed edges, and then
         using 'triangular growth' to add additional neighbors.
 
         # Arguments
+        seeds: List of seed edges
         num_seeds: Number of seed edges to select
         num_neighbors: Number of neighbors to add per seed node
 
@@ -1657,9 +1658,10 @@ class Graph(object):
         Resulting graph.
         """
 
-        seeds, _ = self.top_edges(num_seeds, ret_weights=False)
-        nodes = set()
+        if seeds is None:
+            seeds, _ = self.top_edges(num_seeds, ret_weights=False)
 
+        nodes = set()
         for (i, j) in seeds:
             nodes.add(i)
             nodes.add(j)

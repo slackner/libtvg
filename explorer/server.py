@@ -101,7 +101,8 @@ class Client(WebSocket):
             return
 
         log_scale = True
-        custom_colors = {}
+        node_colors = {}
+        edge_colors = {}
 
         # Handle edge weights. Unfortunately, showing the full
         # graph is not feasible. Limit the view to a sparse
@@ -136,6 +137,17 @@ class Client(WebSocket):
             graphs = [g.normalize() for g in graphs]
             graph = pytvg.metric_edge_stability_pareto(graphs, base=0.5)
             subgraph = graph.sparse_subgraph()
+
+        elif self.context['edgeWeight'] == 'stable_topics':
+            graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
+            graphs = [g.normalize() for g in graphs]
+            graph = pytvg.metric_edge_stability_pareto(graphs, base=0.5)
+            seeds, _ = graph.top_edges(8, ret_weights=False)
+
+            graph = dataset_tvg.topics(ts_min, ts_max).normalize()
+            subgraph = graph.sparse_subgraph(seeds=seeds)
+            for i, j in seeds:
+                edge_colors[i, j] = "red"
 
         else:
             print('Error: Unimplemented edge weight "%s"!' % self.context['edgeWeight'])
@@ -197,7 +209,7 @@ class Client(WebSocket):
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
             values = pytvg.metric_trend(values)
             for i in values.keys():
-                custom_colors[i] = 'green' if values[i] >= 0.0 else 'red'
+                node_colors[i] = 'green' if values[i] >= 0.0 else 'red'
                 values[i] = abs(values[i])
             log_scale = False
 
@@ -246,18 +258,31 @@ class Client(WebSocket):
                 'nodeType': ne
             }
 
-            if i in custom_colors:
+            if i in node_colors:
                 attrs['borderWidth'] = 2
                 attrs['color'] = {
-                    'background': custom_colors[i],
+                    'background': node_colors[i],
                     'border':     color
                 }
 
             nodes.append(attrs)
 
         edges = []
-        for i, w in zip(*subgraph.edges()):
-            edges.append({'id': "%d-%d" % (i[0], i[1]), 'from': i[0], 'to': i[1], 'value': w})
+        for (i, j), w in zip(*subgraph.edges()):
+            attrs = {
+                'id': "%d-%d" % (i, j),
+                'from': i,
+                'to': j,
+                'value': w
+            }
+
+            if (i, j) in edge_colors:
+                attrs['color'] = {
+                    'color': edge_colors[i, j],
+                    'inherit': False
+                }
+
+            edges.append(attrs)
 
         self.send_message_json(cmd='network_set', nodes=nodes, edges=edges)
         self.ts_min = ts_min
