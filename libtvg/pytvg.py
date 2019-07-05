@@ -1674,8 +1674,8 @@ class Graph(object):
             tolerance = 0.0
 
         eigenvalue = c_double() if ret_eigenvalue else None
-        initial_guess = initial_guess._obj if initial_guess is not None else None
-        vector = Vector(obj=lib.graph_power_iteration(self._obj, initial_guess, num_iterations, tolerance, eigenvalue))
+        initial_guess_obj = initial_guess._obj if initial_guess is not None else None
+        vector = Vector(obj=lib.graph_power_iteration(self._obj, initial_guess_obj, num_iterations, tolerance, eigenvalue))
         if eigenvalue is not None:
             eigenvalue = eigenvalue.value
         return vector, eigenvalue
