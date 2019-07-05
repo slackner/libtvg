@@ -139,12 +139,12 @@ class Client(WebSocket):
             subgraph = graph.sparse_subgraph()
 
         elif self.context['edgeWeight'] == 'stable_topics':
-            graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
+            graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, method='topics')
             graphs = [g.normalize() for g in graphs]
             graph = pytvg.metric_stability_pareto(graphs, base=0.5)
             seeds, _ = graph.top_edges(8, ret_weights=False)
 
-            graph = dataset_tvg.topics(ts_min, ts_max).normalize()
+            graph = dataset_tvg.topics(ts_min, ts_max)
             subgraph = graph.sparse_subgraph(seeds=seeds)
             for i, j in seeds:
                 edge_colors[i, j] = "red"
