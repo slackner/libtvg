@@ -1152,6 +1152,10 @@ class Graph(object):
         return self._obj.contents.flags
 
     @property
+    def directed(self):
+        return (self._obj.contents.flags & TVG_FLAGS_DIRECTED) != 0
+
+    @property
     def revision(self):
         """
         Return the current revision of the graph object. This value is incremented
@@ -2989,6 +2993,7 @@ if __name__ == '__main__':
 
             g = Graph(directed=True)
             self.assertEqual(g.flags, TVG_FLAGS_DIRECTED)
+            self.assertTrue(g.directed)
 
             g.add_edges([], [])
             g.add_edges(test_indices, test_weights)
@@ -3134,6 +3139,7 @@ if __name__ == '__main__':
         def test_flags(self):
             g = Graph()
             self.assertEqual(g.flags, 0)
+            self.assertFalse(g.directed)
             g[0, 0] = 0.0
             self.assertTrue(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
@@ -3150,6 +3156,7 @@ if __name__ == '__main__':
 
             g = Graph(nonzero=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
+            self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
             self.assertFalse(g.has_edge((0, 0)))
@@ -3170,6 +3177,7 @@ if __name__ == '__main__':
             g = Graph(nonzero=True)
             g.eps = 0.5
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
+            self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
             self.assertFalse(g.has_edge((0, 0)))
@@ -3189,6 +3197,7 @@ if __name__ == '__main__':
 
             g = Graph(positive=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
             self.assertFalse(g.has_edge((0, 0)))
@@ -3207,6 +3216,7 @@ if __name__ == '__main__':
             g = Graph(positive=True)
             g.eps = 0.5
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
             self.assertFalse(g.has_edge((0, 0)))
