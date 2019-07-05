@@ -2326,7 +2326,8 @@ class TVG(object):
 
         return result
 
-    def sample_eigenvectors(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None, tolerance=None):
+    def sample_eigenvectors(self, ts_min, ts_max, sample_width, sample_steps=9,
+                            tolerance=None, method=None, *args, **kwargs):
         """
         Iterative power iteration algorithm to track eigenvectors of a graph over time.
         Eigenvectors are collected within the timeframe [ts_min, ts_max]. Each entry
@@ -2339,20 +2340,17 @@ class TVG(object):
         sample_width: Width of each sample.
         sample_steps: Number of values to collect.
         tolerance: Tolerance for the power_iteration algorithm.
+        method: Method to use (default: 'sum_edges').
 
         # Returns
         Dictionary containing lists of collected values for each node.
         """
 
-        if sample_width < 1:
-            raise RuntimeError
-
         eigenvector = None
         result = []
 
-        for step, graph in enumerate(self.sample_graphs(ts_min, ts_max, sample_width,
-                                                        sample_steps=sample_steps, eps=eps)):
-
+        for graph in self.sample_graphs(ts_min, ts_max, sample_width, sample_steps=sample_steps,
+                                        method=method, *args, **kwargs):
             eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
                                                    ret_eigenvalue=False)
             result.append(eigenvector)
@@ -4195,6 +4193,33 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1], [0.0, 1.0, 0.0])
+            self.assertEqual(values[2][0], 0.0)
+            self.assertEqual(values[2][1], 0.0)
+            self.assertTrue(abs(values[2][2] - 1.0) < 1e-6)
+
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3, method='sum_edges')
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1], [0.0, 1.0, 0.0])
+            self.assertEqual(values[2][0], 0.0)
+            self.assertEqual(values[2][1], 0.0)
+            self.assertTrue(abs(values[2][2] - 1.0) < 1e-6)
+
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3, method='count_edges')
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1], [0.0, 1.0, 0.0])
+            self.assertEqual(values[2][0], 0.0)
+            self.assertEqual(values[2][1], 0.0)
+            self.assertTrue(abs(values[2][2] - 1.0) < 1e-6)
+
+            values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3, method='topics')
             values = _convert_values(values)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
