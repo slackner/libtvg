@@ -880,6 +880,21 @@ class Vector(object):
 
         return indices, weights
 
+    def keys(self):
+        """ Iterate over indices of a vector. """
+        indices, _ = self.entries(ret_weights=False)
+        return iter(indices)
+
+    def values(self):
+        """ Iterate over weights of a vector. """
+        _, weights = self.entries(ret_indices=False)
+        return iter(weights)
+
+    def items(self):
+        """ Iterate over indices and weights of a vector. """
+        indices, weights = self.entries()
+        return zip(indices, weights)
+
     @property
     @cacheable
     def num_entries(self):
@@ -1313,6 +1328,23 @@ class Graph(object):
             return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
 
         return indices, weights
+
+    def keys(self):
+        """ Iterate over indices of a graphs. """
+        indices, _ = self.edges(ret_weights=False)
+        for i in indices:
+            yield (i[0], i[1])
+
+    def values(self):
+        """ Iterate over weights of a graph. """
+        _, weights = self.edges(ret_indices=False)
+        return iter(weights)
+
+    def items(self):
+        """ Iterate over indices and weights of a graphs. """
+        indices, weights = self.edges()
+        for i, w in zip(indices, weights):
+            yield ((i[0], i[1]), w)
 
     def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False):
         """
@@ -2509,9 +2541,12 @@ if __name__ == '__main__':
             indices, weights = v.entries()
             self.assertEqual(indices.tolist(), [0, 1, 2])
             self.assertEqual(weights.tolist(), [1.0, 2.0, 3.0])
-
             self.assertEqual(v.num_entries, 3)
             self.assertEqual(len(v), 3)
+
+            self.assertEqual(list(v.keys()), [0, 1, 2])
+            self.assertEqual(list(v.values()), [1.0, 2.0, 3.0])
+            self.assertEqual(list(v.items()), [(0, 1.0), (1, 2.0), (2, 3.0)])
 
             indices, _ = v.entries(ret_weights=False)
             self.assertEqual(indices.tolist(), [0, 1, 2])
@@ -2950,6 +2985,10 @@ if __name__ == '__main__':
             self.assertEqual(len(g), 3)
             self.assertEqual(g.nodes().tolist(), [0, 1, 2])
             self.assertEqual(g.num_nodes, 3)
+
+            self.assertEqual(list(g.keys()), [(2, 0), (0, 1), (1, 2)])
+            self.assertEqual(list(g.values()), [3.0, 1.0, 2.0])
+            self.assertEqual(list(g.items()), [((2, 0), 3.0), ((0, 1), 1.0), ((1, 2), 2.0)])
 
             indices, _ = g.edges(ret_weights=False)
             self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
