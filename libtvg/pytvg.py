@@ -2288,7 +2288,8 @@ class TVG(object):
 
         return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max))
 
-    def sample_graphs(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None):
+    def sample_graphs(self, ts_min, ts_max, sample_width, sample_steps=9,
+                      method=None, *args, **kwargs):
         """
         Sample graphs in the timeframe [ts_min, ts_max].
 
@@ -2297,15 +2298,30 @@ class TVG(object):
         ts_max: Right boundary of the interval.
         sample_width: Width of each sample.
         sample_steps: Number of values to collect.
+        method: Method to use (default: 'sum_edges').
 
         # Yields
         Sampled graphs.
         """
 
+        if not callable(method):
+            try:
+                method = {
+                    None:          self.sum_edges,
+                    'sum_edges':   self.sum_edges,
+                    'count_edges': self.count_edges,
+                    'topics':      self.topics
+                }[method]
+            except KeyError:
+                raise NotImplementedError("Method %s not implemented" % method)
+
+        if sample_width < 1:
+            raise RuntimeError("sample_width too small")
+
         result = []
 
         for ts in np.linspace(ts_min, ts_max - sample_width + 1, sample_steps):
-            graph = self.sum_edges(int(ts), int(ts + sample_width - 1), eps=eps)
+            graph = method(int(ts), int(ts + sample_width - 1), *args, **kwargs)
             result.append(graph)
 
         return result
@@ -4183,7 +4199,9 @@ if __name__ == '__main__':
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
-            self.assertEqual(values[2], [0.0, 0.0, 1.0])
+            self.assertEqual(values[2][0], 0.0)
+            self.assertEqual(values[2][1], 0.0)
+            self.assertTrue(abs(values[2][2] - 1.0) < 1e-6)
 
             del tvg
 
@@ -4208,6 +4226,29 @@ if __name__ == '__main__':
             self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
             self.assertEqual(values[2, 2], [0.0, 0.0, 3.0])
+
+            values = tvg.sample_graphs(50, 350, sample_width=101, sample_steps=3, method='sum_edges')
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
+            self.assertEqual(values[2, 2], [0.0, 0.0, 3.0])
+
+            values = tvg.sample_graphs(50, 350, sample_width=101, sample_steps=3, method='count_edges')
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1, 1], [0.0, 1.0, 0.0])
+            self.assertEqual(values[2, 2], [0.0, 0.0, 1.0])
+
+            values = tvg.sample_graphs(50, 350, sample_width=101, sample_steps=3, method='topics')
+            values = _convert_values(values)
+            self.assertEqual(len(values), 3)
+            self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
+            self.assertEqual(values[1, 1][0], 0.0)
+            self.assertTrue(abs(values[1, 1][1] - 4.0 / 3.0) < 1e-6)
+            self.assertEqual(values[1, 1][2], 0.0)
+            self.assertEqual(values[2, 2], [0.0, 0.0, 1.5])
 
             del tvg
 
