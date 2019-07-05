@@ -1329,7 +1329,7 @@ class Graph(object):
         if as_dict:
             if weights is None:
                 weights = [None] * num_edges
-            return dict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
+            return dict([(tuple(i), w) for i, w in zip(indices, weights)])
 
         return indices, weights
 
@@ -1337,7 +1337,7 @@ class Graph(object):
         """ Iterate over indices of a graphs. """
         indices, _ = self.edges(ret_weights=False)
         for i in indices:
-            yield (i[0], i[1])
+            yield tuple(i)
 
     def values(self):
         """ Iterate over weights of a graph. """
@@ -1348,7 +1348,7 @@ class Graph(object):
         """ Iterate over indices and weights of a graphs. """
         indices, weights = self.edges()
         for i, w in zip(indices, weights):
-            yield ((i[0], i[1]), w)
+            yield (tuple(i), w)
 
     def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False):
         """
@@ -1379,7 +1379,7 @@ class Graph(object):
         if as_dict:
             if weights is None:
                 weights = [None] * num_edges
-            return collections.OrderedDict([((i[0], i[1]), w) for i, w in zip(indices, weights)])
+            return collections.OrderedDict([(tuple(i), w) for i, w in zip(indices, weights)])
 
         return indices, weights
 
