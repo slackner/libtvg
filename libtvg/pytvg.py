@@ -410,10 +410,10 @@ lib.tvg_topics.restype = c_graph_p
 
 # Metric functions
 
-lib.metric_edge_stability_pareto.argtypes = (POINTER(c_graph_p), c_uint64, c_float)
+lib.metric_edge_stability_pareto.argtypes = (POINTER(c_graph_p), c_uint64, c_graph_p, c_float)
 lib.metric_edge_stability_pareto.restype = c_graph_p
 
-lib.metric_node_stability_pareto.argtypes = (POINTER(c_vector_p), c_uint64, c_float)
+lib.metric_node_stability_pareto.argtypes = (POINTER(c_vector_p), c_uint64, c_vector_p, c_float)
 lib.metric_node_stability_pareto.restype = c_vector_p
 
 # MongoDB functions
@@ -674,12 +674,13 @@ def metric_stability_ratio(values):
 
     return result
 
-def metric_stability_pareto(values, base=0.0):
+def metric_stability_pareto(values, mean=None, base=0.0):
     """
     Rate the stability of individual nodes/edges by ranking their average and standard deviation.
 
     # Arguments
     values: Values for each node or edge.
+    mean: Override mean (currently only for Graphs and Vectors).
     base: Use `base**(index - 1)` as weight instead of `index`.
 
     # Returns
@@ -694,13 +695,18 @@ def metric_stability_pareto(values, base=0.0):
             objs = (c_graph_p * len(values))()
             for i, v in enumerate(values):
                 objs[i] = v._obj
-            return Graph(obj=lib.metric_edge_stability_pareto(objs, len(values), base))
+            mean_obj = mean._obj if mean else None
+            return Graph(obj=lib.metric_edge_stability_pareto(objs, len(values), mean_obj, base))
 
         if all([isinstance(v, Vector) for v in values]):
             objs = (c_vector_p * len(values))()
             for i, v in enumerate(values):
                 objs[i] = v._obj
-            return Vector(obj=lib.metric_node_stability_pareto(objs, len(values), base))
+            mean_obj = mean._obj if mean else None
+            return Vector(obj=lib.metric_node_stability_pareto(objs, len(values), mean_obj, base))
+
+    if mean is not None:
+        raise NotImplementedError("mean parameter not implemented")
 
     values = _convert_values(values)
     if len(values) == 0:

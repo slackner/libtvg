@@ -43,7 +43,8 @@ static int _sort_node_stability(const void *a, const void *b, void *userdata)
     return COMPARE(sa->value2, sb->value2);
 }
 
-struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs, float base)
+struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs,
+                                           struct graph *override_mean, float base)
 {
     struct edge_stability *next_stability;
     struct edge_stability *stability;
@@ -55,6 +56,7 @@ struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_g
     float sum2, temp;
     float weight = 1.0;
     struct list queue;
+    float mean;
     uint64_t i;
     int ret = 0;
 
@@ -83,12 +85,13 @@ struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_g
     if (!(array = alloc_array(sizeof(struct edge_stability))))
         goto error;
 
-    GRAPH_FOR_EACH_EDGE(result, edge)
+    GRAPH_FOR_EACH_EDGE(override_mean ? override_mean : result, edge)
     {
+        mean = override_mean ? graph_get_edge(result, edge->source, edge->target) : edge->weight;
         sum2 = 0.0;
         for (i = 0; i < num_graphs; i++)
         {
-            temp = graph_get_edge(graphs[i], edge->source, edge->target) - edge->weight;
+            temp = graph_get_edge(graphs[i], edge->source, edge->target) - mean;
             sum2 += temp * temp;
         }
 
@@ -148,7 +151,8 @@ error:
     return result;
 }
 
-struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors, float base)
+struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors,
+                                            struct vector *override_mean, float base)
 {
     struct node_stability *next_stability;
     struct node_stability *stability;
@@ -159,6 +163,7 @@ struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t nu
     float sum2, temp;
     float weight = 1.0;
     struct list queue;
+    float mean;
     uint64_t i;
     int ret = 0;
 
@@ -180,12 +185,13 @@ struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t nu
     if (!(array = alloc_array(sizeof(struct node_stability))))
         goto error;
 
-    VECTOR_FOR_EACH_ENTRY(result, entry)
+    VECTOR_FOR_EACH_ENTRY(override_mean ? override_mean : result, entry)
     {
+        mean = override_mean ? vector_get_entry(result, entry->index) : entry->weight;
         sum2 = 0.0;
         for (i = 0; i < num_vectors; i++)
         {
-            temp = vector_get_entry(vectors[i], entry->index) - entry->weight;
+            temp = vector_get_entry(vectors[i], entry->index) - mean;
             sum2 += temp * temp;
         }
 

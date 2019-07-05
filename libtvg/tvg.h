@@ -1480,8 +1480,10 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
 /* Metric functions */
 
-struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs, float base);
-struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors, float base);
+struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs,
+                                           struct graph *override_mean, float base);
+struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors,
+                                            struct vector *override_mean, float base);
 
 /* MongoDB functions */
 
