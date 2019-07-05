@@ -1097,7 +1097,8 @@ struct graph *graph_normalize(const struct graph *graph)
     if (!(out_weights = graph_out_weights(graph)))
         return NULL;
 
-    if (!(graph->flags & TVG_FLAGS_DIRECTED)) in_weights = out_weights;
+    if (!(graph->flags & TVG_FLAGS_DIRECTED))
+        in_weights = grab_vector(out_weights);
     else if (!(in_weights = graph_in_weights(graph)))
     {
         free_vector(out_weights);
@@ -1117,7 +1118,7 @@ struct graph *graph_normalize(const struct graph *graph)
     }
 
 error:
-    if (in_weights != out_weights) free_vector(in_weights);
+    free_vector(in_weights);
     free_vector(out_weights);
     return result;
 }
