@@ -135,13 +135,13 @@ class Client(WebSocket):
         elif self.context['edgeWeight'] == 'stable_edges':
             graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
             graphs = [g.normalize() for g in graphs]
-            graph = pytvg.metric_edge_stability_pareto(graphs, base=0.5)
+            graph = pytvg.metric_stability_pareto(graphs, base=0.5)
             subgraph = graph.sparse_subgraph()
 
         elif self.context['edgeWeight'] == 'stable_topics':
             graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
             graphs = [g.normalize() for g in graphs]
-            graph = pytvg.metric_edge_stability_pareto(graphs, base=0.5)
+            graph = pytvg.metric_stability_pareto(graphs, base=0.5)
             seeds, _ = graph.top_edges(8, ret_weights=False)
 
             graph = dataset_tvg.topics(ts_min, ts_max).normalize()
@@ -185,7 +185,7 @@ class Client(WebSocket):
 
         elif self.context['nodeSize'] == 'stable_nodes':
             values = dataset_tvg.sample_eigenvectors(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3, tolerance=1e-3)
-            values = pytvg.metric_stability_pareto(values)
+            values = pytvg.metric_stability_pareto(values).as_dict()
             for i in values.keys():
                 values[i] = -values[i]
             log_scale = False

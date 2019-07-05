@@ -472,6 +472,35 @@ def libtvgobject(klass):
             pass
     return wrapper
 
+def _convert_values(values):
+    if isinstance(values, dict):
+        return values
+
+    result = collections.defaultdict(list)
+    for step, v in enumerate(values):
+        if isinstance(v, Vector):
+            indices, weights = v.entries()
+            for i, w in zip(indices, weights):
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        elif isinstance(v, Graph):
+            indices, weights = v.edges()
+            for i, w in zip(indices, weights):
+                i = tuple(i)
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+        else:
+            for i, w in v.items():
+                result[i] += [0.0] * (step - len(result[i]))
+                result[i].append(w)
+
+    for i in result.keys():
+        result[i] += [0.0] * (len(values) - len(result[i]))
+
+    return result
+
 def metric_entropy(values, num_bins=50):
     """
     Rate the importance / interestingness of individual nodes/edges by their entropy.
@@ -484,6 +513,7 @@ def metric_entropy(values, num_bins=50):
     Dictionary containing the metric for each node or edge.
     """
 
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -519,6 +549,7 @@ def metric_entropy_local(values, num_bins=50):
     Dictionary containing the metric for each node or edge.
     """
 
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -557,6 +588,7 @@ def metric_entropy_2d(values, num_bins=50):
     Dictionary containing the metric for each node or edge.
     """
 
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -596,6 +628,7 @@ def metric_trend(values):
     Dictionary containing the metric for each node or edge.
     """
 
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -626,6 +659,7 @@ def metric_stability_ratio(values):
     Dictionary containing the metric for each node or edge.
     """
 
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -639,17 +673,35 @@ def metric_stability_ratio(values):
 
     return result
 
-def metric_stability_pareto(values):
+def metric_stability_pareto(values, base=0.0):
     """
     Rate the stability of individual nodes/edges by ranking their average and standard deviation.
 
     # Arguments
     values: Values for each node or edge.
+    base: Use `base**(index - 1)` as weight instead of `index`.
 
     # Returns
     Dictionary containing the metric for each node or edge.
     """
 
+    if not isinstance(values, dict):
+        # Fast-path for list of Graphs and list of Vectors. In this
+        # case we can let libtvg do the pareto rank computation.
+
+        if all([isinstance(v, Graph) for v in values]):
+            objs = (c_graph_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Graph(obj=lib.metric_edge_stability_pareto(objs, len(values), base))
+
+        if all([isinstance(v, Vector) for v in values]):
+            objs = (c_vector_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Vector(obj=lib.metric_node_stability_pareto(objs, len(values), base))
+
+    values = _convert_values(values)
     if len(values) == 0:
         return {}
 
@@ -661,7 +713,7 @@ def metric_stability_pareto(values):
 
     nodes = np.array(nodes)
     costs = np.array(costs)
-    rank = 1.0
+    weight = 1.0
 
     result = {}
     while len(nodes):
@@ -675,49 +727,16 @@ def metric_stability_pareto(values):
             key = nodes[i]
             if isinstance(key, np.ndarray):
                 key = tuple(key)
-            result[key] = rank
+            result[key] = weight
 
         nodes = nodes[~front]
         costs = costs[~front]
-        rank += 1.0
+        if base == 0.0:
+            weight += 1.0
+        else:
+            weight *= base
 
     return result
-
-def metric_edge_stability_pareto(graphs, base=0.0):
-    """
-    Rate the stability of edges by ranking their average and standard deviation.
-
-    # Arguments
-    graphs: List of graphs (e.g., sampled from a TVG).
-    base: Use `base**(index - 1)` as weight instead of `index`.
-
-    # Returns
-    Graph containing the metric for each edge.
-    """
-
-    graph_objs = (c_graph_p * len(graphs))()
-    for i, graph in enumerate(graphs):
-        graph_objs[i] = graph._obj
-
-    return Graph(obj=lib.metric_edge_stability_pareto(graph_objs, len(graphs), base))
-
-def metric_node_stability_pareto(vectors, base=0.0):
-    """
-    Rate the stability of nodes by ranking their average and standard deviation.
-
-    # Arguments
-    graphs: List of vectors (e.g., sampled from a TVG).
-    base: Use `base**(index - 1)` as weight instead of `index`.
-
-    # Returns
-    Vector containing the metric for each node.
-    """
-
-    vector_objs = (c_vector_p * len(vectors))()
-    for i, vector in enumerate(vectors):
-        vector_objs[i] = vector._obj
-
-    return Vector(obj=lib.metric_node_stability_pareto(vector_objs, len(vectors), base))
 
 @libtvgobject
 class Vector(object):
@@ -2281,55 +2300,14 @@ class TVG(object):
             raise RuntimeError
 
         eigenvector = None
-        result = collections.defaultdict(list)
+        result = []
 
         for step, graph in enumerate(self.sample_graphs(ts_min, ts_max, sample_width,
                                                         sample_steps=sample_steps, eps=eps)):
 
             eigenvector, _ = graph.power_iteration(initial_guess=eigenvector, tolerance=tolerance,
                                                    ret_eigenvalue=False)
-
-            indices, weights = eigenvector.entries()
-            for i, w in zip(indices, weights):
-                result[i] += [0.0] * (step - len(result[i]))
-                result[i].append(w)
-
-        for i in result.keys():
-            result[i] += [0.0] * (sample_steps - len(result[i]))
-
-        return result
-
-    def sample_edges(self, ts_min, ts_max, sample_width, sample_steps=9, eps=None):
-        """
-        Collect edges in the timeframe [ts_min, ts_max]. Each entry of the returned
-        dictionary contains sample_steps value collected at equidistant time steps.
-
-        # Arguments
-        ts_min: Left boundary of the interval.
-        ts_max: Right boundary of the interval.
-        sample_width: Width of each sample.
-        sample_steps: Number of values to collect.
-
-        # Returns
-        Dictionary containing lists of collected values for each edge.
-        """
-
-        if sample_width < 1:
-            raise RuntimeError
-
-        result = collections.defaultdict(list)
-
-        for step, graph in enumerate(self.sample_graphs(ts_min, ts_max, sample_width,
-                                                        sample_steps=sample_steps, eps=eps)):
-
-            indices, weights = graph.edges()
-            for i, w in zip(indices, weights):
-                i = tuple(i)
-                result[i] += [0.0] * (step - len(result[i]))
-                result[i].append(w)
-
-        for i in result.keys():
-            result[i] += [0.0] * (sample_steps - len(result[i]))
+            result.append(eigenvector)
 
         return result
 
@@ -4162,6 +4140,7 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             values = tvg.sample_eigenvectors(50, 350, sample_width=101, sample_steps=3)
+            values = _convert_values(values)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1], [0.0, 1.0, 0.0])
@@ -4169,7 +4148,7 @@ if __name__ == '__main__':
 
             del tvg
 
-        def test_sample_edges(self):
+        def test_sample_graphs(self):
             tvg = TVG(positive=True)
 
             g = Graph()
@@ -4184,13 +4163,31 @@ if __name__ == '__main__':
             g[2, 2] = 3.0
             tvg.link_graph(g, 300)
 
-            values = tvg.sample_edges(50, 350, sample_width=101, sample_steps=3)
+            values = tvg.sample_graphs(50, 350, sample_width=101, sample_steps=3)
+            values = _convert_values(values)
             self.assertEqual(len(values), 3)
             self.assertEqual(values[0, 0], [1.0, 0.0, 0.0])
             self.assertEqual(values[1, 1], [0.0, 2.0, 0.0])
             self.assertEqual(values[2, 2], [0.0, 0.0, 3.0])
 
             del tvg
+
+        def test__convert_values(self):
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
+
+            expected = {
+                (0, 0): [1.0, 1.0, 1.0],
+                (0, 1): [0.0, 1.0, 2.0],
+                (1, 1): [2.0, 1.0, 0.0],
+                (2, 2): [2.0, 2.0, 2.0],
+            }
+
+            result = _convert_values(values)
+            self.assertEqual(result, expected)
 
         def test_metric_entropy(self):
             tvg = TVG(positive=True)
@@ -4222,12 +4219,11 @@ if __name__ == '__main__':
             del tvg
 
         def test_metric_entropy_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
 
             result = metric_entropy(values, num_bins=2)
             self.assertEqual(len(result), 4)
@@ -4268,12 +4264,11 @@ if __name__ == '__main__':
             del tvg
 
         def test_metric_entropy_local_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
 
             result = metric_entropy_local(values, num_bins=2)
             self.assertEqual(len(result), 4)
@@ -4312,12 +4307,11 @@ if __name__ == '__main__':
             del tvg
 
         def test_metric_entropy_2d_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
 
             result = metric_entropy_2d(values, num_bins=2)
             self.assertEqual(len(result), 4)
@@ -4355,12 +4349,11 @@ if __name__ == '__main__':
             del tvg
 
         def test_metric_trend_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
 
             result = metric_trend(values)
             self.assertEqual(len(result), 4)
@@ -4370,13 +4363,11 @@ if __name__ == '__main__':
             self.assertTrue(abs(result[2, 2] - 0.0) < 1e-7)
 
         def test_metric_stability_ratio_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-                (3, 3): [0.0, 0.0, 0.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0, (3, 3): 0.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0, (3, 3): 0.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0, (3, 3): 0.0},
+            ]
 
             result = metric_stability_ratio(values)
             self.assertEqual(len(result), 5)
@@ -4415,12 +4406,11 @@ if __name__ == '__main__':
             del tvg
 
         def test_metric_stability_pareto_edges(self):
-            values = {
-                (0, 0): [1.0, 1.0, 1.0],
-                (0, 1): [0.0, 1.0, 2.0],
-                (1, 1): [2.0, 1.0, 0.0],
-                (2, 2): [2.0, 2.0, 2.0],
-            }
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
 
             result = metric_stability_pareto(values)
             self.assertEqual(len(result), 4)
@@ -4429,65 +4419,49 @@ if __name__ == '__main__':
             self.assertEqual(result[1, 1], 3.0)
             self.assertEqual(result[2, 2], 1.0)
 
-        def test_metric_edge_stability_pareto(self):
-            g1 = Graph.from_dict({(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0})
-            g2 = Graph.from_dict({(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0})
-            g3 = Graph.from_dict({(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0})
-
-            result = metric_edge_stability_pareto([g1, g2, g3])
+            # Fast-path for list of Graphs
+            graphs = [Graph.from_dict(v) for v in values]
+            result = metric_stability_pareto(graphs)
+            self.assertTrue(isinstance(result, Graph))
             self.assertEqual(result.as_dict(), {(0, 0): 2.0, (0, 1): 3.0,
                                                 (1, 1): 3.0, (2, 2): 1.0})
+            del graphs
 
-            del g1
-            del g2
-            del g3
+            values = [
+                {0: 1.0, 1: 0.0, 2: 2.0, 3: 2.0},
+                {0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0},
+                {0: 1.0, 1: 2.0, 2: 0.0, 3: 2.0},
+            ]
 
-        def test_metric_node_stability_pareto(self):
-            v1 = Vector.from_dict({0: 1.0, 1: 0.0, 2: 2.0, 3: 2.0})
-            v2 = Vector.from_dict({0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0})
-            v3 = Vector.from_dict({0: 1.0, 1: 2.0, 2: 0.0, 3: 2.0})
-
-            result = metric_node_stability_pareto([v1, v2, v3])
+            # Fast-path for list of Vectors
+            vectors = [Vector.from_dict(v) for v in values]
+            result = metric_stability_pareto(vectors)
+            self.assertTrue(isinstance(result, Vector))
             self.assertEqual(result.as_dict(), {0: 2.0, 1: 3.0, 2: 3.0, 3: 1.0})
-
-            del v1
-            del v2
-            del v3
+            del vectors
 
         def test_metric_stability_pareto_compare(self):
-            values = {}
-            for i in range(100):
-                values[i] = np.random.random(20)
-
-            graphs = []
-            for j in range(20):
-                g = Graph()
-                for i in range(100):
-                    g[0, i] = values[i][j]
-                graphs.append(g)
-
-            vectors = []
-            for j in range(20):
-                v = Vector()
-                for i in range(100):
-                    v[i] = values[i][j]
-                vectors.append(v)
-
+            values = []
+            for i in range(20):
+                values.append(dict(enumerate(np.random.random(100))))
             result1 = metric_stability_pareto(values)
 
-            result2 = metric_edge_stability_pareto(graphs)
+            graphs = [Graph.from_dict(dict([((0, i), w) for i, w in v.items()])) for v in values]
+            result2 = metric_stability_pareto(graphs)
+            self.assertTrue(isinstance(result2, Graph))
             self.assertEqual(result2.num_edges, 100)
             for i in range(100):
                 self.assertEqual(result2[0, i], result1[i])
             del result2
+            del graphs
 
-            result2 = metric_node_stability_pareto(vectors)
+            vectors = [Vector.from_dict(v) for v in values]
+            result2 = metric_stability_pareto(vectors)
+            self.assertTrue(isinstance(result2, Vector))
             self.assertEqual(result2.num_entries, 100)
             for i in range(100):
                 self.assertEqual(result2[i], result1[i])
             del result2
-
-            del graphs
             del vectors
 
     class MongoDBTests(unittest.TestCase):
