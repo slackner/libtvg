@@ -19,6 +19,7 @@ import numpy as np
 import numpy.ctypeslib as npc
 import struct
 import math
+import copy
 import sys
 import os
 
@@ -1722,27 +1723,28 @@ class Graph(object):
         Resulting graph.
         """
 
+        if self.directed:
+            raise NotImplementedError("Not implemented for directed graphs")
+
         if seeds is None:
-            seeds, _ = self.top_edges(num_seeds, ret_weights=False)
+            seeds = self.top_edges(num_seeds, as_dict=True)
+        if not isinstance(seeds, dict):
+            seeds = dict([(tuple(i), self[i]) for i in seeds])
 
-        nodes = set()
-        for (i, j) in seeds:
-            nodes.add(i)
-            nodes.add(j)
+        edges = copy.deepcopy(seeds)
+        for i, j in seeds.keys():
+            edges_i = self.adjacent_edges(i, as_dict=True)
+            edges_j = self.adjacent_edges(j, as_dict=True)
+            del edges_i[j]
+            del edges_j[i]
 
-            temp = self.adjacent_edges(i, as_dict=True)
-            del temp[j]
+            neighbors = list(set(edges_i.keys()) & set(edges_j.keys()))
+            neighbors = sorted(neighbors, key=lambda k: min(edges_i[k], edges_j[k]), reverse=True)
+            for k in neighbors[:num_neighbors]:
+                edges[i, k] = edges_i[k]
+                edges[j, k] = edges_j[k]
 
-            weights = {}
-            for k, w in zip(*self.adjacent_edges(j)):
-                if k == i: continue
-                if k not in temp: continue
-                weights[k] = min(temp[k], w)
-
-            for w, k in sorted([(w, k) for k, w in weights.items()], reverse=True)[:num_neighbors]:
-                nodes.add(k)
-
-        return self.filter_nodes(nodes)
+        return Graph.from_dict(edges)
 
     def bfs_count(self, source, max_count=None):
         """
