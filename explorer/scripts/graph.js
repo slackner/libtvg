@@ -567,6 +567,7 @@ const init = function () {
     initTimeline();
     initTimelineUpdate();
 
+    globalContext.disableElements.push('liveMonitoring');
     globalContext.disableElements.push('dropdownEdgeWeight');
     globalContext.disableElements.push('dropdownNodeSize');
     globalContext.disableElements.push('downloadGML');
