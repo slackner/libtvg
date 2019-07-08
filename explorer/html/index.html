@@ -47,8 +47,18 @@
     <right>
       <div id="designMenu" class="card">
         <div class="card-body">
-          <span id="serverConnection" class="fas fa-power-off"></span>
-          <span class="h5 card-title">TVG Explorer</span>
+          <div>
+            <span id="serverConnection" class="fas fa-power-off"></span>
+            <span class="h5 card-title">TVG Explorer</span>
+
+            <span style="float: right">
+              <label class="switch">
+                <input type="checkbox" id="liveMonitoring">
+                <span class="slider round"><span class="on">LIVE</span><span class="off">LIVE</span></span>
+              </label>
+            </span>
+
+          </div>
           <hr>
 
           <div>
@@ -164,22 +174,6 @@
 
           <div style="width: 100%; margin-top: 10px;">
             <div id="colorizeList"></div>
-          </div>
-
-          <hr>
-
-          <div>
-            <span style="float: left; width: 50%;">
-              <b>live monitoring</b>
-            </span>
-            <span class="fas fa-sync" style="text-align: right; width: 50%">
-            </span>
-          </div>
-          <div style="width: 100%; margin-top: 10px;">
-            <label class="switch">
-              <input type="checkbox" id="liveMonitoring">
-              <span class="slider round"></span>
-            </label>
           </div>
 
           <hr>

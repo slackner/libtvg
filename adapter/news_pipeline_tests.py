@@ -32,6 +32,16 @@ class TestEntityPreprocessing(unittest.TestCase):
         expected = datetime.datetime(2019, 4, 15, 17, 15, 38, tzinfo=datetime.timezone(datetime.timedelta(0, 7200)))
         self.assertEqual(result, expected)
 
+    def test_parse_date_format_utc_offset_with_location(self):
+        # Input
+        publishing_date = "2019-04-15T17:15:38+02:00[Europe/Paris]"
+        crawltime = ""
+        # Result
+        result = news.parse_date_format(publishing_date, crawltime)
+        # Expected
+        expected = datetime.datetime(2019, 4, 15, 17, 15, 38, tzinfo=datetime.timezone(datetime.timedelta(0, 7200)))
+        self.assertEqual(result, expected)
+
     def test_parse_date_format_utc_no_offset(self):
         # Input
         publishing_date = "2019-05-23T11:13:00Z"
