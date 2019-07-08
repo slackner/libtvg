@@ -21,10 +21,15 @@ class NewsArticle:
         self.nlp_processing_date = nlp_processing_date
         self.extracttime = extracttime
 
-class SpacyModel:
+class SpacyModels:
 
-    def __init__(self, model_name):
-        self.nlp = spacy.load(model_name)
+    def __init__(self):
+        self.models = {}
+
+    def get_model(self, model_name):
+        if model_name not in self.models:
+            self.models[model_name] = spacy.load(model_name)
+        return self.models[model_name]
 
 def get_spacy_model_name(language):
     if language == 'de':
@@ -36,7 +41,7 @@ def get_spacy_model_name(language):
     return spacy_model_name
 
 def get_entites_with_sentence_ind(spacy_model, article_body, article_id):
-    doc = spacy_model.nlp(article_body)
+    doc = spacy_model(article_body)
     entities = []
     for ind, sent in enumerate(doc.sents):
         for ent in sent.ents:
@@ -104,23 +109,19 @@ if __name__ == "__main__":
         raise RuntimeError("article_processed_collection not specified")
     if 'entity_collection' not in source:
         raise RuntimeError("entity_collection not specified")
-    if 'logging_filename' in source:
-        logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/' + source['logging_filename']
-    else:
-        logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/news_pipeline.log'
     if 'logging_interval' in source:
         try:
-            logging_interval = int(source['logging_interval'])
-            is_progress_logging = True
+            logging_interval = source['logging_interval']
         except:
-            is_progress_logging = False
+            logging_interval = 0
     else:
-        is_progress_logging = False
+        logging_interval = 0
 
+    logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/' + source.get('logging_filename', 'news_pipeline.log')
     logging.basicConfig(filename=logging_filename, level=logging.INFO)
 
-    article_extract_collection = pymongo.MongoClient(source['article_extract_host'], int(source['article_extract_port']))[source['article_extract_database']][source['article_extract_collection']]
-    article_and_entity_client = pymongo.MongoClient(source['article_and_entity_host'], int(source['article_and_entity_port']))
+    article_extract_collection = pymongo.MongoClient(source['article_extract_host'], source['article_extract_port'])[source['article_extract_database']][source['article_extract_collection']]
+    article_and_entity_client = pymongo.MongoClient(source['article_and_entity_host'], source['article_and_entity_port'])
     article_processed_collection =  article_and_entity_client[source['article_and_entity_database']][source['article_processed_collection']]
     entity_collection =             article_and_entity_client[source['article_and_entity_database']][source['entity_collection']]
 
@@ -131,12 +132,10 @@ if __name__ == "__main__":
         d = last_processed_article['extracttime']
     except:
         print("No processed articles found. Using default date.")
-        if 'default_date' in source:
-            d = datetime.datetime.strptime(source['default_date'], '%Y-%m-%d')
-        else:
-            d = datetime.datetime(2000, 1, 1)
+        d = datetime.datetime.strptime(source.get('default_date', '2000-01-01'), '%Y-%m-%d')
 
     count = 0
+    spacy_models = SpacyModels()
     for post in article_extract_collection.find({"extracttime": {"$gte": d}}).sort("extracttime", pymongo.ASCENDING):
         processedElement = article_processed_collection.find_one({"url":post['_id']})
         if processedElement == None:
@@ -151,10 +150,10 @@ if __name__ == "__main__":
             count += 1
             try:
                 spacy_model_name = get_spacy_model_name(article.lang)
-                spacy_model = SpacyModel(spacy_model_name)
+                spacy_model = spacy_models.get_model(spacy_model_name)
                 entites_with_sentence_ind = get_entites_with_sentence_ind(spacy_model, post['body'], article_primary_key.inserted_id)
                 entity_collection.insert_many(entites_with_sentence_ind)
-                if is_progress_logging and count % logging_interval == 0:
+                if logging_interval > 0 and count % logging_interval == 0:
                     logging.info('{} [PROGRESS] Processed {} articles in total.'.format(datetime.datetime.now(), count))
             except:
                 article_processed_collection.delete_one({'_id': article_primary_key.inserted_id})
