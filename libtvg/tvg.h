@@ -773,7 +773,7 @@ static inline int __vector_next_entry2(struct _vector_iter2 *iter, struct entry1
 
     for (;;)
     {
-        if (iter->entry1 != iter->end_entry1)
+        while (iter->entry1 != iter->end_entry1)
         {
             if ((iter->entry1->index & iter->end_index_m1) != iter->index)
             {
@@ -781,7 +781,7 @@ static inline int __vector_next_entry2(struct _vector_iter2 *iter, struct entry1
                 continue;
             }
 
-            if (iter->entry2 != iter->end_entry2)
+            while (iter->entry2 != iter->end_entry2)
             {
                 if ((iter->entry2->index & iter->end_index_m1) != iter->index)
                 {
@@ -806,27 +806,23 @@ static inline int __vector_next_entry2(struct _vector_iter2 *iter, struct entry1
                 }
                 return 1;
             }
-            else
-            {
-                *entry1 = iter->entry1++;
-                *entry2 = NULL;
-                return 1;
-            }
-        }
-        else
-        {
-            if (iter->entry2 != iter->end_entry2)
-            {
-                if ((iter->entry2->index & iter->end_index_m1) != iter->index)
-                {
-                    iter->entry2++;
-                    continue;
-                }
 
-                *entry1 = NULL;
-                *entry2 = iter->entry2++;
-                return 1;
+            *entry1 = iter->entry1++;
+            *entry2 = NULL;
+            return 1;
+        }
+
+        while (iter->entry2 != iter->end_entry2)
+        {
+            if ((iter->entry2->index & iter->end_index_m1) != iter->index)
+            {
+                iter->entry2++;
+                continue;
             }
+
+            *entry1 = NULL;
+            *entry2 = iter->entry2++;
+            return 1;
         }
 
         iter->index++;
@@ -1060,7 +1056,7 @@ static inline int __graph_vector_next_edge(struct _graph_vector_iter *iter, stru
     target = iter->index >> iter->graph->bits_source;
     for (;;)
     {
-        if (iter->entry2 != iter->end_entry2)
+        while (iter->entry2 != iter->end_entry2)
         {
             if ((iter->entry2->target & iter->mask) != target)
             {
