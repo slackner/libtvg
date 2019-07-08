@@ -109,14 +109,8 @@ if __name__ == "__main__":
         raise RuntimeError("article_processed_collection not specified")
     if 'entity_collection' not in source:
         raise RuntimeError("entity_collection not specified")
-    if 'logging_interval' in source:
-        try:
-            logging_interval = source['logging_interval']
-        except:
-            logging_interval = 0
-    else:
-        logging_interval = 0
 
+    logging_interval = source.get('logging_interval', 0)
     logging_filename = os.path.dirname(os.path.abspath(__file__)) + '/' + source.get('logging_filename', 'news_pipeline.log')
     logging.basicConfig(filename=logging_filename, level=logging.INFO)
 
