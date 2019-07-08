@@ -946,6 +946,262 @@ static inline int __graph_next_edge(struct _graph_iter *iter, struct entry2 **ed
 #define GRAPH_FOR_EACH_EDGE(_graph, _edge) \
     _GRAPH_FOR_EACH_EDGE((_graph), (_edge), _UNIQUE_VARIABLE(__iter_))
 
+struct _graph_iter2
+{
+    const struct graph *graph1;
+    const struct graph *graph2;
+
+    uint64_t       source;
+    uint64_t       target;
+    uint64_t       end_source_m1;  /* = mask */
+    uint64_t       end_target_m1;  /* = mask */
+
+    struct entry2 *edge1;
+    struct entry2 *end_edge1;
+
+    struct entry2 *edge2;
+    struct entry2 *end_edge2;
+};
+
+static inline struct _graph_iter2 __graph_for_each_edge2(const struct graph *graph1, const struct graph *graph2)
+{
+    struct _graph_iter2 iter;
+
+    iter.graph1    = graph1;
+    iter.graph2    = graph2;
+
+    iter.source    = 0;
+    iter.target    = 0;
+
+    if (graph1->bits_source > graph2->bits_source)
+        iter.end_source_m1 = (1ULL << graph1->bits_source) - 1;
+    else
+        iter.end_source_m1 = (1ULL << graph2->bits_source) - 1;
+
+    if (graph1->bits_target > graph2->bits_target)
+        iter.end_target_m1 = (1ULL << graph1->bits_target) - 1;
+    else
+        iter.end_target_m1 = (1ULL << graph2->bits_target) - 1;
+
+    iter.end_edge1 = __bucket2_for_each_entry(&graph1->buckets[0], &iter.edge1);
+    iter.end_edge2 = __bucket2_for_each_entry(&graph2->buckets[0], &iter.edge2);
+    return iter;
+}
+
+static inline int __graph_next_directed_edge2(struct _graph_iter2 *iter, struct entry2 **edge1, struct entry2 **edge2)
+{
+    if (iter->target > iter->end_target_m1)
+        return 0;
+
+    for (;;)
+    {
+        while (iter->edge1 != iter->end_edge1)
+        {
+            if ((iter->edge1->target & iter->end_target_m1) != iter->target ||
+                (iter->edge1->source & iter->end_source_m1) != iter->source)
+            {
+                iter->edge1++;
+                continue;
+            }
+
+            while (iter->edge2 != iter->end_edge2)
+            {
+                if ((iter->edge2->target & iter->end_target_m1) != iter->target ||
+                    (iter->edge2->source & iter->end_source_m1) != iter->source)
+                {
+                    iter->edge2++;
+                    continue;
+                }
+
+                if (iter->edge1->target < iter->edge2->target)
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = NULL;
+                }
+                else if (iter->edge1->target > iter->edge2->target)
+                {
+                    *edge1 = NULL;
+                    *edge2 = iter->edge2++;
+                }
+                else if (iter->edge1->source < iter->edge2->source)
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = NULL;
+                }
+                else if (iter->edge1->source > iter->edge2->source)
+                {
+                    *edge1 = NULL;
+                    *edge2 = iter->edge2++;
+                }
+                else
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = iter->edge2++;
+                }
+                return 1;
+            }
+
+            *edge1 = iter->edge1++;
+            *edge2 = NULL;
+            return 1;
+        }
+
+        while (iter->edge2 != iter->end_edge2)
+        {
+            if ((iter->edge2->target & iter->end_target_m1) != iter->target ||
+                (iter->edge2->source & iter->end_source_m1) != iter->source)
+            {
+                iter->edge2++;
+                continue;
+            }
+
+            *edge1 = NULL;
+            *edge2 = iter->edge2++;
+            return 1;
+        }
+
+        if (++iter->source > iter->end_source_m1)
+        {
+            iter->source = 0;
+            if (++iter->target > iter->end_target_m1)
+                break;
+        }
+
+        iter->end_edge1 = __bucket2_for_each_entry(&iter->graph1->buckets[(iter->target &
+            ((1ULL << iter->graph1->bits_target) - 1)) << iter->graph1->bits_source |
+            (iter->source & ((1ULL << iter->graph1->bits_source) - 1))], &iter->edge1);
+        iter->end_edge2 = __bucket2_for_each_entry(&iter->graph2->buckets[(iter->target &
+            ((1ULL << iter->graph2->bits_target) - 1)) << iter->graph2->bits_source |
+            (iter->source & ((1ULL << iter->graph2->bits_source) - 1))], &iter->edge2);
+    }
+
+    return 0;
+}
+
+#define _GRAPH_FOR_EACH_DIRECTED_EDGE2(_graph1, _edge1, _graph2, _edge2, _iter) \
+    for (struct _graph_iter2 (_iter) = __graph_for_each_edge2((_graph1), (_graph2)); __graph_next_directed_edge2(&(_iter), &(_edge1), &(_edge2));)
+
+/* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
+#define GRAPH_FOR_EACH_DIRECTED_EDGE2(_graph1, _edge1, _graph2, _edge2) \
+    _GRAPH_FOR_EACH_DIRECTED_EDGE2((_graph1), (_edge1), (_graph2), (_edge2), _UNIQUE_VARIABLE(__iter_))
+
+static inline int __graph_next_undirected_edge2(struct _graph_iter2 *iter, struct entry2 **edge1, struct entry2 **edge2)
+{
+    if (iter->target > iter->end_target_m1)
+        return 0;
+
+    for (;;)
+    {
+        while (iter->edge1 != iter->end_edge1)
+        {
+            if (iter->edge1->target < iter->edge1->source ||
+                (iter->edge1->target & iter->end_target_m1) != iter->target ||
+                (iter->edge1->source & iter->end_source_m1) != iter->source)
+            {
+                iter->edge1++;
+                continue;
+            }
+
+            while (iter->edge2 != iter->end_edge2)
+            {
+                if (iter->edge2->target < iter->edge2->source ||
+                    (iter->edge2->target & iter->end_target_m1) != iter->target ||
+                    (iter->edge2->source & iter->end_source_m1) != iter->source)
+                {
+                    iter->edge2++;
+                    continue;
+                }
+
+                if (iter->edge1->target < iter->edge2->target)
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = NULL;
+                }
+                else if (iter->edge1->target > iter->edge2->target)
+                {
+                    *edge1 = NULL;
+                    *edge2 = iter->edge2++;
+                }
+                else if (iter->edge1->source < iter->edge2->source)
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = NULL;
+                }
+                else if (iter->edge1->source > iter->edge2->source)
+                {
+                    *edge1 = NULL;
+                    *edge2 = iter->edge2++;
+                }
+                else
+                {
+                    *edge1 = iter->edge1++;
+                    *edge2 = iter->edge2++;
+                }
+                return 1;
+            }
+
+            *edge1 = iter->edge1++;
+            *edge2 = NULL;
+            return 1;
+        }
+
+        while (iter->edge2 != iter->end_edge2)
+        {
+            if (iter->edge2->target < iter->edge2->source ||
+                (iter->edge2->target & iter->end_target_m1) != iter->target ||
+                (iter->edge2->source & iter->end_source_m1) != iter->source)
+            {
+                iter->edge2++;
+                continue;
+            }
+
+            *edge1 = NULL;
+            *edge2 = iter->edge2++;
+            return 1;
+        }
+
+        if (++iter->source > iter->end_source_m1)
+        {
+            iter->source = 0;
+            if (++iter->target > iter->end_target_m1)
+                break;
+        }
+
+        iter->end_edge1 = __bucket2_for_each_entry(&iter->graph1->buckets[(iter->target &
+            ((1ULL << iter->graph1->bits_target) - 1)) << iter->graph1->bits_source |
+            (iter->source & ((1ULL << iter->graph1->bits_source) - 1))], &iter->edge1);
+        iter->end_edge2 = __bucket2_for_each_entry(&iter->graph2->buckets[(iter->target &
+            ((1ULL << iter->graph2->bits_target) - 1)) << iter->graph2->bits_source |
+            (iter->source & ((1ULL << iter->graph2->bits_source) - 1))], &iter->edge2);
+    }
+
+    return 0;
+}
+
+#define _GRAPH_FOR_EACH_UNDIRECTED_EDGE2(_graph1, _edge1, _graph2, _edge2, _iter) \
+    for (struct _graph_iter2 (_iter) = __graph_for_each_edge2((_graph1), (_graph2)); __graph_next_undirected_edge2(&(_iter), &(_edge1), &(_edge2));)
+
+/* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
+#define GRAPH_FOR_EACH_UNDIRECTED_EDGE2(_graph1, _edge1, _graph2, _edge2) \
+    _GRAPH_FOR_EACH_UNDIRECTED_EDGE2((_graph1), (_edge1), (_graph2), (_edge2), _UNIQUE_VARIABLE(__iter_))
+
+static inline int __graph_next_edge2(struct _graph_iter2 *iter, struct entry2 **edge1, struct entry2 **edge2)
+{
+    if (iter->graph1->flags & TVG_FLAGS_DIRECTED)
+        return __graph_next_directed_edge2(iter, edge1, edge2);
+    else if (iter->graph2->flags & TVG_FLAGS_DIRECTED)
+        return __graph_next_directed_edge2(iter, edge1, edge2);
+    else
+        return __graph_next_undirected_edge2(iter, edge1, edge2);
+}
+
+#define _GRAPH_FOR_EACH_EDGE2(_graph1, _edge1, _graph2, _edge2, _iter) \
+    for (struct _graph_iter2 (_iter) = __graph_for_each_edge2((_graph1), (_graph2)); __graph_next_edge2(&(_iter), &(_edge1), &(_edge2));)
+
+/* NOTE: Due to the internal bucket structure there is no guarantee about the sort order! */
+#define GRAPH_FOR_EACH_EDGE2(_graph1, _edge1, _graph2, _edge2) \
+    _GRAPH_FOR_EACH_EDGE2((_graph1), (_edge1), (_graph2), (_edge2), _UNIQUE_VARIABLE(__iter_))
+
 struct _graph_adjacent_iter
 {
     const struct graph *graph;

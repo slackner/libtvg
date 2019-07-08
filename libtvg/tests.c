@@ -1112,6 +1112,125 @@ static void test_vector_for_each_entry2(void)
     free_vector(vector2);
 }
 
+static void test_graph_for_each_edge2_directed(void)
+{
+    struct graph *graph1, *graph2;
+    struct entry2 *edge1, *edge2;
+    uint64_t num_edges = 0;
+    uint64_t i, j, count;
+    int c1, c2, ret;
+
+    graph1 = alloc_graph(TVG_FLAGS_DIRECTED);
+    graph2 = alloc_graph(TVG_FLAGS_DIRECTED);
+
+    for (i = 0; i < 100 * 100; i++)
+    {
+        if ((c1 = (random_float() < sqrt(0.5))))
+            graph_add_edge(graph1, i / 100, i % 100, 1.0);
+        if ((c2 = (random_float() < sqrt(0.5))))
+            graph_add_edge(graph2, i / 100, i % 100, 1.0);
+        num_edges += (c1 || c2);
+    }
+
+    while (graph_dec_bits_source(graph1)) {}
+    while (graph_dec_bits_target(graph1)) {}
+    while (graph_dec_bits_source(graph2)) {}
+    while (graph_dec_bits_target(graph2)) {}
+
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < 6; j++)
+        {
+            count = 0;
+            GRAPH_FOR_EACH_EDGE2(graph1, edge1, graph2, edge2)
+            {
+                if (edge1 && edge2) assert(edge1->source == edge2->source &&
+                                           edge1->target == edge2->target);
+                else if (edge1) assert(!graph_has_edge(graph2, edge1->source, edge1->target));
+                else if (edge2) assert(!graph_has_edge(graph1, edge2->source, edge2->target));
+                else assert(0);
+                count++;
+            }
+            assert(count == num_edges);
+
+            ret = graph_inc_bits_source(graph2);
+            assert(ret);
+            ret = graph_inc_bits_target(graph2);
+            assert(ret);
+        }
+
+        while (graph_dec_bits_source(graph2)) {}
+        while (graph_dec_bits_target(graph2)) {}
+        ret = graph_inc_bits_source(graph1);
+        assert(ret);
+        ret = graph_inc_bits_target(graph1);
+        assert(ret);
+    }
+
+    free_graph(graph1);
+    free_graph(graph2);
+}
+
+static void test_graph_for_each_edge2_undirected(void)
+{
+    struct graph *graph1, *graph2;
+    struct entry2 *edge1, *edge2;
+    uint64_t num_edges = 0;
+    uint64_t i, j, count;
+    int c1, c2, ret;
+
+    graph1 = alloc_graph(0);
+    graph2 = alloc_graph(0);
+
+    for (i = 0; i < 100 * 100; i++)
+    {
+        if (i % 100 < i / 100) continue;
+        if ((c1 = (random_float() < sqrt(0.5))))
+            graph_add_edge(graph1, i / 100, i % 100, 1.0);
+        if ((c2 = (random_float() < sqrt(0.5))))
+            graph_add_edge(graph2, i / 100, i % 100, 1.0);
+        num_edges += (c1 || c2);
+    }
+
+    while (graph_dec_bits_source(graph1)) {}
+    while (graph_dec_bits_target(graph1)) {}
+    while (graph_dec_bits_source(graph2)) {}
+    while (graph_dec_bits_target(graph2)) {}
+
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < 6; j++)
+        {
+            count = 0;
+            GRAPH_FOR_EACH_EDGE2(graph1, edge1, graph2, edge2)
+            {
+                if (edge1 && edge2) assert(edge1->source == edge2->source &&
+                                           edge1->target == edge2->target);
+                else if (edge1) assert(!graph_has_edge(graph2, edge1->source, edge1->target));
+                else if (edge2) assert(!graph_has_edge(graph1, edge2->source, edge2->target));
+                else assert(0);
+                count++;
+            }
+            assert(count == num_edges);
+
+            ret = graph_inc_bits_source(graph2);
+            assert(ret);
+            ret = graph_inc_bits_target(graph2);
+            assert(ret);
+        }
+
+        while (graph_dec_bits_source(graph2)) {}
+        while (graph_dec_bits_target(graph2)) {}
+        ret = graph_inc_bits_source(graph1);
+        assert(ret);
+        ret = graph_inc_bits_target(graph1);
+        assert(ret);
+    }
+
+    free_graph(graph1);
+    free_graph(graph2);
+}
+
 static void test_tvg_for_each_graph(void)
 {
     static const uint64_t mid = (1ULL << 63);
@@ -1482,6 +1601,8 @@ int main(void)
     test_load_nodes_from_file();
     test_vector_mul_vector();
     test_vector_for_each_entry2();
+    test_graph_for_each_edge2_directed();
+    test_graph_for_each_edge2_undirected();
     test_tvg_for_each_graph();
     test_graph_bfs();
     test_avl_tree();
