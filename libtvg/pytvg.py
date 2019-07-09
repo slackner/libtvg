@@ -410,6 +410,18 @@ lib.tvg_topics.restype = c_graph_p
 
 # Metric functions
 
+lib.metric_graph_avg.argtypes = (POINTER(c_graph_p), c_uint64)
+lib.metric_graph_avg.restype = c_graph_p
+
+lib.metric_vector_avg.argtypes = (POINTER(c_vector_p), c_uint64)
+lib.metric_vector_avg.restype = c_vector_p
+
+lib.metric_graph_std.argtypes = (POINTER(c_graph_p), c_uint64)
+lib.metric_graph_std.restype = c_graph_p
+
+lib.metric_vector_std.argtypes = (POINTER(c_vector_p), c_uint64)
+lib.metric_vector_std.restype = c_vector_p
+
 lib.metric_edge_stability_pareto.argtypes = (POINTER(c_graph_p), c_uint64, c_graph_p, c_float)
 lib.metric_edge_stability_pareto.restype = c_graph_p
 
@@ -671,6 +683,78 @@ def metric_stability_ratio(values):
             result[i] = np.abs(np.mean(values[i])) / std
         else:
             result[i] = np.inf
+
+    return result
+
+def metric_avg(values):
+    """
+    Compute the average of individual nodes/edges.
+
+    # Arguments
+    values: Values for each node or edge.
+
+    # Returns
+    Average for each node or edge.
+    """
+
+    if not isinstance(values, dict):
+        # Fast-path for list of Graphs and list of Vectors.
+
+        if all([isinstance(v, Graph) for v in values]):
+            objs = (c_graph_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Graph(obj=lib.metric_graph_avg(objs, len(values)))
+
+        if all([isinstance(v, Vector) for v in values]):
+            objs = (c_vector_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Vector(obj=lib.metric_vector_avg(objs, len(values)))
+
+    values = _convert_values(values)
+    if len(values) == 0:
+        return {}
+
+    result = {}
+    for i in values.keys():
+        result[i] = np.mean(values[i])
+
+    return result
+
+def metric_std(values):
+    """
+    Compute the standard deviation of individual nodes/edges
+
+    # Arguments
+    values: Values for each node or edge.
+
+    # Returns
+    Standard deviation for each node or edge.
+    """
+
+    if not isinstance(values, dict):
+        # Fast-path for list of Graphs and list of Vectors.
+
+        if all([isinstance(v, Graph) for v in values]):
+            objs = (c_graph_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Graph(obj=lib.metric_graph_std(objs, len(values)))
+
+        if all([isinstance(v, Vector) for v in values]):
+            objs = (c_vector_p * len(values))()
+            for i, v in enumerate(values):
+                objs[i] = v._obj
+            return Vector(obj=lib.metric_vector_std(objs, len(values)))
+
+    values = _convert_values(values)
+    if len(values) == 0:
+        return {}
+
+    result = {}
+    for i in values.keys():
+        result[i] = np.std(values[i], ddof=1)
 
     return result
 
@@ -4585,6 +4669,70 @@ if __name__ == '__main__':
             for i in range(100):
                 self.assertEqual(result2[i], result1[i])
             del result2
+            del vectors
+
+        def test_metric_avg(self):
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
+
+            result = metric_avg(values)
+            self.assertEqual(result, {(0, 0): 1.0, (0, 1): 1.0,
+                                      (1, 1): 1.0, (2, 2): 2.0})
+
+            # Fast-path for list of Graphs
+            graphs = [Graph.from_dict(v) for v in values]
+            result = metric_avg(graphs)
+            self.assertTrue(isinstance(result, Graph))
+            self.assertEqual(result.as_dict(), {(0, 0): 1.0, (0, 1): 1.0,
+                                                (1, 1): 1.0, (2, 2): 2.0})
+            del graphs
+
+            values = [
+                {0: 1.0, 1: 0.0, 2: 2.0, 3: 2.0},
+                {0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0},
+                {0: 1.0, 1: 2.0, 2: 0.0, 3: 2.0},
+            ]
+
+            # Fast-path for list of Vectors
+            vectors = [Vector.from_dict(v) for v in values]
+            result = metric_avg(vectors)
+            self.assertTrue(isinstance(result, Vector))
+            self.assertEqual(result.as_dict(), {0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0})
+            del vectors
+
+        def test_metric_std(self):
+            values = [
+                {(0, 0): 1.0, (0, 1): 0.0, (1, 1): 2.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 1.0, (0, 1): 2.0, (1, 1): 0.0, (2, 2): 2.0},
+            ]
+
+            result = metric_std(values)
+            self.assertEqual(result, {(0, 0): 0.0, (0, 1): 1.0,
+                                      (1, 1): 1.0, (2, 2): 0.0})
+
+            # Fast-path for list of Graphs
+            graphs = [Graph.from_dict(v) for v in values]
+            result = metric_std(graphs)
+            self.assertTrue(isinstance(result, Graph))
+            self.assertEqual(result.as_dict(), {(0, 0): 0.0, (0, 1): 1.0,
+                                                (1, 1): 1.0, (2, 2): 0.0})
+            del graphs
+
+            values = [
+                {0: 1.0, 1: 0.0, 2: 2.0, 3: 2.0},
+                {0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0},
+                {0: 1.0, 1: 2.0, 2: 0.0, 3: 2.0},
+            ]
+
+            # Fast-path for list of Vectors
+            vectors = [Vector.from_dict(v) for v in values]
+            result = metric_std(vectors)
+            self.assertTrue(isinstance(result, Vector))
+            self.assertEqual(result.as_dict(), {0: 0.0, 1: 1.0, 2: 1.0, 3: 0.0})
             del vectors
 
     class MongoDBTests(unittest.TestCase):

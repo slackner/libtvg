@@ -43,6 +43,190 @@ static int _sort_node_stability(const void *a, const void *b, void *userdata)
     return COMPARE(sa->value2, sb->value2);
 }
 
+struct graph *metric_graph_avg(struct graph **graphs, uint64_t num_graphs)
+{
+    struct graph *result;
+    uint32_t graph_flags;
+    uint64_t i;
+
+    if (!num_graphs)
+        return NULL;
+
+    graph_flags = graphs[0]->flags & TVG_FLAGS_DIRECTED;
+    for (i = 1; i < num_graphs; i++)
+    {
+        if ((graph_flags ^ graphs[i]->flags) & TVG_FLAGS_DIRECTED)
+            return NULL;
+    }
+
+    if (!(result = alloc_graph(graph_flags)))
+        return NULL;
+
+    for (i = 0; i < num_graphs; i++)
+    {
+        if (!graph_add_graph(result, graphs[i], 1.0))
+            goto error;
+    }
+
+    if (!graph_mul_const(result, 1.0 / num_graphs))
+        goto error;
+
+    return result;
+
+error:
+    free_graph(result);
+    return NULL;
+}
+
+struct vector *metric_vector_avg(struct vector **vectors, uint64_t num_vectors)
+{
+    struct vector *result;
+    uint64_t i;
+
+    if (!num_vectors)
+        return NULL;
+
+    if (!(result = alloc_vector(0)))
+        return NULL;
+
+    for (i = 0; i < num_vectors; i++)
+    {
+        if (!vector_add_vector(result, vectors[i], 1.0))
+            goto error;
+    }
+
+    if (!vector_mul_const(result, 1.0 / num_vectors))
+        goto error;
+
+    return result;
+
+error:
+    free_vector(result);
+    return NULL;
+}
+
+struct graph *metric_graph_std(struct graph **graphs, uint64_t num_graphs)
+{
+    struct entry2 *edge1, *edge2;
+    struct graph *average;
+    struct graph *result;
+    float weight;
+    uint64_t i;
+
+    if (num_graphs < 2)
+        return NULL;
+
+    if (!(average = metric_graph_avg(graphs, num_graphs)))
+        return NULL;
+
+    if (!(result = alloc_graph(average->flags & TVG_FLAGS_DIRECTED)))
+    {
+        free_graph(average);
+        return NULL;
+    }
+
+    for (i = 0; i < num_graphs; i++)
+    {
+        GRAPH_FOR_EACH_EDGE2(graphs[i], edge1, average, edge2)
+        {
+            if (edge1 && edge2)
+            {
+                weight = edge1->weight - edge2->weight;
+                if (!graph_add_edge(result, edge1->source, edge1->target, weight * weight))
+                    goto error;
+            }
+            else if (edge1)
+            {
+                if (!graph_add_edge(result, edge1->source, edge1->target,
+                                    edge1->weight * edge1->weight))
+                    goto error;
+            }
+            else
+            {
+                if (!graph_add_edge(result, edge2->source, edge2->target,
+                                    edge2->weight * edge2->weight))
+                    goto error;
+            }
+        }
+    }
+
+    if (!graph_mul_const(result, 1.0 / (num_graphs - 1)))
+        goto error;
+
+    GRAPH_FOR_EACH_EDGE(result, edge1)
+    {
+        edge1->weight = sqrt(edge1->weight);
+    }
+
+    free_graph(average);
+    return result;
+
+error:
+    free_graph(average);
+    free_graph(result);
+    return NULL;
+}
+
+struct vector *metric_vector_std(struct vector **vectors, uint64_t num_vectors)
+{
+    struct entry1 *entry1, *entry2;
+    struct vector *average;
+    struct vector *result;
+    float weight;
+    uint64_t i;
+
+    if (num_vectors < 2)
+        return NULL;
+
+    if (!(average = metric_vector_avg(vectors, num_vectors)))
+        return NULL;
+
+    if (!(result = alloc_vector(0)))
+    {
+        free_vector(average);
+        return NULL;
+    }
+
+    for (i = 0; i < num_vectors; i++)
+    {
+        VECTOR_FOR_EACH_ENTRY2(vectors[i], entry1, average, entry2)
+        {
+            if (entry1 && entry2)
+            {
+                weight = entry1->weight - entry2->weight;
+                if (!vector_add_entry(result, entry1->index, weight * weight))
+                    goto error;
+            }
+            else if (entry1)
+            {
+                if (!vector_add_entry(result, entry1->index, entry1->weight * entry1->weight))
+                    goto error;
+            }
+            else
+            {
+                if (!vector_add_entry(result, entry2->index, entry2->weight * entry2->weight))
+                    goto error;
+            }
+        }
+    }
+
+    if (!vector_mul_const(result, 1.0 / (num_vectors - 1)))
+        goto error;
+
+    VECTOR_FOR_EACH_ENTRY(result, entry1)
+    {
+        entry1->weight = sqrt(entry1->weight);
+    }
+
+    free_vector(average);
+    return result;
+
+error:
+    free_vector(average);
+    free_vector(result);
+    return NULL;
+}
+
 struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs,
                                            struct graph *override_mean, float base)
 {
