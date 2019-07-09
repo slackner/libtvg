@@ -227,68 +227,49 @@ error:
     return NULL;
 }
 
-struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs,
-                                           struct graph *override_mean, float base)
+struct graph *metric_graph_pareto(struct graph *graph1, struct graph *graph2,
+                                  int maximize1, int maximize2, float base)
 {
     struct edge_stability *next_stability;
     struct edge_stability *stability;
     struct edge_stability *best;
-    struct array *array = NULL;
-    struct graph *result;
+    struct entry2 *edge1, *edge2;
+    struct graph *result = NULL;
     uint32_t graph_flags;
-    struct entry2 *edge;
-    float sum2, temp;
+    struct array *array;
     float weight = 1.0;
     struct list queue;
-    float mean;
     uint64_t i;
     int ret = 0;
 
-    if (!num_graphs)
-        return NULL;
-
-    graph_flags = graphs[0]->flags & TVG_FLAGS_DIRECTED;
-    for (i = 1; i < num_graphs; i++)
-    {
-        if ((graph_flags ^ graphs[i]->flags) & TVG_FLAGS_DIRECTED)
-            return NULL;
-    }
-
-    if (!(result = alloc_graph(graph_flags)))
-        return NULL;
-
-    for (i = 0; i < num_graphs; i++)
-    {
-        if (!graph_add_graph(result, graphs[i], 1.0))
-            goto error;
-    }
-
-    if (!graph_mul_const(result, 1.0 / num_graphs))
-        goto error;
-
     if (!(array = alloc_array(sizeof(struct edge_stability))))
-        goto error;
+        return NULL;
 
-    GRAPH_FOR_EACH_EDGE(override_mean ? override_mean : result, edge)
+    GRAPH_FOR_EACH_EDGE2(graph1, edge1, graph2, edge2)
     {
-        mean = override_mean ? graph_get_edge(result, edge->source, edge->target) : edge->weight;
-        sum2 = 0.0;
-        for (i = 0; i < num_graphs; i++)
-        {
-            temp = graph_get_edge(graphs[i], edge->source, edge->target) - mean;
-            sum2 += temp * temp;
-        }
-
         if (!(stability = array_append_empty(array)))
             goto error;
 
-        stability->source = edge->source;
-        stability->target = edge->target;
-        stability->value1 = -edge->weight;
-        stability->value2 = sum2; /* actually sqrt(sum2 / (num_graphs - 1)); */
+        if (edge1)
+        {
+            stability->source = edge1->source;
+            stability->target = edge1->target;
+            stability->value1 = edge1->weight;
+        }
+        else
+        {
+            stability->source = edge2->source;
+            stability->target = edge2->target;
+            stability->value1 = 0.0;
+        }
+
+        stability->value2 = edge2 ? edge2->weight : 0.0;
+
+        if (maximize1) stability->value1 = -stability->value1;
+        if (maximize2) stability->value2 = -stability->value2;
     }
 
-    free_graph(result);
+    graph_flags = (graph1->flags | graph2->flags) & TVG_FLAGS_DIRECTED;
     if (!(result = alloc_graph(graph_flags | TVG_FLAGS_POSITIVE)))
         goto error;
 
@@ -335,59 +316,45 @@ error:
     return result;
 }
 
-struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors,
-                                            struct vector *override_mean, float base)
+struct vector *metric_vector_pareto(struct vector *vector1, struct vector *vector2,
+                                    int maximize1, int maximize2, float base)
 {
     struct node_stability *next_stability;
     struct node_stability *stability;
     struct node_stability *best;
-    struct array *array = NULL;
-    struct vector *result;
-    struct entry1 *entry;
-    float sum2, temp;
+    struct entry1 *entry1, *entry2;
+    struct vector *result = NULL;
+    struct array *array;
     float weight = 1.0;
     struct list queue;
-    float mean;
     uint64_t i;
     int ret = 0;
 
-    if (!num_vectors)
-        return NULL;
-
-    if (!(result = alloc_vector(0)))
-        return NULL;
-
-    for (i = 0; i < num_vectors; i++)
-    {
-        if (!vector_add_vector(result, vectors[i], 1.0))
-            goto error;
-    }
-
-    if (!vector_mul_const(result, 1.0 / num_vectors))
-        goto error;
-
     if (!(array = alloc_array(sizeof(struct node_stability))))
-        goto error;
+        return NULL;
 
-    VECTOR_FOR_EACH_ENTRY(override_mean ? override_mean : result, entry)
+    VECTOR_FOR_EACH_ENTRY2(vector1, entry1, vector2, entry2)
     {
-        mean = override_mean ? vector_get_entry(result, entry->index) : entry->weight;
-        sum2 = 0.0;
-        for (i = 0; i < num_vectors; i++)
-        {
-            temp = vector_get_entry(vectors[i], entry->index) - mean;
-            sum2 += temp * temp;
-        }
-
         if (!(stability = array_append_empty(array)))
             goto error;
 
-        stability->index  = entry->index;
-        stability->value1 = -entry->weight;
-        stability->value2 = sum2; /* actually sqrt(sum2 / (num_vectors - 1)); */
+        if (entry1)
+        {
+            stability->index  = entry1->index;
+            stability->value1 = entry1->weight;
+        }
+        else
+        {
+            stability->index  = entry2->index;
+            stability->value1 = 0.0;
+        }
+
+        stability->value2 = entry2 ? entry2->weight : 0.0;
+
+        if (maximize1) stability->value1 = -stability->value1;
+        if (maximize2) stability->value2 = -stability->value2;
     }
 
-    free_vector(result);
     if (!(result = alloc_vector(TVG_FLAGS_POSITIVE)))
         goto error;
 

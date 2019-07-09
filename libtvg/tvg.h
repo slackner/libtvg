@@ -1738,10 +1738,10 @@ struct vector *metric_vector_avg(struct vector **vectors, uint64_t num_vectors);
 struct graph *metric_graph_std(struct graph **graphs, uint64_t num_graphs);
 struct vector *metric_vector_std(struct vector **vectors, uint64_t num_vectors);
 
-struct graph *metric_edge_stability_pareto(struct graph **graphs, uint64_t num_graphs,
-                                           struct graph *override_mean, float base);
-struct vector *metric_node_stability_pareto(struct vector **vectors, uint64_t num_vectors,
-                                            struct vector *override_mean, float base);
+struct graph *metric_graph_pareto(struct graph *graph1, struct graph *graph2,
+                                  int maximize1, int maximize2, float base);
+struct vector *metric_vector_pareto(struct vector *vector1, struct vector *vector2,
+                                    int maximize1, int maximize2, float base);
 
 /* MongoDB functions */
 

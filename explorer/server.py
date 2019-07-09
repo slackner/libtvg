@@ -141,8 +141,9 @@ class Client(WebSocket):
         elif self.context['edgeWeight'] == 'stable_topics':
             graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
             graphs = [g.normalize() for g in graphs]
+            stddev = pytvg.metric_std(graphs)
             topics = dataset_tvg.topics(ts_min, ts_max)
-            graph = pytvg.metric_stability_pareto(graphs, mean=topics, base=0.5)
+            graph = pytvg.metric_pareto([topics, stddev], maximize=[True, False], base=0.5)
             seeds, _ = graph.top_edges(8, ret_weights=False)
             subgraph = topics.sparse_subgraph(seeds=seeds)
             for i, j in seeds:

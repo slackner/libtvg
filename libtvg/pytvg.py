@@ -422,11 +422,11 @@ lib.metric_graph_std.restype = c_graph_p
 lib.metric_vector_std.argtypes = (POINTER(c_vector_p), c_uint64)
 lib.metric_vector_std.restype = c_vector_p
 
-lib.metric_edge_stability_pareto.argtypes = (POINTER(c_graph_p), c_uint64, c_graph_p, c_float)
-lib.metric_edge_stability_pareto.restype = c_graph_p
+lib.metric_graph_pareto.argtypes = (c_graph_p, c_graph_p, c_int, c_int, c_float)
+lib.metric_graph_pareto.restype = c_graph_p
 
-lib.metric_node_stability_pareto.argtypes = (POINTER(c_vector_p), c_uint64, c_vector_p, c_float)
-lib.metric_node_stability_pareto.restype = c_vector_p
+lib.metric_vector_pareto.argtypes = (c_vector_p, c_vector_p, c_int, c_int, c_float)
+lib.metric_vector_pareto.restype = c_vector_p
 
 # MongoDB functions
 
@@ -758,49 +758,44 @@ def metric_std(values):
 
     return result
 
-def metric_stability_pareto(values, mean=None, base=0.0):
+def metric_pareto(values, maximize=True, base=0.0):
     """
-    Rate the stability of individual nodes/edges by ranking their average and standard deviation.
+    Compute the pareto ranking of two graphs or vectors.
 
-    # Arguments
+    # Arguments:
     values: Values for each node or edge.
-    mean: Override mean (currently only for Graphs and Vectors).
+    maximize: Defines which values should be maximized/minimized.
     base: Use `base**(index - 1)` as weight instead of `index`.
 
     # Returns
-    Dictionary containing the metric for each node or edge.
+    Metric for each node or edge.
     """
 
-    if not isinstance(values, dict):
-        # Fast-path for list of Graphs and list of Vectors. In this
-        # case we can let libtvg do the pareto rank computation.
+    if maximize in [True, False]:
+        maximize = [maximize] * len(values)
 
-        if all([isinstance(v, Graph) for v in values]):
-            objs = (c_graph_p * len(values))()
-            for i, v in enumerate(values):
-                objs[i] = v._obj
-            mean_obj = mean._obj if mean else None
-            return Graph(obj=lib.metric_edge_stability_pareto(objs, len(values), mean_obj, base))
+    if len(maximize) != len(values):
+        raise NotImplementedError("Wrong number of maximize parameters")
 
-        if all([isinstance(v, Vector) for v in values]):
-            objs = (c_vector_p * len(values))()
-            for i, v in enumerate(values):
-                objs[i] = v._obj
-            mean_obj = mean._obj if mean else None
-            return Vector(obj=lib.metric_node_stability_pareto(objs, len(values), mean_obj, base))
+    if len(values) == 2 and all([isinstance(v, Graph) for v in values]):
+        return Graph(obj=lib.metric_graph_pareto(values[0]._obj, values[1]._obj,
+                                                 maximize[0], maximize[1], base))
 
-    if mean is not None:
-        raise NotImplementedError("mean parameter not implemented")
+    if len(values) == 2 and all([isinstance(v, Vector) for v in values]):
+        return Vector(obj=lib.metric_vector_pareto(values[0]._obj, values[1]._obj,
+                                                   maximize[0], maximize[1], base))
 
     values = _convert_values(values)
     if len(values) == 0:
         return {}
 
+    weights = np.array([(-1 if m else 1) for m in maximize])
+
     nodes = []
     costs = []
     for i in values.keys():
         nodes.append(i)
-        costs.append([-np.mean(values[i]), np.std(values[i])])
+        costs.append(np.multiply(values[i], weights))
 
     nodes = np.array(nodes)
     costs = np.array(costs)
@@ -828,6 +823,22 @@ def metric_stability_pareto(values, mean=None, base=0.0):
             weight *= base
 
     return result
+
+def metric_stability_pareto(values, base=0.0):
+    """
+    Rate the stability of individual nodes/edges by ranking their average and standard deviation.
+
+    # Arguments
+    values: Values for each node or edge.
+    base: Use `base**(index - 1)` as weight instead of `index`.
+
+    # Returns
+    Metric for each node or edge.
+    """
+
+    avg = metric_avg(values)
+    std = metric_std(values)
+    return metric_pareto([avg, std], maximize=[True, False], base=base)
 
 @libtvgobject
 class Vector(object):
@@ -4733,6 +4744,49 @@ if __name__ == '__main__':
             result = metric_std(vectors)
             self.assertTrue(isinstance(result, Vector))
             self.assertEqual(result.as_dict(), {0: 0.0, 1: 1.0, 2: 1.0, 3: 0.0})
+            del vectors
+
+        def test_metric_pareto(self):
+            values = [
+                {(0, 0): 1.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 2.0},
+                {(0, 0): 0.0, (0, 1): 1.0, (1, 1): 1.0, (2, 2): 0.0},
+            ]
+
+            result = metric_pareto(values, maximize=[True, False])
+            self.assertEqual(result, {(0, 0): 2.0, (0, 1): 3.0,
+                                      (1, 1): 3.0, (2, 2): 1.0})
+
+            result = metric_pareto(list(reversed(values)), maximize=[False, True])
+            self.assertEqual(result, {(0, 0): 2.0, (0, 1): 3.0,
+                                      (1, 1): 3.0, (2, 2): 1.0})
+
+            # Fast-path for list of Graphs
+            graphs = [Graph.from_dict(v) for v in values]
+            result = metric_pareto(graphs, maximize=[True, False])
+            self.assertTrue(isinstance(result, Graph))
+            self.assertEqual(result.as_dict(), {(0, 0): 2.0, (0, 1): 3.0,
+                                                (1, 1): 3.0, (2, 2): 1.0})
+
+            result = metric_pareto(list(reversed(graphs)), maximize=[False, True])
+            self.assertTrue(isinstance(result, Graph))
+            self.assertEqual(result.as_dict(), {(0, 0): 2.0, (0, 1): 3.0,
+                                                (1, 1): 3.0, (2, 2): 1.0})
+            del graphs
+
+            values = [
+                {0: 1.0, 1: 1.0, 2: 1.0, 3: 2.0},
+                {0: 0.0, 1: 1.0, 2: 1.0, 3: 0.0},
+            ]
+
+            # Fast-path for list of Vectors
+            vectors = [Vector.from_dict(v) for v in values]
+            result = metric_pareto(vectors, maximize=[True, False])
+            self.assertTrue(isinstance(result, Vector))
+            self.assertEqual(result.as_dict(), {0: 2.0, 1: 3.0, 2: 3.0, 3: 1.0})
+
+            result = metric_pareto(list(reversed(vectors)), maximize=[False, True])
+            self.assertTrue(isinstance(result, Vector))
+            self.assertEqual(result.as_dict(), {0: 2.0, 1: 3.0, 2: 3.0, 3: 1.0})
             del vectors
 
     class MongoDBTests(unittest.TestCase):
