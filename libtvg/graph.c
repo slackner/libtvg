@@ -1093,6 +1093,7 @@ struct graph *graph_normalize(const struct graph *graph)
     uint32_t graph_flags;
     struct entry2 *edge;
     float weight;
+    int ret = 0;
 
     if (!(out_weights = graph_out_weights(graph)))
         return NULL;
@@ -1114,10 +1115,17 @@ struct graph *graph_normalize(const struct graph *graph)
         weight = vector_get_entry(out_weights, edge->source) *
                  vector_get_entry(in_weights,  edge->target);
         if (!graph_add_edge(result, edge->source, edge->target, edge->weight / weight))
-            return 0;
+            goto error;
     }
 
+    ret = 1;
+
 error:
+    if (!ret)
+    {
+        free_graph(result);
+        result = NULL;
+    }
     free_vector(in_weights);
     free_vector(out_weights);
     return result;
