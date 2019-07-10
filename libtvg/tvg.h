@@ -1597,6 +1597,7 @@ int vector_del_entry(struct vector *vector, uint64_t index);
 int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
 
 int vector_mul_const(struct vector *vector, float constant);
+double vector_sum_weights(const struct vector *vector);
 double vector_norm(const struct vector *vector);
 double vector_mul_vector(const struct vector *vector1, const struct vector *vector2);
 double vector_sub_vector_norm(const struct vector *vector1, const struct vector *vector2);

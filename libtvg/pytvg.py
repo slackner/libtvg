@@ -191,6 +191,9 @@ lib.vector_del_entries.restype = c_int
 
 lib.vector_mul_const.argtypes = (c_vector_p, c_float)
 
+lib.vector_sum_weights.argtypes = (c_vector_p,)
+lib.vector_sum_weights.restype = c_double
+
 lib.vector_norm.argtypes = (c_vector_p,)
 lib.vector_norm.restype = c_double
 
@@ -1171,6 +1174,11 @@ class Vector(object):
         res = lib.vector_mul_const(self._obj, constant)
         if not res:
             raise RuntimeError
+
+    @cacheable
+    def sum_weights(self):
+        """ Compute the sum of all weights. """
+        return lib.vector_sum_weights(self._obj)
 
     @cacheable
     def norm(self):
@@ -2584,6 +2592,8 @@ if __name__ == '__main__':
             self.assertGreater(v.memory_usage, mem)
             revisions.append(v.revision)
 
+            self.assertEqual(v.sum_weights(), 285.0)
+            self.assertEqual(v.sum_weights(drop_cache=True), 285.0)
             self.assertEqual(v.norm(), math.sqrt(15333.0))
             self.assertEqual(v.norm(drop_cache=True), math.sqrt(15333.0))
             self.assertEqual(v.mul_vector(v), 15333.0)

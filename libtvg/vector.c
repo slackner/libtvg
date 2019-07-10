@@ -460,6 +460,19 @@ int vector_mul_const(struct vector *vector, float constant)
     return vector->ops->mul_const(vector, constant);
 }
 
+double vector_sum_weights(const struct vector *vector)
+{
+    struct entry1 *entry;
+    double sum = 0.0;
+
+    VECTOR_FOR_EACH_ENTRY(vector, entry)
+    {
+        sum += entry->weight;
+    }
+
+    return sum;
+}
+
 double vector_norm(const struct vector *vector)
 {
     struct entry1 *entry;
