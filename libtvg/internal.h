@@ -90,8 +90,8 @@ struct query_ops
 
     /* helpers for query_compute: */
     int       (*compatible)(struct query *, struct query *);
-    int       (*add_graph)(struct query *, struct graph *, float);
-    int       (*add_query)(struct query *, struct query *, float);
+    int       (*add_graph)(struct query *, struct graph *, int64_t);
+    int       (*add_query)(struct query *, struct query *, int64_t);
     void      (*finalize)(struct query *);
 };
 

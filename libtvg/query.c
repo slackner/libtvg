@@ -304,13 +304,13 @@ static int query_sum_edges_compatible(struct query *query_base, struct query *ot
     return 1;
 }
 
-static int query_sum_edges_add_graph(struct query *query_base, struct graph *graph, float weight)
+static int query_sum_edges_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
     return graph_add_graph(query->result, graph, weight);
 }
 
-static int query_sum_edges_add_query(struct query *query_base, struct query *other_base, float weight)
+static int query_sum_edges_add_query(struct query *query_base, struct query *other_base, int64_t weight)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
     struct query_sum_edges *other = QUERY_SUM_EDGES(other_base);
@@ -416,19 +416,19 @@ static int query_sum_edges_exp_compatible(struct query *query_base, struct query
     return (weight <= 1000.0);  /* FIXME: Arbitrary limit. */
 }
 
-static int query_sum_edges_exp_add_graph(struct query *query_base, struct graph *graph, float weight)
+static int query_sum_edges_exp_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
-    weight *= query->weight * (float)exp(query->log_beta * sub_uint64(query->base.ts_max, graph->ts));
-    return graph_add_graph(query->result, graph, weight);
+    float total_weight = weight * query->weight * (float)exp(query->log_beta * sub_uint64(query->base.ts_max, graph->ts));
+    return graph_add_graph(query->result, graph, total_weight);
 }
 
-static int query_sum_edges_exp_add_query(struct query *query_base, struct query *other_base, float weight)
+static int query_sum_edges_exp_add_query(struct query *query_base, struct query *other_base, int64_t weight)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
     struct query_sum_edges_exp *other = QUERY_SUM_EDGES_EXP(other_base);
-    weight *= (float)exp(query->log_beta * sub_uint64(query->base.ts_max, other->base.ts_max));
-    return graph_add_graph(query->result, other->result, weight);
+    float total_weight = weight * (float)exp(query->log_beta * sub_uint64(query->base.ts_max, other->base.ts_max));
+    return graph_add_graph(query->result, other->result, total_weight);
 }
 
 static void query_sum_edges_exp_finalize(struct query *query_base)
@@ -511,13 +511,13 @@ static int query_count_edges_compatible(struct query *query_base, struct query *
     return (other_base->ops == &query_count_edges_ops);
 }
 
-static int query_count_edges_add_graph(struct query *query_base, struct graph *graph, float weight)
+static int query_count_edges_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
     return graph_add_count_edges(query->result, graph, weight);
 }
 
-static int query_count_edges_add_query(struct query *query_base, struct query *other_base, float weight)
+static int query_count_edges_add_query(struct query *query_base, struct query *other_base, int64_t weight)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
     struct query_count_edges *other = QUERY_COUNT_EDGES(other_base);
@@ -599,13 +599,13 @@ static int query_count_nodes_compatible(struct query *query_base, struct query *
     return (other_base->ops == &query_count_nodes_ops);
 }
 
-static int query_count_nodes_add_graph(struct query *query_base, struct graph *graph, float weight)
+static int query_count_nodes_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
     return vector_add_count_nodes(query->result, graph, weight);
 }
 
-static int query_count_nodes_add_query(struct query *query_base, struct query *other_base, float weight)
+static int query_count_nodes_add_query(struct query *query_base, struct query *other_base, int64_t weight)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
     struct query_count_nodes *other = QUERY_COUNT_NODES(other_base);
