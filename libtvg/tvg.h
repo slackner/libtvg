@@ -227,6 +227,13 @@ struct query_count_nodes
     struct vector *result;
 };
 
+struct query_count_graphs
+{
+    struct query base;
+    uint64_t    refcount;
+    uint64_t    result;
+};
+
 struct mongodb_config
 {
     char       *uri;
@@ -1729,6 +1736,7 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
                                        float weight, float log_beta, float eps);
 struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
+uint64_t tvg_count_graphs(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 
 /* Metric functions */

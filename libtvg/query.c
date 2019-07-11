@@ -656,6 +656,91 @@ struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max
     return (struct vector *)query_compute(tvg, &query->base);
 }
 
+/* query_count_graphs functions */
+
+const struct query_ops query_count_graphs_ops;
+
+static inline struct query_count_graphs *QUERY_COUNT_GRAPHS(struct query *query_base)
+{
+    assert(query_base->ops == &query_count_graphs_ops);
+    return CONTAINING_RECORD(query_base, struct query_count_graphs, base);
+}
+
+static void *query_count_graphs_grab(struct query *query_base)
+{
+    struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
+    __sync_fetch_and_add(&query->refcount, 1);
+    return query;
+}
+
+static void query_count_graphs_free(struct query *query_base)
+{
+    struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
+    if (__sync_sub_and_fetch(&query->refcount, 1)) return;
+    free_query(query_base);
+}
+
+static int query_count_graphs_compatible(struct query *query_base, struct query *other_base)
+{
+    return (other_base->ops == &query_count_graphs_ops);
+}
+
+static int query_count_graphs_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
+{
+    struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
+    query->result += weight;
+    return 1;
+}
+
+static int query_count_graphs_add_query(struct query *query_base, struct query *other_base, int64_t weight)
+{
+    struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
+    struct query_count_graphs *other = QUERY_COUNT_GRAPHS(other_base);
+    query->result += other->result * weight;
+    return 1;
+}
+
+static void query_count_graphs_finalize(struct query *query_base)
+{
+    struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
+    query->base.cache = sizeof(*query);
+}
+
+const struct query_ops query_count_graphs_ops =
+{
+    query_count_graphs_grab,
+    query_count_graphs_free,
+
+    query_count_graphs_compatible,
+    query_count_graphs_add_graph,
+    query_count_graphs_add_query,
+    query_count_graphs_finalize,
+};
+
+uint64_t tvg_count_graphs(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
+{
+    struct query_count_graphs *query;
+    uint64_t result;
+
+    if (ts_max < ts_min)
+        return ~0ULL;
+
+    if (!(query = malloc(sizeof(*query))))
+        return ~0ULL;
+
+    query_init(&query->base, &query_count_graphs_ops, ts_min, ts_max);
+
+    query->refcount = 1;
+    query->result   = 0;
+
+    if (!(query = (struct query_count_graphs *)query_compute(tvg, &query->base)))
+        return ~0ULL;
+
+    result = query->result;
+    query->base.ops->free(&query->base);
+    return result;
+}
+
 /* query_topics functions */
 
 struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)

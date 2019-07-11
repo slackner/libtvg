@@ -408,6 +408,9 @@ lib.tvg_count_edges.restype = c_graph_p
 lib.tvg_count_nodes.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_count_nodes.restype = c_vector_p
 
+lib.tvg_count_graphs.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_graphs.restype = c_uint64
+
 lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_topics.restype = c_graph_p
 
@@ -2387,6 +2390,26 @@ class TVG(object):
 
         return Vector(obj=lib.tvg_count_nodes(self._obj, ts_min, ts_max))
 
+    def count_graphs(self, ts_min, ts_max):
+        """
+        Count graphs in a given timeframe [ts_min, ts_max].
+
+        # Arguments
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
+        """
+
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
+
+        res = lib.tvg_count_graphs(self._obj, ts_min, ts_max)
+        if res == 0xffffffffffffffff:
+            raise MemoryError
+
+        return res
+
     def topics(self, ts_min, ts_max):
         """
         Extract network topics in the timeframe [ts_min, ts_max].
@@ -4138,6 +4161,45 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
+
+            del tvg
+
+        def test_count_graphs(self):
+            tvg = TVG(positive=True)
+            tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
+
+            g = Graph()
+            tvg.link_graph(g, 100)
+
+            g = Graph()
+            tvg.link_graph(g, 200)
+            g = Graph()
+            tvg.link_graph(g, 200)
+
+            g = Graph()
+            tvg.link_graph(g, 300)
+            g = Graph()
+            tvg.link_graph(g, 300)
+            g = Graph()
+            tvg.link_graph(g, 300)
+
+            with self.assertRaises(MemoryError):
+                tvg.count_graphs(1, 0)
+
+            c = tvg.count_graphs(51, 150)
+            self.assertEqual(c, 1)
+
+            c = tvg.count_graphs(151, 250)
+            self.assertEqual(c, 2)
+
+            c = tvg.count_graphs(251, 350)
+            self.assertEqual(c, 3)
+
+            c = tvg.count_graphs(51, 150)
+            self.assertEqual(c, 1)
+
+            c = tvg.count_graphs(51, 350)
+            self.assertEqual(c, 6)
 
             del tvg
 
