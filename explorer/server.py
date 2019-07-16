@@ -248,6 +248,7 @@ class Client(WebSocket):
                 ne = node['NE']
                 color = self.context['nodeTypes'][ne]['color']
             except KeyError:
+                ne = None
                 color = self.context['defaultColor']
 
             attrs = {
