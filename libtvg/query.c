@@ -743,17 +743,20 @@ uint64_t tvg_count_graphs(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
 /* query_topics functions */
 
-struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
+struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint64_t step, uint64_t offset)
 {
+    uint64_t ts_snap_min, ts_snap_max;
     struct vector *count_nodes = NULL;
+    struct graph **snapshots = NULL;
     struct graph *count_edges = NULL;
     struct graph *sum_edges = NULL;
     struct graph *result = NULL;
+    uint64_t num_snapshots = 0;
     uint32_t graph_flags;
     struct entry2 *edge;
-    float w_jaccard;
-    float w_mindist;
+    uint64_t count;
     float weight;
+    uint64_t i;
 
     if (ts_max < ts_min)
         return NULL;
@@ -769,6 +772,45 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
             fprintf(stderr, "%s: Topic query requires that sum_weights=False\n", __func__);
             return NULL;
         }
+    }
+
+    if (step)
+    {
+        offset -= (offset / step) * step;
+
+        if (ts_max < offset)
+            num_snapshots = 1;
+        else if (ts_min < offset)
+            num_snapshots = (ts_max - offset) / step + 2;
+        else
+            num_snapshots = (ts_max - offset) / step -
+                            (ts_min - offset) / step + 1;
+
+        assert(num_snapshots > 0);
+        if (!(snapshots = malloc(sizeof(*snapshots) * num_snapshots)))
+            goto error;
+
+        ts_snap_min = ts_min;
+
+        for (i = 0; i < num_snapshots; i++)
+        {
+            if (i == num_snapshots - 1)
+                ts_snap_max = ts_max;
+            else if (ts_snap_min >= offset)
+                ts_snap_max = ts_snap_min + step - 1 - ((ts_snap_min - offset) % step);
+            else
+                ts_snap_max = offset - 1;
+
+            if (!(snapshots[i] = tvg_count_edges(tvg, ts_snap_min, ts_snap_max)))
+            {
+                for (; i < num_snapshots; i++) snapshots[i] = NULL;
+                goto error;
+            }
+
+            ts_snap_min = ts_snap_max + 1;
+        }
+
+        assert(ts_snap_max == ts_max);
     }
 
     if (!(sum_edges = tvg_sum_edges(tvg, ts_min, ts_max, 0.0)))
@@ -787,22 +829,34 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
     /* Note: In the following, we use |D(e)| = |L(e)|. This works since L(e) only
      * contains one entry per article, so the length of the tupel list equals to
-     * the number of articles. */
-
-    /* FIXME: Implement temporal weight? */
+     * the number of articles.
+     *
+     * Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)|
+     * Temporal coverage density: \Delta T / |T(e)|
+     * Min distance per article weight: |L(e)| / \sum exp(-\delta)
+     *
+     */
 
     GRAPH_FOR_EACH_EDGE(count_edges, edge)
     {
-        /* Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)| */
-        w_jaccard = (vector_get_entry(count_nodes, edge->source) +
-                     vector_get_entry(count_nodes, edge->target) -
-                     edge->weight) / edge->weight;
+        weight  = (vector_get_entry(count_nodes, edge->source) +
+                   vector_get_entry(count_nodes, edge->target) - edge->weight) / edge->weight;
+        weight += edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
 
-        /* Min distance per article weight: |L(e)| / \sum exp(-\delta) */
-        w_mindist = edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
+        if (snapshots)
+        {
+            count = 0;
+            for (i = 0; i < num_snapshots; i++)
+                count += graph_has_edge(snapshots[i], edge->source, edge->target);
+            weight += (float)num_snapshots / count;
 
-        /* Merge results */
-        weight = 2.0 / (w_jaccard + w_mindist);
+            weight = 3.0 / weight;
+        }
+        else
+        {
+            weight = 2.0 / weight;
+        }
+
         if (!graph_set_edge(result, edge->source, edge->target, weight))
         {
             free_graph(result);
@@ -814,6 +868,12 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
     /* Note: No need to make the object read-only since we do not hold any references. */
 
 error:
+    if (snapshots)
+    {
+        for (i = 0; i < num_snapshots; i++)
+            free_graph(snapshots[i]);
+        free(snapshots);
+    }
     free_graph(sum_edges);
     free_graph(count_edges);
     free_vector(count_nodes);

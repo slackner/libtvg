@@ -411,7 +411,7 @@ lib.tvg_count_nodes.restype = c_vector_p
 lib.tvg_count_graphs.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_count_graphs.restype = c_uint64
 
-lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64, c_uint64, c_uint64)
 lib.tvg_topics.restype = c_graph_p
 
 # Metric functions
@@ -2410,7 +2410,7 @@ class TVG(object):
 
         return res
 
-    def topics(self, ts_min, ts_max):
+    def topics(self, ts_min, ts_max, step=0, offset=0):
         """
         Extract network topics in the timeframe [ts_min, ts_max].
 
@@ -2424,7 +2424,7 @@ class TVG(object):
         if ts_max > 0xffffffffffffffff:
             ts_max = 0xffffffffffffffff
 
-        return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max))
+        return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max, step, offset))
 
     def sample_graphs(self, ts_min, ts_max, sample_width, sample_steps=9,
                       method=None, *args, **kwargs):
@@ -4256,6 +4256,80 @@ if __name__ == '__main__':
 
             g = tvg.topics(251, 350)
             self.assertTrue(abs(g[0, 1] - 12.0 / 17.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 6.0
+            # |D((0, 1))| = 4.0
+            # |L((0, 1))| = 4.0
+            # \sum exp(-\delta) = 3.5
+
+            g = tvg.topics(51, 350)
+            self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            g = tvg.topics(0, 350)
+            self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            g = tvg.topics(0, 400)
+            self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 1.0
+            # |D((0, 1))| = 1.0
+            # |L((0, 1))| = 1.0
+            # \sum exp(-\delta) = 1.0
+            # \delta T = 1.0
+            # |T(e)| = 1.0
+
+            g = tvg.topics(51, 150, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 1.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 2.0
+            # |D((0, 1))| = 1.0
+            # |L((0, 1))| = 1.0
+            # \sum exp(-\delta) = 1.0
+            # \delta T = 1.0
+            # |T(e)| = 1.0
+
+            g = tvg.topics(151, 250, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 3.0 / 4.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 3.0
+            # |D((0, 1))| = 2.0
+            # |L((0, 1))| = 2.0
+            # \sum exp(-\delta) = 1.5
+            # \delta T = 1.0
+            # |T(e)| = 1
+
+            g = tvg.topics(251, 350, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 18.0 / 23.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 6.0
+            # |D((0, 1))| = 4.0
+            # |L((0, 1))| = 4.0
+            # \sum exp(-\delta) = 3.5
+            # \delta T = 3.0
+            # |T(e)| = 3.0
+
+            g = tvg.topics(51, 350, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 14.0 / 17.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 6.0
+            # |D((0, 1))| = 4.0
+            # |L((0, 1))| = 4.0
+            # \sum exp(-\delta) = 3.5
+            # \delta T = 4.0
+            # |T(e)| = 3.0
+
+            g = tvg.topics(0, 350, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 126.0 / 167.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 6.0
+            # |D((0, 1))| = 4.0
+            # |L((0, 1))| = 4.0
+            # \sum exp(-\delta) = 3.5
+            # \delta T = 5.0
+            # |T(e)| = 3.0
+
+            g = tvg.topics(0, 400, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 126.0 / 181.0) < 1e-7)
 
             del tvg
 
