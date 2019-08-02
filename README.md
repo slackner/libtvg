@@ -63,21 +63,22 @@ Documentation can be found in the `docs/` directory.
 To start a server with the example dataset, run the following command:
 
 ```bash
-./explorer/server.py --nodes=datasets/example/example-tvg.nodes \
-                     datasets/example/example-tvg.graph
+cd explorer
+./server.py news_example.conf
 ```
 
 To run the server with the full dataset, run:
 
 ```bash
-./explorer/server.py --nodes=datasets/network-topics/result.nodes \
-                     datasets/network-topics/result-sum.graph
+cd explorer
+./server.py news_network_topics.conf
 ```
 
-It is also possible to provide the URI of a MongoDB server, e.g.:
+It is also possible to stream datasets directly from a MongoDB server, e.g.:
 
 ```bash
-./explorer/server.py mongodb://thabit:27021
+cd explorer
+./server.py news_ambiverse_thabit.conf
 ```
 
 In each case, open explorer/html/index.html in a web-browser of your
