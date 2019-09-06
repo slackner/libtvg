@@ -127,10 +127,11 @@ if not lib.init_libtvg(LIBTVG_API_VERSION):
 
 # Vector functions
 
-lib.alloc_vector.argtypes = ()
+lib.alloc_vector.argtypes = (c_uint,)
 lib.alloc_vector.restype = c_vector_p
 
 lib.free_vector.argtypes = (c_vector_p,)
+lib.free_vector.restype = None
 
 lib.vector_duplicate.argtypes = (c_vector_p,)
 lib.vector_duplicate.restype = c_vector_p
@@ -190,6 +191,7 @@ lib.vector_del_entries.argtypes = (c_vector_p, npc.ndpointer(dtype=np.uint64), c
 lib.vector_del_entries.restype = c_int
 
 lib.vector_mul_const.argtypes = (c_vector_p, c_float)
+lib.vector_mul_const.restype = c_int
 
 lib.vector_sum_weights.argtypes = (c_vector_p,)
 lib.vector_sum_weights.restype = c_double
@@ -209,8 +211,10 @@ lib.alloc_graph.argtypes = (c_uint,)
 lib.alloc_graph.restype = c_graph_p
 
 lib.free_graph.argtypes = (c_graph_p,)
+lib.free_graph.restype = None
 
 lib.unlink_graph.argtypes = (c_graph_p,)
+lib.unlink_graph.restype = None
 
 lib.graph_duplicate.argtypes = (c_graph_p,)
 lib.graph_duplicate.restype = c_graph_p
@@ -282,6 +286,7 @@ lib.graph_del_edges.argtypes = (c_graph_p, npc.ndpointer(dtype=np.uint64), c_uin
 lib.graph_del_edges.restype = c_int
 
 lib.graph_mul_const.argtypes = (c_graph_p, c_float)
+lib.graph_mul_const.restype = c_int
 
 lib.graph_mul_vector.argtypes = (c_graph_p, c_vector_p)
 lib.graph_mul_vector.restype = c_vector_p
@@ -325,8 +330,10 @@ lib.alloc_node.argtypes = ()
 lib.alloc_node.restype = c_node_p
 
 lib.free_node.argtypes = (c_node_p,)
+lib.free_node.restype = None
 
 lib.unlink_node.argtypes = (c_node_p,)
+lib.unlink_node.restype = None
 
 lib.node_set_attribute.argtypes = (c_node_p, c_char_p, c_char_p)
 lib.node_set_attribute.restype = c_int
@@ -343,8 +350,10 @@ lib.alloc_tvg.argtypes = (c_uint,)
 lib.alloc_tvg.restype = c_tvg_p
 
 lib.free_tvg.argtypes = (c_tvg_p,)
+lib.free_tvg.restype = None
 
 lib.tvg_set_verbosity.argtypes = (c_tvg_p, c_int)
+lib.tvg_set_verbosity.restype = None
 
 lib.tvg_memory_usage.argtypes = (c_tvg_p,)
 lib.tvg_memory_usage.restype = c_uint64
@@ -374,13 +383,16 @@ lib.tvg_enable_mongodb_sync.argtypes = (c_tvg_p, c_mongodb_p, c_uint64, c_uint64
 lib.tvg_enable_mongodb_sync.restype = c_int
 
 lib.tvg_disable_mongodb_sync.argtypes = (c_tvg_p,)
+lib.tvg_disable_mongodb_sync.restype = None
 
 lib.tvg_enable_query_cache.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_enable_query_cache.restype = c_int
 
 lib.tvg_disable_query_cache.argtypes = (c_tvg_p,)
+lib.tvg_disable_query_cache.restype = None
 
 lib.tvg_invalidate_queries.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_invalidate_queries.restype = None
 
 lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
@@ -440,6 +452,7 @@ lib.alloc_mongodb.argtypes = (c_mongodb_config_p,)
 lib.alloc_mongodb.restype = c_mongodb_p
 
 lib.free_mongodb.argtypes = (c_mongodb_p,)
+lib.free_mongodb.restype = None
 
 lib.mongodb_load_graph.argtypes = (c_tvg_p, c_mongodb_p, c_objectid_p, c_uint)
 lib.mongodb_load_graph.restype = c_graph_p
@@ -450,6 +463,7 @@ lib.tvg_load_graphs_from_mongodb.restype = c_int
 # libc functions
 
 libc.free.argtypes = (c_void_p,)
+libc.free.restype = None
 
 # The 'cacheable' decorator can be used on Vector and Graph objects to cache the result
 # of a function call as long as the underlying vector/graph has not changed. This is
