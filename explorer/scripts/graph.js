@@ -16,7 +16,7 @@ const times = new vis.DataSet([
         start: globalContext._now.startOf('hour'),
         end: globalContext._now.startOf('hour'), // end is optional
         style: 'color: white; background-color: #7ca7af; border-color: #33636b; text-align: center;',
-        content: 'selected period',
+        content: 'space of time',
         type: 'range',
         editable: {
             updateTime: true,
@@ -209,14 +209,20 @@ const initColorPicker = function (context) {
         const divRow = document.createElement('div');
         divRow.classList.add('row');
 
-        const divCol = document.createElement('div');
-        divCol.classList.add('col-md-12');
+        const divCol8 = document.createElement('div');
+        divCol8.classList.add('col-md-8');
+
+        const divCol4 = document.createElement('div');
+        divCol4.classList.add('col-md-4');
+        divCol4.setAttribute('style', 'text-align: right;');
 
         const i = document.createElement('i');
         i.className = element.class;
-        i.setAttribute('data-toggle', 'tooltip');
         i.setAttribute('data-placement', 'left');
-        i.setAttribute('title', element.title);
+
+        const title = document.createElement('span');
+        title.setAttribute('style', 'font-weight: normal; padding-left: 10px;');
+        title.innerHTML = element.title;
 
         const input = document.createElement('input');
         input.setAttribute('id', `nodeColor-${type}`);
@@ -225,10 +231,16 @@ const initColorPicker = function (context) {
         input.className = 'nodeColor';
         globalContext.disableElements.push(`nodeColor-${type}`);
 
+        const text = document.createElement('b');
+        text.innerHTML = type;
+
         listElement.appendChild(divRow);
-        divRow.appendChild(divCol);
-        divCol.appendChild(i);
-        divCol.appendChild(input);
+        divRow.appendChild(divCol8);
+        divCol8.appendChild(i);
+        divCol8.appendChild(input);
+        divCol8.appendChild(title);
+        divRow.appendChild(divCol4);
+        divCol4.appendChild(text);
 
         const node = document.querySelector(`#nodeColor-${type}`);
         node.addEventListener('change', watchColorPicker, false);
