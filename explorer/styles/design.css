@@ -107,12 +107,12 @@ input:checked + .slider:before {
 }
 
 /* Background writing */
-.on
+.slider-on
 {
   display: none;
 }
 
-.on, .off
+.slider-on, .slider-off
 {
   color: white;
   position: absolute;
@@ -123,11 +123,11 @@ input:checked + .slider:before {
   font-family: Verdana, sans-serif;
 }
 
-input:checked + .slider .on {
+input:checked + .slider .slider-on {
   display: block;
 }
 
-input:checked + .slider .off {
+input:checked + .slider .slider-off {
   display: none;
 }
 
