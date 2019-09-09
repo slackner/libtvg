@@ -179,6 +179,7 @@ static void *query_compute(struct tvg *tvg, struct query *current)
     {
         if (minheap_pop(queue, &operation))
         {
+            assert(operation.weight == 1);
             result = operation.query->ops->grab(operation.query);
             num_queries = 1;
         }
