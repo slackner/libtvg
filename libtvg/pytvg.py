@@ -889,6 +889,7 @@ class Vector(object):
             return
         if self._obj:
             lib.free_vector(self._obj)
+            self._obj = None
 
     def _get_obj(self):
         lib.free_vector(self._obj)
@@ -1254,6 +1255,7 @@ class Graph(object):
             return
         if self._obj:
             lib.free_graph(self._obj)
+            self._obj = None
 
     def _get_obj(self):
         lib.free_graph(self._obj)
@@ -2004,6 +2006,7 @@ class Node(object):
             return
         if self._obj:
             lib.free_node(self._obj)
+            self._obj = None
 
     def _get_obj(self):
         lib.free_node(self._obj)
@@ -2094,6 +2097,7 @@ class TVG(object):
             return
         if self._obj:
             lib.free_tvg(self._obj)
+            self._obj = None
 
     def _get_obj(self):
         lib.free_tvg(self._obj)
@@ -2600,6 +2604,7 @@ class MongoDB(object):
             return
         if self._obj:
             lib.free_mongodb(self._obj)
+            self._obj = None
 
     def _get_obj(self):
         lib.free_mongodb(self._obj)
