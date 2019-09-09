@@ -892,6 +892,7 @@ class Vector(object):
             self._obj = None
 
     def _get_obj(self):
+        assert self._obj.contents.refcount >= 2
         lib.free_vector(self._obj)
         return self
 
@@ -1258,6 +1259,7 @@ class Graph(object):
             self._obj = None
 
     def _get_obj(self):
+        assert self._obj.contents.refcount >= 2
         lib.free_graph(self._obj)
         return self
 
@@ -2009,6 +2011,7 @@ class Node(object):
             self._obj = None
 
     def _get_obj(self):
+        assert self._obj.contents.refcount >= 2
         lib.free_node(self._obj)
         return self
 
@@ -2100,6 +2103,7 @@ class TVG(object):
             self._obj = None
 
     def _get_obj(self):
+        assert self._obj.contents.refcount >= 2
         lib.free_tvg(self._obj)
         return self
 
@@ -2607,6 +2611,7 @@ class MongoDB(object):
             self._obj = None
 
     def _get_obj(self):
+        assert self._obj.contents.refcount >= 2
         lib.free_mongodb(self._obj)
         return self
 
