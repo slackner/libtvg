@@ -77,10 +77,39 @@ int array_remove(struct array *a, void *element)
     return 1;
 }
 
+#ifdef __linux__
+
 void array_sort(struct array *a, int (*compar)(const void *, const void *, void *), void *userdata)
 {
     qsort_r(a->entries, a->num_entries, a->entry_size, compar, userdata);
 }
+
+#else   /* __linux__ */
+
+/* On macOS / BSD, the order of parameters of the qsort_r() function is swapped.
+ * We use a wrapper function to call the original compar callback. */
+
+struct qsort_context
+{
+    int (*compar)(const void *, const void *, void *);
+    void *userdata;
+};
+
+static int _qsort_callback(void *userdata, const void *a, const void *b)
+{
+    struct qsort_context *context = userdata;
+    return context->compar(a, b, context->userdata);
+}
+
+void array_sort(struct array *a, int (*compar)(const void *, const void *, void *), void *userdata)
+{
+    struct qsort_context context;
+    context.compar = compar;
+    context.userdata = userdata;
+    qsort_r(a->entries, a->num_entries, a->entry_size, &context, _qsort_callback);
+}
+
+#endif  /* __linux__ */
 
 const void *array_ptr(struct array *a, size_t index)
 {
