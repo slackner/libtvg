@@ -4357,6 +4357,45 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_topics_sum_weights(self):
+            tvg = TVG(positive=True)
+
+            # In the original publication, the metric is only defined
+            # for sum_weights=False. In our implementation, however,
+            # we also allow sum_weights=True, i.e., weights greater than 1.
+
+            g = Graph()
+            g[0, 1] = 50.0
+            tvg.link_graph(g, 100)
+
+            g = Graph()
+            g[0, 1] = 50.0
+            tvg.link_graph(g, 100)
+
+            g = Graph()
+            g[1, 2] = 1.0
+            tvg.link_graph(g, 100)
+
+            # |D(0) \cup D(1)| = 3.0
+            # |D((0, 1))| = 2.0
+            # |L((0, 1))| = 2.0
+            # \sum exp(-\delta) = 100.0
+
+            g = tvg.topics(51, 150)
+            self.assertTrue(abs(g[0, 1] - 25.0 / 19.0) < 1e-7)
+
+            # |D(0) \cup D(1)| = 3.0
+            # |D((0, 1))| = 2.0
+            # |L((0, 1))| = 2.0
+            # \sum exp(-\delta) = 100.0
+            # \delta T = 1.0
+            # |T(e)| = 1
+
+            g = tvg.topics(51, 150, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 25.0 / 21.0) < 1e-7)
+
+            del tvg
+
         def test_query_cache(self):
             tvg = TVG(positive=True)
             tvg.verbosity = True

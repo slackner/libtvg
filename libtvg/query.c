@@ -755,6 +755,7 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
     uint64_t num_snapshots = 0;
     uint32_t graph_flags;
     struct entry2 *edge;
+    static int warned = 0;
     uint64_t count;
     float weight;
     uint64_t i;
@@ -762,17 +763,12 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
     if (ts_max < ts_min)
         return NULL;
 
-    if (tvg->mongodb)
+    /* Warn user when trying to use topic metric with sum_weights=True. In the
+     * original publication, the metric is only defined for sum_weights=False. */
+    if (tvg->mongodb && tvg->mongodb->config->sum_weights && !warned)
     {
-        struct mongodb_config *config = tvg->mongodb->config;
-
-        /* For graphs loaded from a MongoDB, ensure that the settings are
-         * compatible with this query. */
-        if (config->sum_weights)
-        {
-            fprintf(stderr, "%s: Topic query requires that sum_weights=False\n", __func__);
-            return NULL;
-        }
+        fprintf(stderr, "%s: The topic metric is only defined for sum_weights=False.\n", __func__);
+        warned = 1;
     }
 
     if (step)
@@ -828,14 +824,18 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
     if (!(result = alloc_graph(graph_flags)))
         goto error;
 
-    /* Note: In the following, we use |D(e)| = |L(e)|. This works since L(e) only
-     * contains one entry per article, so the length of the tupel list equals to
-     * the number of articles.
+    /* The metric uses a combination of the following terms:
      *
      * Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)|
      * Temporal coverage density: \Delta T / |T(e)|
      * Min distance per article weight: |L(e)| / \sum exp(-\delta)
      *
+     * Note: In the original publication, the metric is only defined
+     * for sum_weights=False. As a result |D(e)| = |L(e)|, and
+     * \sum exp(-\delta) is always smaller or equal to |L(e)|. In the
+     * following we also allow sum_weights=True, but since we don't
+     * know how many weights contributed to each edge, the metric
+     * is no longer a value in [0, 1], but instead in [0, 1.5].
      */
 
     GRAPH_FOR_EACH_EDGE(count_edges, edge)

@@ -432,9 +432,6 @@ if __name__ == "__main__":
         if 'primary_key' not in source:
             raise RuntimeError("Primary key not specified")
 
-        # Enforce sum_weights = False, otherwise the creation of WindowTopics will fail.
-        source['sum_weights'] = False
-
         primary_key = source.pop('primary_key')
         mongodb = pytvg.MongoDB(**source)
 
