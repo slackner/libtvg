@@ -10,6 +10,11 @@
 
 #include <stddef.h>
 
+/* include <valgrind/memcheck.h> before this file to enable Valgrind support */
+#ifndef VALGRIND_MAKE_MEM_UNDEFINED
+#define VALGRIND_MAKE_MEM_UNDEFINED(addr, len) do {} while (0)
+#endif
+
 struct avl_entry
 {
     struct avl_entry *parent;

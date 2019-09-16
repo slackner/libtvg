@@ -66,8 +66,13 @@ int queue_put(struct queue *q, const void *element)
 
 int queue_get(struct queue *q, void *element)
 {
+    void *ptr;
     if (!q->num_entries) return 0;
-    if (element) memcpy(element, q->entries + q->first_entry * q->entry_size, q->entry_size);
+
+    ptr = q->entries + q->first_entry * q->entry_size;
+    if (element) memcpy(element, ptr, q->entry_size);
+    VALGRIND_MAKE_MEM_UNDEFINED(ptr, q->entry_size);
+
     if (!--q->num_entries) q->first_entry = 0;  /* queue empty, reset */
     else q->first_entry = (q->first_entry + 1) % q->max_entries;
     return 1;

@@ -10,6 +10,11 @@
 
 #include <stddef.h>
 
+/* include <valgrind/memcheck.h> before this file to enable Valgrind support */
+#ifndef VALGRIND_MAKE_MEM_UNDEFINED
+#define VALGRIND_MAKE_MEM_UNDEFINED(addr, len) do {} while (0)
+#endif
+
 struct list
 {
     struct list *next;
@@ -101,6 +106,7 @@ static inline void list_remove(struct list *cursor)
 {
     cursor->next->prev = cursor->prev;
     cursor->prev->next = cursor->next;
+    VALGRIND_MAKE_MEM_UNDEFINED(cursor, sizeof(*cursor));
 }
 
 #endif  /* _LIST_H_ */

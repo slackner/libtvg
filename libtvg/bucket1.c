@@ -49,6 +49,7 @@ void free_bucket1(struct bucket1 *bucket)
 void bucket1_clear(struct bucket1 *bucket)
 {
     bucket->num_entries = 0;
+    VALGRIND_MAKE_MEM_UNDEFINED(bucket->entries, sizeof(*bucket->entries) * bucket->max_entries);
 }
 
 void bucket1_compress(struct bucket1 *bucket)

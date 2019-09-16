@@ -11,6 +11,12 @@
 #error "Include internal.h before tvg.h"
 #endif
 
+#ifdef HAVE_VALGRIND
+#include <valgrind/memcheck.h>
+#else
+#define VALGRIND_MAKE_MEM_UNDEFINED(addr, len) do {} while (0)
+#endif
+
 #include "tvg.h"
 
 #define MIN(a, b) \

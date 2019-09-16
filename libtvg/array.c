@@ -70,9 +70,14 @@ int array_append(struct array *a, const void *element)
 
 int array_remove(struct array *a, void *element)
 {
+    void *ptr;
+
     if (!a->num_entries) return 0;
-    a->num_entries--;
-    if (element) memcpy(element, a->entries + a->num_entries * a->entry_size, a->entry_size);
+
+    ptr = a->entries + (--a->num_entries) * a->entry_size;
+    if (element) memcpy(element, ptr, a->entry_size);
+    VALGRIND_MAKE_MEM_UNDEFINED(ptr, a->entry_size);
+
     return 1;
 }
 

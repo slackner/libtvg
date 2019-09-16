@@ -93,9 +93,15 @@ void minheap_heapify(struct minheap *h, size_t i)
 
 int minheap_pop(struct minheap *h, void *element)
 {
+    void *ptr;
+
     if (!h->num_entries) return 0;
     if (element) memcpy(element, h->entries, h->entry_size);
-    memmove(h->entries, h->entries + (--h->num_entries) * h->entry_size, h->entry_size);
+
+    ptr = h->entries + (--h->num_entries) * h->entry_size;
+    memmove(h->entries, ptr, h->entry_size);
+    VALGRIND_MAKE_MEM_UNDEFINED(ptr, h->entry_size);
+
     minheap_heapify(h, 0);
     return 1;
 }

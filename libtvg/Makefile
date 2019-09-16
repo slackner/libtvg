@@ -19,6 +19,9 @@ ifndef NOMONGODB
 	               -DHAVE_LIBMONGOC
 	LIB_LDFLAGS += -lmongoc-1.0 -lbson-1.0
 endif
+ifndef NOVALGRIND
+	LIB_CFLAGS  += -DHAVE_VALGRIND
+endif
 endif
 
 .PHONY: all
