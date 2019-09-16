@@ -5,8 +5,8 @@
  * Copyright (c) 2019 Sebastian Lackner
  */
 
-#ifndef _TREE_H
-#define _TREE_H
+#ifndef _TREE_H_
+#define _TREE_H_
 
 #include <stddef.h>
 
@@ -798,4 +798,4 @@ static inline void avl_remove(struct avl_entry *entry)
     entry->parent = NULL;
 }
 
-#endif  /* _TREE_H */
+#endif  /* _TREE_H_ */

@@ -5,8 +5,8 @@
  * Copyright (c) 2018-2019 Sebastian Lackner
  */
 
-#ifndef _LIST_H
-#define _LIST_H
+#ifndef _LIST_H_
+#define _LIST_H_
 
 #include <stddef.h>
 
@@ -103,4 +103,4 @@ static inline void list_remove(struct list *cursor)
     cursor->prev->next = cursor->next;
 }
 
-#endif  /* _LIST_H */
+#endif  /* _LIST_H_ */
