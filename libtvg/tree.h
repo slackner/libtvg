@@ -33,7 +33,7 @@ struct avl_tree
 
 /* get struct from embedded 'struct avl_entry' datatype */
 #define AVL_ENTRY(elem, type, field) ({ \
-    const struct avl_entry *__ptr = (elem); \
+    const typeof(((type *)0)->field) *__ptr = (elem); \
     (type *)((char *)__ptr - offsetof(type, field)); })
 
 /* retrieve the next element in an avl tree */
