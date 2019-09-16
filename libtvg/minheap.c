@@ -5,7 +5,6 @@
  * Copyright (c) 2017-2018 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 #define PARENT(x) (((x) - 1)/2)

@@ -9,7 +9,6 @@
 
 #include <mongoc.h>
 
-#include "tvg.h"
 #include "internal.h"
 
 /* bson_oid_to_objectid and objectid_to_bson_oid relies on this */
@@ -1109,7 +1108,6 @@ void tvg_load_graphs_le(struct tvg *tvg, struct graph *graph, uint64_t ts)
 
 #else   /* HAVE_LIBMONGOC */
 
-#include "tvg.h"
 #include "internal.h"
 
 struct mongodb *alloc_mongodb(const struct mongodb_config *config)

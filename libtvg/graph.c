@@ -7,7 +7,6 @@
 
 #include <float.h>
 
-#include "tvg.h"
 #include "internal.h"
 
 /* graph_debug relies on that */

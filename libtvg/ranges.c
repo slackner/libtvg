@@ -5,7 +5,6 @@
  * Copyright (c) 2019 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 struct costs

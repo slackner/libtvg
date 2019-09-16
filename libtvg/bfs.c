@@ -5,7 +5,6 @@
  * Copyright (c) 2017-2018 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 static int _sort_bfs_entry_by_weight(const void *a, const void *b, void *userdata)

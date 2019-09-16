@@ -5,7 +5,6 @@
  * Copyright (c) 2018-2019 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 static inline struct bucket1 *_vector_get_bucket(struct vector *vector, uint64_t index)

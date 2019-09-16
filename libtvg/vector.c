@@ -5,7 +5,6 @@
  * Copyright (c) 2018-2019 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 static const struct vector_ops *get_vector_ops(uint32_t flags)

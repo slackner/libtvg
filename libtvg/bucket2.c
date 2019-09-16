@@ -5,7 +5,6 @@
  * Copyright (c) 2018-2019 Sebastian Lackner
  */
 
-#include "tvg.h"
 #include "internal.h"
 
 void init_bucket2(struct bucket2 *bucket)

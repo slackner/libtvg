@@ -6,7 +6,6 @@
  */
 
 #define _GNU_SOURCE
-#include "tvg.h"
 #include "internal.h"
 
 struct array

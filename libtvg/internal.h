@@ -7,6 +7,10 @@
 #ifndef _INTERNAL_H_
 #define _INTERNAL_H_
 
+#ifdef _TVG_H_
+#error "Include internal.h before tvg.h"
+#endif
+
 #include "tvg.h"
 
 #define MIN(a, b) \

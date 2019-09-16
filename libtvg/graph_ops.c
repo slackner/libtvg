@@ -7,7 +7,6 @@
 
 #include <float.h>
 
-#include "tvg.h"
 #include "internal.h"
 
 static inline struct bucket2 *_graph_get_bucket(struct graph *graph, uint64_t source, uint64_t target)

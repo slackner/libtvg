@@ -7,7 +7,6 @@
 #include <time.h>
 #include <math.h>
 
-#include "tvg.h"
 #include "internal.h"
 #include "tree.h"
 
