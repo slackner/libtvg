@@ -83,6 +83,9 @@ Structure/Union member
 ### refcount
 Structure/Union member
 
+### verbosity
+Structure/Union member
+
 ## c_mongodb_config
 ```python
 c_mongodb_config(*args, **kwargs)
@@ -123,6 +126,9 @@ Structure/Union member
 Structure/Union member
 
 ### max_distance
+Structure/Union member
+
+### norm_weights
 Structure/Union member
 
 ### sum_weights
@@ -228,12 +234,12 @@ __Returns__
 Dictionary containing the metric for each node or edge.
 
 
-## metric_stability
+## metric_stability_ratio
 ```python
-metric_stability(values)
+metric_stability_ratio(values)
 ```
 
-Rate the stability of individual nodes by ranking their average and standard deviation.
+Rate the stability of individual nodes/edges by their inverse relative standard deviation.
 
 __Arguments__
 
@@ -242,6 +248,73 @@ __Arguments__
 __Returns__
 
 Dictionary containing the metric for each node or edge.
+
+
+## metric_avg
+```python
+metric_avg(values)
+```
+
+Compute the average of individual nodes/edges.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+
+__Returns__
+
+Average for each node or edge.
+
+
+## metric_std
+```python
+metric_std(values)
+```
+
+Compute the standard deviation of individual nodes/edges
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+
+__Returns__
+
+Standard deviation for each node or edge.
+
+
+## metric_pareto
+```python
+metric_pareto(values, maximize=True, base=0.0)
+```
+
+Compute the pareto ranking of two graphs or vectors.
+
+__Arguments:__
+
+values: Values for each node or edge.
+maximize: Defines which values should be maximized/minimized.
+base: Use `base**(index - 1)` as weight instead of `index`.
+
+__Returns__
+
+Metric for each node or edge.
+
+
+## metric_stability_pareto
+```python
+metric_stability_pareto(values, base=0.0)
+```
+
+Rate the stability of individual nodes/edges by ranking their average and standard deviation.
+
+__Arguments__
+
+- __values__: Values for each node or edge.
+- __base__: Use `base**(index - 1)` as weight instead of `index`.
+
+__Returns__
+
+Metric for each node or edge.
 
 
 ## Vector
@@ -320,6 +393,24 @@ __Returns__
 
 `(indices, weights)` or dictionary
 
+
+### keys
+```python
+Vector.keys()
+```
+Iterate over indices of a vector.
+
+### values
+```python
+Vector.values()
+```
+Iterate over weights of a vector.
+
+### items
+```python
+Vector.items()
+```
+Iterate over indices and weights of a vector.
 
 ### set_entries
 ```python
@@ -405,6 +496,12 @@ Vector.mul_const(constant)
 ```
 Perform inplace element-wise multiplication of the vector with `constant`.
 
+### sum_weights
+```python
+Vector.sum_weights()
+```
+Compute the sum of all weights.
+
 ### norm
 ```python
 Vector.norm()
@@ -428,6 +525,9 @@ Compute L2 norm of (self - other).
 Vector.as_dict()
 ```
 Return a dictionary containing all vector entries.
+
+### from_dict
+Generate a Vector object from a dictionary.
 
 ## Graph
 ```python
@@ -546,6 +646,24 @@ __Returns__
 
 `(indices, weights)` or dictionary
 
+
+### keys
+```python
+Graph.keys()
+```
+Iterate over indices of a graphs.
+
+### values
+```python
+Graph.values()
+```
+Iterate over weights of a graph.
+
+### items
+```python
+Graph.items()
+```
+Iterate over indices and weights of a graphs.
 
 ### top_edges
 ```python
@@ -726,6 +844,12 @@ Graph.weight_anomalies()
 ```
 Compute and return a vector of weight anomalies.
 
+### sum_weights
+```python
+Graph.sum_weights()
+```
+Compute the sum of all weights.
+
 ### power_iteration
 ```python
 Graph.power_iteration(initial_guess=None,
@@ -765,9 +889,21 @@ __Returns__
 Resulting graph.
 
 
+### normalize
+```python
+Graph.normalize()
+```
+
+Normalize a graph based on the in and out-degrees of neighbors.
+
+__Returns__
+
+Resulting graph.
+
+
 ### sparse_subgraph
 ```python
-Graph.sparse_subgraph(num_seeds=8, num_neighbors=3)
+Graph.sparse_subgraph(seeds=None, num_seeds=8, num_neighbors=3)
 ```
 
 Create a sparse subgraph by seleting a few seed edges, and then
@@ -775,6 +911,7 @@ using 'triangular growth' to add additional neighbors.
 
 __Arguments__
 
+- __seeds__: List of seed edges
 - __num_seeds__: Number of seed edges to select
 - __num_neighbors__: Number of neighbors to add per seed node
 
@@ -824,6 +961,9 @@ List of tuples `(weight, count, edge_from, edge_to)`.
 Graph.as_dict()
 ```
 Return a dictionary containing all graph edges.
+
+### from_dict
+Generate a Graph object from a dictionary.
 
 ## Node
 ```python
@@ -1001,7 +1141,7 @@ Load a time-varying-graph (i.e., a collection of graphs) from a file.
 
 ### load_nodes_from_file
 ```python
-TVG.load_nodes_from_file(filename)
+TVG.load_nodes_from_file(filename, key=None)
 ```
 Load node attributes from a file.
 
@@ -1054,6 +1194,12 @@ __Arguments__
 TVG.disable_query_cache()
 ```
 Disable the query cache.
+
+### invalidate_queries
+```python
+TVG.invalidate_queries(ts_min, ts_max)
+```
+Invalidate queries in a given timeframe [ts_min, ts_max].
 
 ### sum_edges
 ```python
@@ -1129,9 +1275,22 @@ __Arguments__
 - __ts_max__: Right boundary of the interval.
 
 
+### count_graphs
+```python
+TVG.count_graphs(ts_min, ts_max)
+```
+
+Count graphs in a given timeframe [ts_min, ts_max].
+
+__Arguments__
+
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+
+
 ### topics
 ```python
-TVG.topics(ts_min, ts_max)
+TVG.topics(ts_min, ts_max, step=0, offset=0)
 ```
 
 Extract network topics in the timeframe [ts_min, ts_max].
@@ -1142,53 +1301,61 @@ __Arguments__
 - __ts_max__: Right boundary of the interval.
 
 
+### sample_graphs
+```python
+TVG.sample_graphs(ts_min,
+                  ts_max,
+                  sample_width,
+                  sample_steps=9,
+                  method=None,
+                  *args,
+                  **kwargs)
+```
+
+Sample graphs in the timeframe [ts_min, ts_max].
+
+__Arguments__
+
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+- __sample_width__: Width of each sample.
+- __sample_steps__: Number of values to collect.
+- __method__: Method to use (default: 'sum_edges').
+
+__Yields__
+
+Sampled graphs.
+
+
 ### sample_eigenvectors
 ```python
 TVG.sample_eigenvectors(ts_min,
                         ts_max,
                         sample_width,
                         sample_steps=9,
-                        eps=None,
-                        tolerance=None)
+                        tolerance=None,
+                        method=None,
+                        *args,
+                        **kwargs)
 ```
 
 Iterative power iteration algorithm to track eigenvectors of a graph over time.
-Collection of eigenvectors starts at t = (ts - sample_width) and continues up
-to t = ts. Each entry of the returned dictionary contains sample_steps values
-collected at equidistant time steps.
+Eigenvectors are collected within the timeframe [ts_min, ts_max]. Each entry
+of the returned dictionary contains sample_steps values collected at equidistant
+time steps.
 
 __Arguments__
 
 - __ts_min__: Left boundary of the interval.
 - __ts_max__: Right boundary of the interval.
-- __sample_width__: Width of the region to collect samples.
+- __sample_width__: Width of each sample.
 - __sample_steps__: Number of values to collect.
 - __tolerance__: Tolerance for the power_iteration algorithm.
+- __method__: Method to use (default: 'sum_edges').
 
 __Returns__
 
 Dictionary containing lists of collected values for each node.
-
-
-### sample_edges
-```python
-TVG.sample_edges(ts_min, ts_max, sample_width, sample_steps=9, eps=None)
-```
-
-Collect edges starting at t = (ts - sample_width) and continue up to t = ts.
-Each entry of the returned dictionary contains sample_steps value collected
-at equidistant time steps.
-
-__Arguments__
-
-- __ts_min__: Left boundary of the interval.
-- __ts_max__: Right boundary of the interval.
-- __sample_width__: Width of the region to collect samples.
-- __sample_steps__: Number of values to collect.
-
-__Returns__
-
-Dictionary containing lists of collected values for each edge.
 
 
 ### lookup_ge
@@ -1229,6 +1396,7 @@ MongoDB(uri,
         use_pool=True,
         load_nodes=False,
         sum_weights=True,
+        norm_weights=False,
         max_distance=None,
         filter_key=None,
         filter_value=None,
@@ -1258,6 +1426,7 @@ entity_ent: Name(s) of the entity ent key, e.g., attr1;attr2;attr3.
 use_pool: Use a connection pool to access MongoDB.
 load_nodes: Load node attributes.
 sum_weights: Compute edge weights as the sum of co-occurrence weights.
+norm_weights: Normalize weights, such that each graph has a weight of 1.
 
 max_distance: Maximum distance of mentions.
 
