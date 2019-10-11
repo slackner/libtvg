@@ -1,3 +1,4 @@
 events/
 wiki/
-events.json
+*.json
+*.zip
