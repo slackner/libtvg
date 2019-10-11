@@ -203,6 +203,16 @@ if __name__ == '__main__':
             result = parse_date("1 april 2015 (really!) - 12 november 2016 (exactly)")
             self.assertEqual(result, ['2015-04-01', '2016-11-12'])
 
+        def test_multiline(self):
+            result = parse_date("1 april 2015\nother stuff")
+            self.assertEqual(result, ['2015-04-01', '2015-04-01'])
+
+            result = parse_date("1 april 2015 -\nother stuff")
+            self.assertEqual(result, None)
+
+            result = parse_date("1 april 2015 -\n\n\n12 november 2016")
+            self.assertEqual(result, ['2015-04-01', '2016-11-12'])
+
         def test_range(self):
             result = parse_date("1 april 2015 - 12 november 2016")
             self.assertEqual(result, ['2015-04-01', '2016-11-12'])
@@ -258,8 +268,14 @@ if __name__ == '__main__':
             result = parse_date("january, 2018 - february, 2018")
             self.assertEqual(result, ['2018-01-01', '2018-02-28'])
 
+            result = parse_date("april 1 - april 5")
+            self.assertEqual(result, None)
+
             result = parse_date("april 1 - april 5", ref_date="2017-01-01")
             self.assertEqual(result, ['2017-04-01', '2017-04-05'])
+
+            result = parse_date("april - may")
+            self.assertEqual(result, None)
 
             result = parse_date("april - may", ref_date="2017-01-01")
             self.assertEqual(result, ['2017-04-01', '2017-05-31'])
@@ -301,8 +317,14 @@ if __name__ == '__main__':
             result = parse_date("26 april 1986; 33 years ago")
             self.assertEqual(result, ['1986-04-26', '1986-04-26'])
 
+            result = parse_date("april 1")
+            self.assertEqual(result, None)
+
             result = parse_date("april 1", ref_date="2017-01-01")
             self.assertEqual(result, ['2017-04-01', '2017-04-01'])
+
+            result = parse_date("april")
+            self.assertEqual(result, None)
 
             result = parse_date("april", ref_date="2017-01-01")
             self.assertEqual(result, ['2017-04-01', '2017-04-30'])
@@ -316,6 +338,9 @@ if __name__ == '__main__':
 
             result = parse_date("april 21-22, 2016")
             self.assertEqual(result, ['2016-04-21', '2016-04-22'])
+
+            result = parse_date("april 1-5")
+            self.assertEqual(result, None)
 
             result = parse_date("april 1-5", ref_date="2017-01-01")
             self.assertEqual(result, ['2017-04-01', '2017-04-05'])
