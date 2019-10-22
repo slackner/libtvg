@@ -1,9 +1,14 @@
 #!/usr/bin/python3
 from SimpleWebSocketServer import SimpleWebSocketServer
 from SimpleWebSocketServer import WebSocket
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
+from threading import Thread
 import numpy as np
 import traceback
+import posixpath
 import argparse
+import urllib
 import math
 import json
 import copy
@@ -380,6 +385,35 @@ class PreloadTask(object):
         self.time = time.time() + 0.5
         self.ts += self.step
 
+class WebHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "html")
+        super().__init__(*args, **kwargs)
+
+    def translate_path(self, path):
+        """Translate a /-separated PATH to the local filename syntax."""
+        # abandon query parameters
+        path = path.split('?',1)[0]
+        path = path.split('#',1)[0]
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = path.rstrip().endswith('/')
+        try:
+            path = urllib.parse.unquote(path, errors='surrogatepass')
+        except UnicodeDecodeError:
+            path = urllib.parse.unquote(path)
+        path = posixpath.normpath(path)
+        words = path.split('/')
+        words = filter(None, words)
+        path = self.directory
+        for word in words:
+            if os.path.dirname(word) or word in (os.curdir, os.pardir):
+                # Ignore components that are not a simple file/directory name
+                continue
+            path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/'
+        return path
+
 if __name__ == "__main__":
     def cache_size(s):
         if s.endswith("K") or s.endswith("k"):
@@ -450,13 +484,20 @@ if __name__ == "__main__":
     dataset_tvg.enable_query_cache(cache_size=args.query_cache)
     dataset_tvg.verbosity = args.verbose
 
-    server = SimpleWebSocketServer('', 8000, Client)
+    webserver = TCPServer(("", 8080), WebHandler)
+    try:
+        server = SimpleWebSocketServer('', 8000, Client)
+        Thread(target=webserver.serve_forever).start()
 
-    tasks = []
-    if args.preload:
-        tasks.append(PreloadTask(dataset_tvg))
+        tasks = []
+        if args.preload:
+            tasks.append(PreloadTask(dataset_tvg))
 
-    while True:
-        server.serveonce()
-        for task in tasks:
-            task.run()
+        while True:
+            server.serveonce()
+            for task in tasks:
+                task.run()
+
+    finally:
+        webserver.shutdown()
+        webserver.server_close()
