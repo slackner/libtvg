@@ -91,12 +91,6 @@ const changeNodeSize = function (event) {
     $('#loading').show();
 };
 
-const initTimelineUpdate = function () {
-    globalContext._privates.live_update_timer = setInterval(() => {
-        sendMessageJson({ cmd: 'check_for_new_articles' });
-    }, 10000);
-};
-
 const updateTimeline = function (end) {
     if (document.getElementById('liveMonitoring').checked) {
         // Update grey background and selected area
@@ -332,8 +326,8 @@ const onMessage = function (event) {
             timeline.focus(1);
             break;
 
-        case 'updateTimeline':
-            console.log('updateTimeline');
+        case 'update_timeline':
+            console.log('update_timeline');
             updateTimeline(msg.max);
             break;
 
@@ -577,7 +571,6 @@ const init = function () {
     initDateRangePicker();
     initNetwork();
     initTimeline();
-    initTimelineUpdate();
 
     globalContext.disableElements.push('liveMonitoring');
     globalContext.disableElements.push('dropdownEdgeWeight');

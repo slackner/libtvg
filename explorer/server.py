@@ -295,12 +295,6 @@ class Client(WebSocket):
         self.ts_min = ts_min
         self.ts_max = ts_max
 
-    def check_for_new_articles(self):
-        max_ts = dataset_tvg.lookup_le().ts
-        if max_ts > self.latest_displayed_timestamp:
-            self.latest_displayed_timestamp = max_ts
-            self.send_message_json(cmd='updateTimeline', max=max_ts)
-
     def event_connected(self):
         print(self.address, 'connected')
         self.context = copy.deepcopy(default_context)
@@ -308,10 +302,9 @@ class Client(WebSocket):
         self.ts_max = None
 
         # Set timeline min/max. The client can then seek to any position.
-        data_ts_min = dataset_tvg.lookup_ge().ts
-        data_ts_max = dataset_tvg.lookup_le().ts
-        self.latest_displayed_timestamp = data_ts_max
-        self.send_message_json(cmd='timeline_set_options', min=data_ts_min, max=data_ts_max)
+        self.data_ts_min = dataset_tvg.lookup_ge().ts
+        self.data_ts_max = dataset_tvg.lookup_le().ts
+        self.send_message_json(cmd='timeline_set_options', min=self.data_ts_min, max=self.data_ts_max)
 
         self.send_message_json(cmd='set_context', context=self.context)
 
@@ -341,10 +334,6 @@ class Client(WebSocket):
             context['edgeWeight'] = msg['value']
 
             self.timeline_seek()
-            return
-
-        elif msg['cmd'] == 'check_for_new_articles':
-            self.check_for_new_articles()
             return
 
         print('Unimplemented command "%s"!' % msg['cmd'])
@@ -385,6 +374,23 @@ class PreloadTask(object):
 
         self.time = time.time() + 0.5
         self.ts += self.step
+
+class UpdateTask(object):
+    def __init__(self, tvg):
+        self.tvg  = tvg
+        self.time = time.time() + 10.0
+
+    def run(self):
+        if time.time() < self.time:
+            return
+
+        ts_max = dataset_tvg.lookup_le().ts
+        for client in clients:
+            if ts_max > client.data_ts_max:
+                client.send_message_json(cmd='update_timeline', max=ts_max)
+                client.data_ts_max = ts_max
+
+        self.time = time.time() + 10.0
 
 class WebHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -496,6 +502,7 @@ if __name__ == "__main__":
         tasks = []
         if args.preload:
             tasks.append(PreloadTask(dataset_tvg))
+        tasks.append(UpdateTask(dataset_tvg))
 
         while True:
             server.serveonce()
