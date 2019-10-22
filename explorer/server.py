@@ -5,6 +5,7 @@ from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 from threading import Thread
 import numpy as np
+import webbrowser
 import traceback
 import posixpath
 import argparse
@@ -488,6 +489,9 @@ if __name__ == "__main__":
     try:
         server = SimpleWebSocketServer('', 8000, Client)
         Thread(target=webserver.serve_forever).start()
+
+        # Open a new browser window to access the interface.
+        webbrowser.open_new("http://127.0.0.1:8080")
 
         tasks = []
         if args.preload:
