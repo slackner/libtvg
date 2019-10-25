@@ -56,7 +56,11 @@ int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callb
         if (vector_has_entry(visited, source))
             continue;
         if ((ret = callback(graph, &entry, userdata)))
+        {
+            /* 0: continue, 1: success, -1: error */
+            ret = (ret > 0);
             goto done;
+        }
         if (!vector_set_entry(visited, source, 1))
         {
             fprintf(stderr, "%s: Out of memory!\n", __func__);
@@ -124,4 +128,66 @@ double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t 
     /* FIXME: Distinguish unreachable node and out-of-memory error */
     graph_bfs(graph, source, 1, _bfs_distance_callback, &context);
     return context.entry.weight;
+}
+
+struct bfs_all_distances_count_context
+{
+    struct vector *counts;
+    uint64_t max_count;
+};
+
+static int _bfs_all_distances_count_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    struct bfs_all_distances_count_context *context = userdata;
+    if (entry->count > context->max_count) return 1;
+    if (!vector_set_entry(context->counts, entry->to, entry->count)) return -1;
+    return 0;
+}
+
+struct vector *graph_get_all_distances_count(struct graph *graph, uint64_t source, uint64_t max_count)
+{
+    struct bfs_all_distances_count_context context;
+
+    context.max_count = max_count;
+    if (!(context.counts = alloc_vector(0)))
+        return NULL;
+
+    if (!graph_bfs(graph, source, 0, _bfs_all_distances_count_callback, &context))
+    {
+        free_vector(context.counts);
+        return NULL;
+    }
+
+    return context.counts;
+}
+
+struct bfs_all_distances_weight_context
+{
+    struct vector *weights;
+    double max_weight;
+};
+
+static int _bfs_all_distances_weight_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    struct bfs_all_distances_weight_context *context = userdata;
+    if (entry->weight > context->max_weight) return 1;
+    if (!vector_set_entry(context->weights, entry->to, entry->weight)) return -1;
+    return 0;
+}
+
+struct vector *graph_get_all_distances_weight(struct graph *graph, uint64_t source, double max_weight)
+{
+    struct bfs_all_distances_weight_context context;
+
+    context.max_weight = max_weight;
+    if (!(context.weights = alloc_vector(0)))
+        return NULL;
+
+    if (!graph_bfs(graph, source, 1, _bfs_all_distances_weight_callback, &context))
+    {
+        free_vector(context.weights);
+        return NULL;
+    }
+
+    return context.weights;
 }

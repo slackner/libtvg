@@ -330,6 +330,12 @@ lib.graph_get_distance_count.restype = c_uint64
 lib.graph_get_distance_weight.argtypes = (c_graph_p, c_uint64, c_uint64)
 lib.graph_get_distance_weight.restype = c_double
 
+lib.graph_get_all_distances_count.argtypes = (c_graph_p, c_uint64, c_uint64)
+lib.graph_get_all_distances_count.restype = c_vector_p
+
+lib.graph_get_all_distances_weight.argtypes = (c_graph_p, c_uint64, c_double)
+lib.graph_get_all_distances_weight.restype = c_vector_p
+
 # Node functions
 
 lib.alloc_node.argtypes = ()
@@ -1954,6 +1960,12 @@ class Graph(object):
     def distance_weight(self, source, end):
         return lib.graph_get_distance_weight(self._obj, source, end)
 
+    def all_distances_count(self, source, max_count=0xffffffffffffffff):
+        return Vector(obj=lib.graph_get_all_distances_count(self._obj, source, max_count))
+
+    def all_distances_weight(self, source, max_weight=np.inf):
+        return Vector(obj=lib.graph_get_all_distances_weight(self._obj, source, max_weight))
+
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
@@ -3437,6 +3449,23 @@ if __name__ == '__main__':
             self.assertEqual(value, 3)
             value = g.distance_weight(0, 4)
             self.assertEqual(value, 3.5)
+
+            counts = g.all_distances_count(0)
+            print (counts.as_dict())
+            self.assertEqual(counts.as_dict(), {0: 0.0, 1: 1.0, 2: 2.0, 3: 3.0, 4: 3.0})
+            counts = g.all_distances_count(0, max_count=2)
+            self.assertEqual(counts.as_dict(), {0: 0.0, 1: 1.0, 2: 2.0})
+
+            counts = g.all_distances_count(100)
+            self.assertEqual(counts.as_dict(), {100: 0.0})
+
+            weights = g.all_distances_weight(0)
+            self.assertEqual(weights.as_dict(), {0: 0.0, 1: 1.0, 2: 2.0, 3: 3.0, 4: 3.5})
+            weights = g.all_distances_weight(0, max_weight=2.0)
+            self.assertEqual(weights.as_dict(), {0: 0.0, 1: 1.0, 2: 2.0})
+
+            weights = g.all_distances_weight(100)
+            self.assertEqual(weights.as_dict(), {100: 0.0})
 
             results = g.bfs_count(0, max_count=2)
             self.assertEqual(results, [(0.0, 0, None, 0), (1.0, 1, 0, 1), (2.0, 2, 1, 2)])

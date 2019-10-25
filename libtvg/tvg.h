@@ -1682,6 +1682,8 @@ int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callb
               const struct bfs_entry *, void *), void *userdata);
 uint64_t graph_get_distance_count(struct graph *graph, uint64_t source, uint64_t end);
 double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t end);
+struct vector *graph_get_all_distances_count(struct graph *graph, uint64_t source, uint64_t max_count);
+struct vector *graph_get_all_distances_weight(struct graph *graph, uint64_t source, double max_weight);
 
 /* Node functions */
 
