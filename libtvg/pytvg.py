@@ -324,6 +324,12 @@ lib.graph_normalize.restype = c_graph_p
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
+lib.graph_get_distance_count.argtypes = (c_graph_p, c_uint64, c_uint64)
+lib.graph_get_distance_count.restype = c_uint64
+
+lib.graph_get_distance_weight.argtypes = (c_graph_p, c_uint64, c_uint64)
+lib.graph_get_distance_weight.restype = c_double
+
 # Node functions
 
 lib.alloc_node.argtypes = ()
@@ -1939,6 +1945,15 @@ class Graph(object):
 
         return result
 
+    def distance_count(self, source, end):
+        count = lib.graph_get_distance_count(self._obj, source, end)
+        if count == 0xffffffffffffffff:
+            count = np.inf
+        return count
+
+    def distance_weight(self, source, end):
+        return lib.graph_get_distance_weight(self._obj, source, end)
+
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
@@ -3407,6 +3422,21 @@ if __name__ == '__main__':
             indices, weights = g.edges()
             self.assertEqual(indices.tolist(), [[0, 1], [1, 2], [2, 3], [2, 4], [3, 4]])
             self.assertEqual(weights.tolist(), [1.0, 1.0, 1.0, 1.5, 1.5])
+
+            value = g.distance_count(100, 0)
+            self.assertEqual(value, np.inf)
+            value = g.distance_weight(100, 0)
+            self.assertEqual(value, np.inf)
+
+            value = g.distance_count(0, 0)
+            self.assertEqual(value, 0)
+            value = g.distance_weight(0, 0)
+            self.assertEqual(value, 0.0)
+
+            value = g.distance_count(0, 4)
+            self.assertEqual(value, 3)
+            value = g.distance_weight(0, 4)
+            self.assertEqual(value, 3.5)
 
             results = g.bfs_count(0, max_count=2)
             self.assertEqual(results, [(0.0, 0, None, 0), (1.0, 1, 0, 1), (2.0, 2, 1, 2)])

@@ -1678,8 +1678,10 @@ struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes
 
 struct graph *graph_normalize(const struct graph *graph);
 
-int graph_bfs(struct graph *g, uint64_t source, int use_weights, int (*callback)(struct graph *,
+int graph_bfs(struct graph *graph, uint64_t source, int use_weights, int (*callback)(struct graph *,
               const struct bfs_entry *, void *), void *userdata);
+uint64_t graph_get_distance_count(struct graph *graph, uint64_t source, uint64_t end);
+double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t end);
 
 /* Node functions */
 

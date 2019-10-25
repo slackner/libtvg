@@ -89,3 +89,39 @@ done:
     free_vector(visited);
     return ret;
 }
+
+struct bfs_distance_context
+{
+    uint64_t end;
+    struct bfs_entry entry;
+};
+
+static int _bfs_distance_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    struct bfs_distance_context *context = userdata;
+    if (entry->to != context->end) return 0;
+    context->entry = *entry;
+    return 1;
+}
+
+uint64_t graph_get_distance_count(struct graph *graph, uint64_t source, uint64_t end)
+{
+    struct bfs_distance_context context;
+    context.end = end;
+    context.entry.count = ~0ULL;
+
+    /* FIXME: Distinguish unreachable node and out-of-memory error */
+    graph_bfs(graph, source, 0, _bfs_distance_callback, &context);
+    return context.entry.count;
+}
+
+double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t end)
+{
+    struct bfs_distance_context context;
+    context.end = end;
+    context.entry.weight = INFINITY;
+
+    /* FIXME: Distinguish unreachable node and out-of-memory error */
+    graph_bfs(graph, source, 1, _bfs_distance_callback, &context);
+    return context.entry.weight;
+}
