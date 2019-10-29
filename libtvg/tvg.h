@@ -627,66 +627,6 @@ static inline int __bucket2_prev_entry2(struct _bucket2_iter2 *iter, struct entr
 #define BUCKET2_FOR_EACH_ENTRY_REV2(_bucket1, _entry1, _bucket2, _entry2) \
     _BUCKET2_FOR_EACH_ENTRY_REV2((_bucket1), (_entry1), (_bucket2), (_entry2), _UNIQUE_VARIABLE(__iter_))
 
-/* bucket1 + bucket2 macros */
-
-struct _bucket21_iter
-{
-    struct entry2 *entry2;
-    struct entry2 *end_entry2;
-
-    struct entry1 *entry1;
-    struct entry1 *end_entry1;
-};
-
-static inline struct _bucket21_iter __bucket21_for_each_entry(struct bucket2 *bucket2, struct bucket1 *bucket1)
-{
-    struct _bucket21_iter iter;
-
-    iter.end_entry2 = __bucket2_for_each_entry(bucket2, &iter.entry2);
-    iter.end_entry1 = __bucket1_for_each_entry(bucket1, &iter.entry1);
-
-    return iter;
-}
-
-static inline int __bucket21_next_entry(struct _bucket21_iter *iter, struct entry2 **entry2, struct entry1 **entry1)
-{
-    if (iter->entry2 == iter->end_entry2)
-        return 0;
-
-    while (iter->entry1 != iter->end_entry1)
-    {
-        if (iter->entry1->index < iter->entry2->target)
-        {
-            iter->entry1++;
-            continue;  /* skip entry1 */
-        }
-        else if (iter->entry1->index > iter->entry2->target)
-        {
-            *entry2 = iter->entry2++;
-            *entry1 = NULL;
-        }
-        else
-        {
-            *entry2 = iter->entry2++;
-            *entry1 = iter->entry1;
-        }
-        return 1;
-    }
-
-    *entry2 = iter->entry2++;
-    *entry1 = NULL;
-    return 1;
-}
-
-#define _BUCKET21_FOR_EACH_ENTRY(_bucket2, _entry2, _bucket1, _entry1, _iter) \
-    for (struct _bucket21_iter (_iter) = __bucket21_for_each_entry((_bucket2), (_bucket1)); \
-         __bucket21_next_entry(&(_iter), &(_entry2), &(_entry1));)
-
-/* NOTE: This macro primarily iterates over bucket2: Entries in
- * bucket1 without corresponding entry in bucket2 are skipped! */
-#define BUCKET21_FOR_EACH_ENTRY(_bucket2, _entry2, _bucket1, _entry1) \
-    _BUCKET21_FOR_EACH_ENTRY((_bucket2), (_entry2), (_bucket1), (_entry1), _UNIQUE_VARIABLE(__iter_))
-
 /* vector macros */
 
 struct _vector_iter
