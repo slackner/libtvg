@@ -3511,6 +3511,23 @@ if __name__ == '__main__':
             else:
                 self.assertTrue(False)
 
+        def test_mul_vector(self):
+            g = Graph(directed=True)
+            for i in range(9):
+                s, t = i//3, i%3
+                g[s, t] = i + 1
+
+            v = Vector()
+            for i in range(3):
+                v[i] = i + 1
+
+            g2 = g.mul_vector(v)
+            self.assertEqual(g2.as_dict(), {0: 14.0, 1: 32.0, 2: 50.0})
+
+            del g2
+            del g
+            del v
+
         def test_weights(self):
             g = Graph(directed=True)
             g[0, 0] = 1.0
