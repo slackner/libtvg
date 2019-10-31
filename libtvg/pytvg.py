@@ -249,6 +249,9 @@ lib.graph_num_edges.restype = c_uint64
 lib.graph_get_edges.argtypes = (c_graph_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_get_edges.restype = c_uint64
 
+lib.graph_get_nodes.argtypes = (c_graph_p,)
+lib.graph_get_nodes.restype = c_vector_p
+
 lib.graph_get_top_edges.argtypes = (c_graph_p, or_null(npc.ndpointer(dtype=np.uint64)), or_null(npc.ndpointer(dtype=np.float32)), c_uint64)
 lib.graph_get_top_edges.restype = c_uint64
 
@@ -1545,9 +1548,9 @@ class Graph(object):
         to at least one other node (either as a source or target).
         """
 
-        # FIXME: Add a C library helper?
-        indices, _ = self.edges(ret_weights=False)
-        return np.unique(indices)
+        nodes = Vector(obj=lib.graph_get_nodes(self._obj))
+        indices, _ = nodes.entries(ret_weights=False)
+        return indices
 
     @property
     @cacheable
