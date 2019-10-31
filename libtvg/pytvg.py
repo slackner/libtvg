@@ -336,6 +336,9 @@ lib.graph_get_all_distances_count.restype = c_vector_p
 lib.graph_get_all_distances_weight.argtypes = (c_graph_p, c_uint64, c_double)
 lib.graph_get_all_distances_weight.restype = c_vector_p
 
+lib.graph_get_all_distances_graph.argtypes = (c_graph_p, c_int)
+lib.graph_get_all_distances_graph.restype = c_graph_p
+
 # Node functions
 
 lib.alloc_node.argtypes = ()
@@ -1966,6 +1969,9 @@ class Graph(object):
     def all_distances_weight(self, source, max_weight=np.inf):
         return Vector(obj=lib.graph_get_all_distances_weight(self._obj, source, max_weight))
 
+    def all_distances_graph(self, use_weights=False):
+        return Graph(obj=lib.graph_get_all_distances_graph(self._obj, use_weights))
+
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
@@ -3475,6 +3481,18 @@ if __name__ == '__main__':
             self.assertEqual(results, [(0.0, 0, None, 0), (1.0, 1, 0, 1), (2.0, 2, 1, 2)])
             results = g.bfs_weight(0)
             self.assertEqual(results, [(0.0, 0, None, 0), (1.0, 1, 0, 1), (2.0, 2, 1, 2), (3.0, 3, 2, 3), (3.5, 3, 2, 4)])
+
+            distances = g.all_distances_graph(use_weights=False)
+            self.assertEqual(distances.as_dict(), {(0, 1): 1.0, (0, 2): 2.0, (0, 3): 3.0, (0, 4): 3.0,
+                                                   (1, 2): 1.0, (1, 3): 2.0, (1, 4): 2.0, (2, 3): 1.0,
+                                                   (2, 4): 1.0, (3, 4): 1.0})
+            del distances
+
+            distances = g.all_distances_graph(use_weights=True)
+            self.assertEqual(distances.as_dict(), {(0, 1): 1.0, (0, 2): 2.0, (0, 3): 3.0, (0, 4): 3.5,
+                                                   (1, 2): 1.0, (1, 3): 2.0, (1, 4): 2.5, (2, 3): 1.0,
+                                                   (2, 4): 1.5, (3, 4): 1.5})
+            del distances
 
             del g
 

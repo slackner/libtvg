@@ -191,3 +191,65 @@ struct vector *graph_get_all_distances_weight(struct graph *graph, uint64_t sour
 
     return context.weights;
 }
+
+struct bfs_all_distances_graph_context
+{
+    int use_weights;
+    uint64_t start;
+    struct graph *distances;
+};
+
+static int _bfs_all_distances_graph_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    struct bfs_all_distances_graph_context *context = userdata;
+    if (entry->to == context->start) return 0;  /* skip diagonal */
+    if (!graph_add_edge(context->distances, context->start, entry->to,
+                        context->use_weights ? entry->weight : entry->count)) return -1;
+    return 0;
+}
+
+struct graph *graph_get_all_distances_graph(struct graph *graph, int use_weights)
+{
+    struct bfs_all_distances_graph_context context;
+    struct vector *nodes;
+    struct entry1 *entry;
+    struct entry2 *edge;
+
+    if (!(nodes = alloc_vector(0)))
+        return NULL;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!vector_set_entry(nodes, edge->source, 1))
+        {
+            free_vector(nodes);
+            return NULL;
+        }
+        if (!vector_set_entry(nodes, edge->target, 1))
+        {
+            free_vector(nodes);
+            return NULL;
+        }
+    }
+
+    context.use_weights = use_weights;
+    if (!(context.distances = alloc_graph(TVG_FLAGS_DIRECTED)))
+    {
+        free_vector(nodes);
+        return NULL;
+    }
+
+    VECTOR_FOR_EACH_ENTRY(nodes, entry)
+    {
+        context.start = entry->index;
+        if (!graph_bfs(graph, entry->index, use_weights, _bfs_all_distances_graph_callback, &context))
+        {
+            free_graph(context.distances);
+            free_vector(nodes);
+            return NULL;
+        }
+    }
+
+    free_vector(nodes);
+    return context.distances;
+}

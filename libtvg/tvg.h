@@ -1624,6 +1624,7 @@ uint64_t graph_get_distance_count(struct graph *graph, uint64_t source, uint64_t
 double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t end);
 struct vector *graph_get_all_distances_count(struct graph *graph, uint64_t source, uint64_t max_count);
 struct vector *graph_get_all_distances_weight(struct graph *graph, uint64_t source, double max_weight);
+struct graph *graph_get_all_distances_graph(struct graph *graph, int use_weights);
 
 /* Node functions */
 
