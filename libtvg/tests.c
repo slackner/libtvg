@@ -1111,6 +1111,52 @@ static void test_vector_for_each_entry2(void)
     free_vector(vector2);
 }
 
+static void test_graph_for_each_undirected_edge(void)
+{
+    struct graph *graph;
+    struct entry2 *edge;
+    uint64_t num_edges = 0;
+    uint64_t i, j, count;
+    int ret;
+
+    graph = alloc_graph(0);
+
+    for (i = 0; i < 100 * 100; i++)
+    {
+        if (i % 100 < i / 100) continue;
+        if (random_float() < sqrt(0.5))
+        {
+            graph_add_edge(graph, i / 100, i % 100, 1.0);
+            num_edges++;
+        }
+    }
+
+    while (graph_dec_bits_source(graph)) {}
+    while (graph_dec_bits_target(graph)) {}
+
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < 6; j++)
+        {
+            count = 0;
+            GRAPH_FOR_EACH_EDGE(graph, edge)
+            {
+                count++;
+            }
+            assert(count == num_edges);
+
+            ret = graph_inc_bits_source(graph);
+            assert(ret);
+        }
+
+        while (graph_dec_bits_source(graph)) {}
+        ret = graph_inc_bits_target(graph);
+        assert(ret);
+    }
+
+    free_graph(graph);
+}
+
 static void test_graph_for_each_edge2_directed(void)
 {
     struct graph *graph1, *graph2;
@@ -1600,6 +1646,7 @@ int main(void)
     test_load_nodes_from_file();
     test_vector_mul_vector();
     test_vector_for_each_entry2();
+    test_graph_for_each_undirected_edge();
     test_graph_for_each_edge2_directed();
     test_graph_for_each_edge2_undirected();
     test_tvg_for_each_graph();
