@@ -213,24 +213,9 @@ struct graph *graph_get_all_distances_graph(struct graph *graph, int use_weights
     struct bfs_all_distances_graph_context context;
     struct vector *nodes;
     struct entry1 *entry;
-    struct entry2 *edge;
 
-    if (!(nodes = alloc_vector(0)))
+    if (!(nodes = graph_get_nodes(graph)))
         return NULL;
-
-    GRAPH_FOR_EACH_EDGE(graph, edge)
-    {
-        if (!vector_set_entry(nodes, edge->source, 1))
-        {
-            free_vector(nodes);
-            return NULL;
-        }
-        if (!vector_set_entry(nodes, edge->target, 1))
-        {
-            free_vector(nodes);
-            return NULL;
-        }
-    }
 
     context.use_weights = use_weights;
     if (!(context.distances = alloc_graph(TVG_FLAGS_DIRECTED)))
@@ -252,4 +237,55 @@ struct graph *graph_get_all_distances_graph(struct graph *graph, int use_weights
 
     free_vector(nodes);
     return context.distances;
+}
+
+struct bfs_components_context
+{
+    struct vector *components;
+    uint64_t identifier;
+};
+
+static int _bfs_components_callback(struct graph *graph, const struct bfs_entry *entry, void *userdata)
+{
+    struct bfs_components_context *context = userdata;
+    if (!vector_set_entry(context->components, entry->to, context->identifier)) return -1;
+    return 0;
+}
+
+struct vector *graph_get_connected_components(struct graph *graph)
+{
+    struct bfs_components_context context;
+    struct vector *nodes;
+    struct entry1 *entry;
+
+    if (graph->flags & TVG_FLAGS_DIRECTED)
+    {
+        fprintf(stderr, "%s: Directed graphs not supported\n", __func__);
+        return NULL;
+    }
+
+    if (!(nodes = graph_get_nodes(graph)))
+        return NULL;
+
+    context.identifier = 0;
+    if (!(context.components = alloc_vector(0)))
+    {
+        free_vector(nodes);
+        return NULL;
+    }
+
+    VECTOR_FOR_EACH_ENTRY(nodes, entry)
+    {
+        if (vector_has_entry(context.components, entry->index)) continue;
+        if (!graph_bfs(graph, entry->index, 0, _bfs_components_callback, &context))
+        {
+            free_vector(context.components);
+            free_vector(nodes);
+            return NULL;
+        }
+        context.identifier++;
+    }
+
+    free_vector(nodes);
+    return context.components;
 }

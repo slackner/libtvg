@@ -1580,6 +1580,7 @@ int graph_has_edge(struct graph *graph, uint64_t source, uint64_t target);
 float graph_get_edge(struct graph *graph, uint64_t source, uint64_t target);
 uint64_t graph_num_edges(struct graph *graph);
 uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges);
+struct vector *graph_get_nodes(struct graph *graph);
 uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weights, uint64_t max_edges);
 uint64_t graph_get_adjacent_edges(struct graph *graph, uint64_t source, uint64_t *indices, float *weights, uint64_t max_edges);
 
@@ -1625,6 +1626,7 @@ double graph_get_distance_weight(struct graph *graph, uint64_t source, uint64_t 
 struct vector *graph_get_all_distances_count(struct graph *graph, uint64_t source, uint64_t max_count);
 struct vector *graph_get_all_distances_weight(struct graph *graph, uint64_t source, double max_weight);
 struct graph *graph_get_all_distances_graph(struct graph *graph, int use_weights);
+struct vector *graph_get_connected_components(struct graph *graph);
 
 /* Node functions */
 

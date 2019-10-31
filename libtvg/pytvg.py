@@ -339,6 +339,9 @@ lib.graph_get_all_distances_weight.restype = c_vector_p
 lib.graph_get_all_distances_graph.argtypes = (c_graph_p, c_int)
 lib.graph_get_all_distances_graph.restype = c_graph_p
 
+lib.graph_get_connected_components.argtypes = (c_graph_p,)
+lib.graph_get_connected_components.restype = c_vector_p
+
 # Node functions
 
 lib.alloc_node.argtypes = ()
@@ -1972,6 +1975,9 @@ class Graph(object):
     def all_distances_graph(self, use_weights=False):
         return Graph(obj=lib.graph_get_all_distances_graph(self._obj, use_weights))
 
+    def connected_components(self):
+        return Vector(obj=lib.graph_get_connected_components(self._obj))
+
     def as_dict(self):
         """ Return a dictionary containing all graph edges. """
         return self.edges(as_dict=True)
@@ -3493,6 +3499,19 @@ if __name__ == '__main__':
                                                    (1, 2): 1.0, (1, 3): 2.0, (1, 4): 2.5, (2, 3): 1.0,
                                                    (2, 4): 1.5, (3, 4): 1.5})
             del distances
+
+            del g
+
+        def test_connected_components(self):
+            g = Graph(directed=False)
+            g[1, 0] = 1.0
+            g[1, 2] = 2.0
+            g[4, 3] = 3.0
+            g[4, 5] = 4.0
+
+            components = g.connected_components()
+            self.assertEqual(components.as_dict(), {0: 0.0, 1: 0.0, 2: 0.0, 3: 1.0, 4: 1.0, 5: 1.0})
+            del components
 
             del g
 

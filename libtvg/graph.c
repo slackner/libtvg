@@ -594,6 +594,31 @@ uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights,
     return count;
 }
 
+struct vector *graph_get_nodes(struct graph *graph)
+{
+    struct vector *nodes;
+    struct entry2 *edge;
+
+    if (!(nodes = alloc_vector(0)))
+        return NULL;
+
+    GRAPH_FOR_EACH_EDGE(graph, edge)
+    {
+        if (!vector_set_entry(nodes, edge->source, 1))
+        {
+            free_vector(nodes);
+            return NULL;
+        }
+        if (!vector_set_entry(nodes, edge->target, 1))
+        {
+            free_vector(nodes);
+            return NULL;
+        }
+    }
+
+    return nodes;
+}
+
 static int _sort_entry2_by_weight(const void *a, const void *b, void *userdata)
 {
     const struct entry2 *ba = a, *bb = b;
