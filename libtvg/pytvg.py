@@ -1464,7 +1464,7 @@ class Graph(object):
         if as_dict and not ret_indices:
             raise ValueError("Invalid parameter combination")
 
-        num_edges = 100 # FIXME: Arbitrary limit.
+        num_edges = lib.graph_get_edges(self._obj, None, None, 0)
         while True:
             max_edges = num_edges
             indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None

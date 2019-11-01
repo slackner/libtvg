@@ -602,6 +602,9 @@ uint64_t graph_get_edges(struct graph *graph, uint64_t *indices, float *weights,
     uint64_t count = 0;
     struct entry2 *edge;
 
+    if (!max_edges || (!indices && !weights))
+        return graph_num_edges(graph);
+
     /* For undirected graph, the GRAPH_FOR_EACH_EDGE macro will
      * automatically skip edges in the reverse direction */
 
