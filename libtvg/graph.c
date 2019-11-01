@@ -663,6 +663,9 @@ uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weig
     struct entry2 new_edge;
     uint64_t count = 0;
 
+    if (!max_edges || (!indices && !weights))
+        return graph_num_edges(graph);
+
     if (!(queue = alloc_minheap(sizeof(struct entry2), _sort_entry2_by_weight, NULL)))
         return 0;
 
