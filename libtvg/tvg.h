@@ -799,6 +799,8 @@ struct _graph_iter
     const struct graph *graph;
     uint64_t       index;
     uint64_t       end_index;
+    uint64_t       mask;
+    int            diagonal;
     struct entry2 *edge;
     struct entry2 *end_edge;
 };
@@ -812,6 +814,12 @@ static inline struct _graph_iter __graph_for_each_edge(const struct graph *graph
     iter.end_index = 1ULL << (graph->bits_source + graph->bits_target);
     iter.end_edge  = __bucket2_for_each_entry(&graph->buckets[iter.index], &iter.edge);
 
+    if (graph->bits_source > graph->bits_target)
+        iter.mask = (1ULL << graph->bits_target) - 1;
+    else
+        iter.mask = (1ULL << graph->bits_source) - 1;
+
+    iter.diagonal = 1;
     return iter;
 }
 
@@ -847,25 +855,44 @@ static inline int __graph_next_directed_edge(struct _graph_iter *iter, struct en
 
 static inline int __graph_next_undirected_edge(struct _graph_iter *iter, struct entry2 **edge)
 {
+    uint64_t source, target;
+
     if (iter->index >= iter->end_index)
         return 0;
 
     for (;;)
     {
-        for (; iter->edge != iter->end_edge; iter->edge++)
+        if (iter->diagonal)
         {
-            if (iter->edge->target >= iter->edge->source)
+            for (; iter->edge != iter->end_edge; iter->edge++)
             {
-                *edge = iter->edge++;
-                return 1;
+                if (iter->edge->target >= iter->edge->source)
+                {
+                    *edge = iter->edge++;
+                    return 1;
+                }
             }
         }
-        iter->index++;
+        else if (iter->edge != iter->end_edge)
+        {
+            *edge = iter->edge++;
+            return 1;
+        }
 
-        if (iter->index >= iter->end_index)
-            break;
+        do
+        {
+            iter->index++;
+
+            if (iter->index >= iter->end_index)
+                return 0;
+
+            target = (iter->index >> iter->graph->bits_source) & iter->mask;
+            source = iter->index & iter->mask;
+        }
+        while (target < source);
 
         iter->end_edge = __bucket2_for_each_entry(&iter->graph->buckets[iter->index], &iter->edge);
+        iter->diagonal = (target == source);
     }
 
     return 0;
