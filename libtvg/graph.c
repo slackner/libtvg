@@ -558,14 +558,42 @@ int graph_clear(struct graph *graph)
 
 uint64_t graph_num_edges(struct graph *graph)
 {
-    struct entry2 *edge;
+    uint64_t i, num_buckets;
     uint64_t num_edges = 0;
+    struct entry2 *edge;
+    uint64_t mask;
 
-    GRAPH_FOR_EACH_EDGE(graph, edge)
+    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+
+    if (graph->flags & TVG_FLAGS_DIRECTED)
     {
-        num_edges++;
+        for (i = 0; i < num_buckets; i++)
+            num_edges += graph->buckets[i].num_entries;
+        return num_edges;
     }
 
+    if (graph->bits_source > graph->bits_target)
+        mask = (1ULL << graph->bits_target) - 1;
+    else
+        mask = (1ULL << graph->bits_source) - 1;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        if (((i >> graph->bits_source) ^ i) & mask)  /* non-diagonal */
+        {
+            num_edges += graph->buckets[i].num_entries;
+            continue;
+        }
+
+        BUCKET2_FOR_EACH_ENTRY(&graph->buckets[i], edge)
+        {
+            if (edge->target >= edge->source)
+                num_edges += 2;
+        }
+    }
+
+    assert(!(num_edges & 1));
+    num_edges /= 2;
     return num_edges;
 }
 
