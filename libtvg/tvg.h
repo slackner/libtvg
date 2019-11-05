@@ -70,7 +70,7 @@ struct bucket1
 {
     uint64_t    num_entries;
     uint64_t    max_entries;
-    struct entry1 *entries;
+    struct entry1 *entries;  /* sorted by index */
     uint64_t    hint;
 };
 
@@ -104,7 +104,7 @@ struct bucket2
 {
     uint64_t    num_entries;
     uint64_t    max_entries;
-    struct entry2 *entries;
+    struct entry2 *entries;  /* sorted by (target, source) */
     uint64_t    hint;
 };
 
@@ -131,7 +131,7 @@ struct graph
     const struct graph_ops *ops;
     uint32_t    bits_source; /* 0...31 */
     uint32_t    bits_target; /* 0...31 */
-    struct bucket2 *buckets;
+    struct bucket2 *buckets; /* (H(target) << bits_source) | H(source) */
     uint64_t    optimize;
 };
 
@@ -1338,7 +1338,8 @@ static inline int __graph_vector_next_edge(struct _graph_vector_iter *iter, stru
          __graph_vector_next_edge(&(_iter), &(_entry2), &(_entry1));)
 
 /* NOTE: This macro primarily iterates over the graph: Entries in
- * the vector without corresponding entry in the graph are skipped! */
+ * the vector without corresponding entry in the graph are skipped!
+ * Merge condition: entry1->index == entry2->target. */
 #define GRAPH_VECTOR_FOR_EACH_EDGE(_graph, _entry2, _vector, _entry1) \
     _GRAPH_VECTOR_FOR_EACH_EDGE((_graph), (_entry2), (_vector), (_entry1), _UNIQUE_VARIABLE(__iter_))
 
