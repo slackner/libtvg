@@ -485,7 +485,7 @@ void graph_optimize(struct graph *graph)
 
     num_edges = 0;
     for (i = 0; i < num_buckets; i++)
-        num_edges += graph->buckets[i].num_entries;
+        num_edges += bucket2_num_entries(&graph->buckets[i]);
 
     /* Adjust the number of buckets if the graph is getting too dense.
      * For now, we prefer source bits over target bits. */
@@ -568,7 +568,7 @@ uint64_t graph_num_edges(struct graph *graph)
     if (graph->flags & TVG_FLAGS_DIRECTED)
     {
         for (i = 0; i < num_buckets; i++)
-            num_edges += graph->buckets[i].num_entries;
+            num_edges += bucket2_num_entries(&graph->buckets[i]);
         return num_edges;
     }
 
@@ -581,7 +581,7 @@ uint64_t graph_num_edges(struct graph *graph)
     {
         if (((i >> graph->bits_source) ^ i) & mask)  /* non-diagonal */
         {
-            num_edges += graph->buckets[i].num_entries;
+            num_edges += bucket2_num_entries(&graph->buckets[i]);
             continue;
         }
 

@@ -233,7 +233,7 @@ void vector_optimize(struct vector *vector)
 
     num_entries = 0;
     for (i = 0; i < num_buckets; i++)
-        num_entries += vector->buckets[i].num_entries;
+        num_entries += bucket1_num_entries(&vector->buckets[i]);
 
     if (num_entries >= num_buckets * 256)
     {
@@ -293,7 +293,7 @@ uint64_t vector_num_entries(struct vector *vector)
 
     num_entries = 0;
     for (i = 0; i < num_buckets; i++)
-        num_entries += vector->buckets[i].num_entries;
+        num_entries += bucket1_num_entries(&vector->buckets[i]);
 
     return num_entries;
 }

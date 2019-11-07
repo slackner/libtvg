@@ -231,3 +231,8 @@ void bucket2_del_entry(struct bucket2 *bucket, struct entry2 *entry)
     memmove(entry, &entry[1], (size_t)((char *)&bucket->entries[bucket->num_entries] - (char *)&entry[1]));
     bucket->num_entries--;
 }
+
+uint64_t bucket2_num_entries(struct bucket2 *bucket)
+{
+    return bucket->num_entries;
+}

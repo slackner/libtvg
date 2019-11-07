@@ -189,6 +189,7 @@ int bucket1_split(struct bucket1 *bucket1, struct bucket1 *bucket2, uint64_t mas
 int bucket1_merge(struct bucket1 *bucket1, struct bucket1 *bucket2) DECL_INTERNAL;
 struct entry1 *bucket1_get_entry(struct bucket1 *bucket, uint64_t index, int allocate) DECL_INTERNAL;
 void bucket1_del_entry(struct bucket1 *bucket, struct entry1 *entry) DECL_INTERNAL;
+uint64_t bucket1_num_entries(struct bucket1 *bucket) DECL_INTERNAL;
 
 extern const struct vector_ops vector_generic_ops DECL_INTERNAL;
 extern const struct vector_ops vector_nonzero_ops DECL_INTERNAL;
@@ -204,6 +205,7 @@ int bucket2_split(struct bucket2 *bucket1, struct bucket2 *bucket2, uint64_t sou
 int bucket2_merge(struct bucket2 *bucket1, struct bucket2 *bucket2) DECL_INTERNAL;
 struct entry2 *bucket2_get_entry(struct bucket2 *bucket, uint64_t source, uint64_t target, int allocate) DECL_INTERNAL;
 void bucket2_del_entry(struct bucket2 *bucket, struct entry2 *entry) DECL_INTERNAL;
+uint64_t bucket2_num_entries(struct bucket2 *bucket) DECL_INTERNAL;
 
 extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
 extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
