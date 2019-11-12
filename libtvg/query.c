@@ -223,7 +223,9 @@ static void *query_compute(struct tvg *tvg, struct query *current)
         }
     }
 
-    current->ops->finalize(current);
+    if (!current->ops->finalize(current))
+        goto done;
+
     result = current->ops->grab(current);
 
     current->tvg = tvg;
@@ -317,11 +319,16 @@ static int query_sum_edges_add_query(struct query *query_base, struct query *oth
     return graph_add_graph(query->result, other->result, weight);
 }
 
-static void query_sum_edges_finalize(struct query *query_base)
+static int query_sum_edges_finalize(struct query *query_base)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
+
+    if (!graph_mul_const(query->result, 1.0))
+        return 0;
+
     query->result->ops = &graph_readonly_ops;
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
+    return 1;
 }
 
 const struct query_ops query_sum_edges_ops =
@@ -431,11 +438,16 @@ static int query_sum_edges_exp_add_query(struct query *query_base, struct query 
     return graph_add_graph(query->result, other->result, total_weight);
 }
 
-static void query_sum_edges_exp_finalize(struct query *query_base)
+static int query_sum_edges_exp_finalize(struct query *query_base)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
+
+    if (!graph_mul_const(query->result, 1.0))
+        return 0;
+
     query->result->ops = &graph_readonly_ops;
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
+    return 1;
 }
 
 const struct query_ops query_sum_edges_exp_ops =
@@ -524,11 +536,16 @@ static int query_count_edges_add_query(struct query *query_base, struct query *o
     return graph_add_graph(query->result, other->result, weight);
 }
 
-static void query_count_edges_finalize(struct query *query_base)
+static int query_count_edges_finalize(struct query *query_base)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
+
+    if (!graph_mul_const(query->result, 1.0))
+        return 0;
+
     query->result->ops = &graph_readonly_ops;
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
+    return 1;
 }
 
 const struct query_ops query_count_edges_ops =
@@ -612,11 +629,16 @@ static int query_count_nodes_add_query(struct query *query_base, struct query *o
     return vector_add_vector(query->result, other->result, weight);
 }
 
-static void query_count_nodes_finalize(struct query *query_base)
+static int query_count_nodes_finalize(struct query *query_base)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
+
+    if (!vector_mul_const(query->result, 1.0))
+        return 0;
+
     query->result->ops = &vector_readonly_ops;
     query->base.cache = sizeof(*query) + vector_memory_usage(query->result);
+    return 1;
 }
 
 const struct query_ops query_count_nodes_ops =
@@ -700,10 +722,11 @@ static int query_count_graphs_add_query(struct query *query_base, struct query *
     return 1;
 }
 
-static void query_count_graphs_finalize(struct query *query_base)
+static int query_count_graphs_finalize(struct query *query_base)
 {
     struct query_count_graphs *query = QUERY_COUNT_GRAPHS(query_base);
     query->base.cache = sizeof(*query);
+    return 1;
 }
 
 const struct query_ops query_count_graphs_ops =

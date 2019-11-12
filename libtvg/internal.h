@@ -102,7 +102,7 @@ struct query_ops
     int       (*compatible)(struct query *, struct query *);
     int       (*add_graph)(struct query *, struct graph *, int64_t);
     int       (*add_query)(struct query *, struct query *, int64_t);
-    void      (*finalize)(struct query *);
+    int       (*finalize)(struct query *);
 };
 
 static inline void objectid_init(struct objectid *objectid)

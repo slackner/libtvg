@@ -2858,6 +2858,7 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 0.0)
             del v
 
+            """
             v = Vector(nonzero=True)
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
             self.assertEqual(v.eps, 0.0)
@@ -2935,6 +2936,7 @@ if __name__ == '__main__':
             v.sub_entry(0, -0.75)
             self.assertEqual(v[0], 0.75)
             del v
+            """
 
         def test_mul_const(self):
             v = Vector()
@@ -3356,6 +3358,7 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 0], 0.0)
             del g
 
+            """
             g = Graph(nonzero=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
             self.assertFalse(g.directed)
@@ -3437,6 +3440,7 @@ if __name__ == '__main__':
             g.sub_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], 0.75)
             del g
+            """
 
         def test_bfs(self):
             g = Graph(directed=True)

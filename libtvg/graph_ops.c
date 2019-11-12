@@ -178,68 +178,6 @@ const struct graph_ops graph_generic_ops =
     generic_mul_const,
 };
 
-static int nonzero_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    /* Is the weight filtered? */
-    if (fabs(weight) <= graph->eps)
-    {
-        generic_del(graph, source, target);
-        return 1;
-    }
-
-    return generic_set(graph, source, target, weight);
-}
-
-static int nonzero_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    struct bucket2 *bucket;
-    struct entry2 *edge;
-    int allocate;
-
-    /* Only allocate a new edge when the weight is not filtered. */
-    allocate = !(fabs(weight) <= graph->eps);
-    bucket = _graph_get_bucket(graph, source, target);
-    if ((edge = bucket2_get_entry(bucket, source, target, allocate)))
-    {
-        weight += edge->weight;
-        if (fabs(weight) <= graph->eps)
-        {
-            bucket2_del_entry(bucket, edge);
-            allocate = 0;
-        }
-        else
-        {
-            edge->weight = weight;
-            allocate = 1;
-        }
-    }
-    else if (allocate)
-        return 0;
-
-    if (!(graph->flags & TVG_FLAGS_DIRECTED) && source != target)
-    {
-        bucket = _graph_get_bucket(graph, target, source);
-        if ((edge = bucket2_get_entry(bucket, target, source, allocate)))
-        {
-            if (allocate) edge->weight = weight;
-            else bucket2_del_entry(bucket, edge);
-        }
-        else if (allocate)
-        {
-            /* Allocation failed, restore the original state. */
-            _graph_del_edge(graph, source, target);
-            graph->revision++;
-            return 0;
-        }
-    }
-
-    graph->revision++;
-    if (!--graph->optimize)
-        graph_optimize(graph);
-
-    return 1;
-}
-
 static int nonzero_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge, *out;
@@ -279,73 +217,11 @@ const struct graph_ops graph_nonzero_ops =
 {
     nonzero_set_eps,
     generic_clear,
-    nonzero_set,
-    nonzero_add,
+    generic_set,
+    generic_add,
     generic_del,
     nonzero_mul_const,
 };
-
-static int positive_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    /* Is the weight filtered? */
-    if (weight <= graph->eps)
-    {
-        generic_del(graph, source, target);
-        return 1;
-    }
-
-    return generic_set(graph, source, target, weight);
-}
-
-static int positive_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    struct bucket2 *bucket;
-    struct entry2 *edge;
-    int allocate;
-
-    /* Only allocate a new edge when the weight is not filtered. */
-    allocate = !(weight <= graph->eps);
-    bucket = _graph_get_bucket(graph, source, target);
-    if ((edge = bucket2_get_entry(bucket, source, target, allocate)))
-    {
-        weight += edge->weight;
-        if (weight <= graph->eps)
-        {
-            bucket2_del_entry(bucket, edge);
-            allocate = 0;
-        }
-        else
-        {
-            edge->weight = weight;
-            allocate = 1;
-        }
-    }
-    else if (allocate)
-        return 0;
-
-    if (!(graph->flags & TVG_FLAGS_DIRECTED) && source != target)
-    {
-        bucket = _graph_get_bucket(graph, target, source);
-        if ((edge = bucket2_get_entry(bucket, target, source, allocate)))
-        {
-            if (allocate) edge->weight = weight;
-            else bucket2_del_entry(bucket, edge);
-        }
-        else if (allocate)
-        {
-            /* Allocation failed, restore the original state. */
-            _graph_del_edge(graph, source, target);
-            graph->revision++;
-            return 0;
-        }
-    }
-
-    graph->revision++;
-    if (!--graph->optimize)
-        graph_optimize(graph);
-
-    return 1;
-}
 
 static int positive_mul_const(struct graph *graph, float constant)
 {
@@ -386,8 +262,8 @@ const struct graph_ops graph_positive_ops =
 {
     positive_set_eps,
     generic_clear,
-    positive_set,
-    positive_add,
+    generic_set,
+    generic_add,
     generic_del,
     positive_mul_const,
 };

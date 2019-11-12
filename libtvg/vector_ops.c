@@ -128,47 +128,6 @@ const struct vector_ops vector_generic_ops =
     generic_mul_const,
 };
 
-static int nonzero_set(struct vector *vector, uint64_t index, float weight)
-{
-    /* Is the weight filtered? */
-    if (fabs(weight) <= vector->eps)
-    {
-        generic_del(vector, index);
-        return 1;
-    }
-
-    return generic_set(vector, index, weight);
-}
-
-static int nonzero_add(struct vector *vector, uint64_t index, float weight)
-{
-    struct bucket1 *bucket;
-    struct entry1 *entry;
-    int allocate;
-
-    /* Only allocate a new entry when the weight is not filtered. */
-    allocate = !(fabs(weight) <= vector->eps);
-    bucket = _vector_get_bucket(vector, index);
-    if (!(entry = bucket1_get_entry(bucket, index, allocate)))
-        return !allocate;
-
-    weight += entry->weight;
-    if (fabs(weight) <= vector->eps)
-    {
-        bucket1_del_entry(bucket, entry);
-    }
-    else
-    {
-        entry->weight = weight;
-    }
-
-    vector->revision++;
-    if (!--vector->optimize)
-        vector_optimize(vector);
-
-    return 1;
-}
-
 static int nonzero_mul_const(struct vector *vector, float constant)
 {
     struct bucket1 *bucket;
@@ -207,52 +166,11 @@ const struct vector_ops vector_nonzero_ops =
 {
     nonzero_set_eps,
     generic_clear,
-    nonzero_set,
-    nonzero_add,
+    generic_set,
+    generic_add,
     generic_del,
     nonzero_mul_const,
 };
-
-static int positive_set(struct vector *vector, uint64_t index, float weight)
-{
-    /* Is the weight filtered? */
-    if (weight <= vector->eps)
-    {
-        generic_del(vector, index);
-        return 1;
-    }
-
-    return generic_set(vector, index, weight);
-}
-
-static int positive_add(struct vector *vector, uint64_t index, float weight)
-{
-    struct bucket1 *bucket;
-    struct entry1 *entry;
-    int allocate;
-
-    /* Only allocate a new entry when the weight is not filtered. */
-    allocate = !(weight <= vector->eps);
-    bucket = _vector_get_bucket(vector, index);
-    if (!(entry = bucket1_get_entry(bucket, index, allocate)))
-        return !allocate;
-
-    weight += entry->weight;
-    if (weight <= vector->eps)
-    {
-        bucket1_del_entry(bucket, entry);
-    }
-    else
-    {
-        entry->weight = weight;
-    }
-
-    vector->revision++;
-    if (!--vector->optimize)
-        vector_optimize(vector);
-
-    return 1;
-}
 
 static int positive_mul_const(struct vector *vector, float constant)
 {
@@ -292,8 +210,8 @@ const struct vector_ops vector_positive_ops =
 {
     positive_set_eps,
     generic_clear,
-    positive_set,
-    positive_add,
+    generic_set,
+    generic_add,
     generic_del,
     positive_mul_const,
 };
