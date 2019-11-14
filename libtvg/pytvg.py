@@ -322,6 +322,12 @@ lib.graph_filter_nodes.restype = c_graph_p
 lib.graph_normalize.argtypes = (c_graph_p,)
 lib.graph_normalize.restype = c_graph_p
 
+lib.graph_save_binary.argtypes = (c_graph_p, c_char_p)
+lib.graph_save_binary.restype = c_int
+
+lib.graph_load_binary.argtypes = (c_char_p,)
+lib.graph_load_binary.restype = c_graph_p
+
 lib.graph_bfs.argtypes = (c_graph_p, c_uint64, c_int, c_bfs_callback_p, c_void_p)
 lib.graph_bfs.restype = c_int
 
@@ -1843,6 +1849,32 @@ class Graph(object):
         """
 
         return Graph(obj=lib.graph_normalize(self._obj))
+
+    def save_binary(self, filename):
+        """
+        Store a graph in a file using binary format.
+
+        # Arguments
+        filename: Path to the file to create
+        """
+
+        res = lib.graph_save_binary(self._obj, filename.encode("utf-8"))
+        if not res:
+            raise IOError
+
+    @staticmethod
+    def load_binary(filename):
+        """
+        Load a graph from a binary file into memory.
+
+        # Arguments
+        filename: Path to the file to load
+        """
+
+        obj = lib.graph_load_binary(filename.encode("utf-8"))
+        if not obj:
+            raise IOError
+        return Graph(obj=obj)
 
     def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3):
         """
@@ -3698,6 +3730,65 @@ if __name__ == '__main__':
             self.assertTrue(abs(g2[1, 2] - 0.21428572) < 1e-7)
             del g2
             del g
+
+        def test_save_binary(self):
+            g = Graph(directed=True)
+            g[0, 1] = 1.0
+            g[1, 2] = 2.0
+            g[2, 3] = 3.0
+            g[3, 4] = 4.0
+            g[2, 4] = 5.0
+
+            with tempfile.NamedTemporaryFile() as temp:
+                g.save_binary(temp.name)
+                data = temp.read()
+                h = Graph.load_binary(temp.name)
+
+            self.assertEqual(data.hex(), "5456474701000000040000000000000000000000" +
+                                         "0500000000000000" +
+                                         "000000000000000001000000000000000000803f00000000" +
+                                         "010000000000000002000000000000000000004000000000" +
+                                         "020000000000000003000000000000000000404000000000" +
+                                         "020000000000000004000000000000000000a04000000000" +
+                                         "030000000000000004000000000000000000804000000000")
+
+            self.assertEqual(h.flags, TVG_FLAGS_DIRECTED)
+            self.assertEqual(h.directed, True)
+            self.assertEqual(h.revision, 0)
+            self.assertEqual(h.num_edges, 5)
+            self.assertEqual(h.as_dict(), {(0, 1): 1.0, (1, 2): 2.0, (2, 3): 3.0, (2, 4): 5.0, (3, 4): 4.0})
+
+            del g
+            del h
+
+            for length in range(len(data)):
+                with tempfile.NamedTemporaryFile() as temp:
+                    temp.write(data[:length])
+                    temp.flush()
+                    with self.assertRaises(IOError):
+                        Graph.load_binary(temp.name)
+
+            g = Graph(directed=True)
+            for i in range(10000):
+                s, t = i//100, i%100
+                g[s, t] = i
+
+            with tempfile.NamedTemporaryFile() as temp:
+                g.save_binary(temp.name)
+                h = Graph.load_binary(temp.name)
+
+            self.assertEqual(h.flags, TVG_FLAGS_DIRECTED)
+            self.assertEqual(h.directed, True)
+            self.assertEqual(h.revision, 0)
+            self.assertEqual(h.num_edges, 10000)
+
+            for i in range(10000):
+                s, t = i//100, i%100
+                self.assertTrue(i == 0 or h.has_edge((s, t)))
+                self.assertEqual(h[s, t], i)
+
+            del g
+            del h
 
         def test_as_dict(self):
             g = Graph(directed=True)

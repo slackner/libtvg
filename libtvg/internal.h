@@ -165,6 +165,7 @@ int init_bucket1_from(struct bucket1 *bucket, struct bucket1 *source) DECL_INTER
 void free_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
 void bucket1_clear(struct bucket1 *bucket) DECL_INTERNAL;
 void bucket1_compress(struct bucket1 *bucket) DECL_INTERNAL;
+int bucket1_reserve(struct bucket1 *bucket, uint64_t new_entries) DECL_INTERNAL;
 int bucket1_split(struct bucket1 *bucket1, struct bucket1 *bucket2, uint64_t mask) DECL_INTERNAL;
 int bucket1_merge(struct bucket1 *bucket1, struct bucket1 *bucket2) DECL_INTERNAL;
 struct entry1 *bucket1_get_entry(struct bucket1 *bucket, uint64_t index, int allocate) DECL_INTERNAL;
@@ -176,6 +177,7 @@ int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source) DECL_INTER
 void free_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 void bucket2_clear(struct bucket2 *bucket) DECL_INTERNAL;
 void bucket2_compress(struct bucket2 *bucket) DECL_INTERNAL;
+int bucket2_reserve(struct bucket2 *bucket, uint64_t new_entries) DECL_INTERNAL;
 int bucket2_split(struct bucket2 *bucket1, struct bucket2 *bucket2, uint64_t source_mask, uint64_t target_mask) DECL_INTERNAL;
 int bucket2_merge(struct bucket2 *bucket1, struct bucket2 *bucket2) DECL_INTERNAL;
 struct entry2 *bucket2_get_entry(struct bucket2 *bucket, uint64_t source, uint64_t target, int allocate) DECL_INTERNAL;

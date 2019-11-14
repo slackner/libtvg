@@ -73,7 +73,7 @@ void bucket1_compress(struct bucket1 *bucket)
     }
 }
 
-static int bucket1_reserve(struct bucket1 *bucket, uint64_t new_entries)
+int bucket1_reserve(struct bucket1 *bucket, uint64_t new_entries)
 {
     uint64_t max_entries;
     struct entry1 *entries;
