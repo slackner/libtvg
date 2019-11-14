@@ -2876,23 +2876,25 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 0.0)
             del v
 
-            """
             v = Vector(nonzero=True)
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
             self.assertEqual(v.eps, 0.0)
             v[0] = 0.0
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.75)
             self.assertEqual(v[0], 0.25)
             v.add_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
             self.assertEqual(v[0], -1.0)
             v.sub_entry(0, -0.75)
             self.assertEqual(v[0], -0.25)
             v.sub_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             del v
 
@@ -2901,18 +2903,21 @@ if __name__ == '__main__':
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
             self.assertEqual(v.eps, 0.5)
             v[0] = 0.0
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.25)
             self.assertEqual(v[0], 0.75)
             v.add_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
             self.assertEqual(v[0], -1.0)
             v.sub_entry(0, -0.25)
             self.assertEqual(v[0], -0.75)
             v.sub_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             del v
 
@@ -2920,14 +2925,17 @@ if __name__ == '__main__':
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(v.eps, 0.0)
             v[0] = 0.0
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.75)
             self.assertEqual(v[0], 0.25)
             v.add_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.25)
             self.assertEqual(v[0], 0.25)
@@ -2938,23 +2946,27 @@ if __name__ == '__main__':
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertEqual(v.eps, 0.5)
             v[0] = 0.0
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.25)
             self.assertEqual(v[0], 0.75)
             v.add_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.25)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.5)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.75)
             self.assertEqual(v[0], 0.75)
             del v
-            """
 
         def test_mul_const(self):
             v = Vector()
@@ -3382,24 +3394,26 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 0], 0.0)
             del g
 
-            """
             g = Graph(nonzero=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
             self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], 0.25)
             g.add_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], -1.0)
             g.sub_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], -0.25)
             g.sub_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
@@ -3409,18 +3423,21 @@ if __name__ == '__main__':
             self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], 0.75)
             g.add_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], -1.0)
             g.sub_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], -0.75)
             g.sub_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
@@ -3429,14 +3446,17 @@ if __name__ == '__main__':
             self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], 0.25)
             g.add_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], 0.25)
@@ -3448,23 +3468,27 @@ if __name__ == '__main__':
             self.assertFalse(g.directed)
             self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], 0.75)
             g.add_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.25)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.5)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], 0.75)
             del g
-            """
 
         def test_bfs(self):
             g = Graph(directed=True)
