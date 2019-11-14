@@ -180,16 +180,7 @@ int graph_mul_const(struct graph *graph, float constant)
     return 1;
 }
 
-int graph_set_eps(struct graph *graph, float eps)
-{
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    graph->eps = (float)fabs(eps);
-    return graph_del_small(graph);
-}
-
-int graph_del_small(struct graph *graph)
+int graph_del_small(struct graph *graph, float eps)
 {
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
@@ -197,6 +188,8 @@ int graph_del_small(struct graph *graph)
 
     if (UNLIKELY(graph->readonly))
         return 0;
+
+    eps = fabs(eps);  /* ensure eps is positive */
 
     if (graph->flags & TVG_FLAGS_POSITIVE)
     {
@@ -208,7 +201,7 @@ int graph_del_small(struct graph *graph)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                if (edge->weight <= graph->eps) continue;
+                if (edge->weight <= eps) continue;
                 if (out != edge) *out = *edge;
                 out++;
             }
@@ -227,7 +220,7 @@ int graph_del_small(struct graph *graph)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                if (fabs(edge->weight) <= graph->eps) continue;
+                if (fabs(edge->weight) <= eps) continue;
                 if (out != edge) *out = *edge;
                 out++;
             }

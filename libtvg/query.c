@@ -323,7 +323,7 @@ static int query_sum_edges_finalize(struct query *query_base)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
 
-    if (!graph_del_small(query->result))
+    if (!graph_del_small(query->result, query->eps))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -368,7 +368,6 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
         return NULL;
     }
 
-    graph_set_eps(query->result, eps);
     query->result->query = &query->base;
 
     return (struct graph *)query_compute(tvg, &query->base);
@@ -442,7 +441,7 @@ static int query_sum_edges_exp_finalize(struct query *query_base)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
 
-    if (!graph_del_small(query->result))
+    if (!graph_del_small(query->result, query->eps))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -490,7 +489,6 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
         return NULL;
     }
 
-    graph_set_eps(query->result, eps);
     query->result->query = &query->base;
 
     return (struct graph *)query_compute(tvg, &query->base);
@@ -540,7 +538,7 @@ static int query_count_edges_finalize(struct query *query_base)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
 
-    if (!graph_del_small(query->result))
+    if (!graph_del_small(query->result, 0.5))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -583,7 +581,6 @@ struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
         return NULL;
     }
 
-    graph_set_eps(query->result, 0.5);
     query->result->query = &query->base;
 
     return (struct graph *)query_compute(tvg, &query->base);
@@ -633,7 +630,7 @@ static int query_count_nodes_finalize(struct query *query_base)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
 
-    if (!vector_del_small(query->result))
+    if (!vector_del_small(query->result, 0.5))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -672,7 +669,6 @@ struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max
         return NULL;
     }
 
-    vector_set_eps(query->result, 0.5);
     query->result->query = &query->base;
 
     return (struct vector *)query_compute(tvg, &query->base);

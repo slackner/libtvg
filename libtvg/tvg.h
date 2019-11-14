@@ -79,7 +79,6 @@ struct vector
     uint64_t    refcount;
     uint32_t    flags;
     uint64_t    revision;
-    float       eps;
 
     /* private: */
     struct query *query;
@@ -112,7 +111,6 @@ struct graph
     uint64_t    refcount;
     uint32_t    flags;
     uint64_t    revision;
-    float       eps;
     uint64_t    ts;
     struct objectid objectid;
 
@@ -1543,9 +1541,6 @@ int vector_inc_bits(struct vector *vector);
 int vector_dec_bits(struct vector *vector);
 void vector_optimize(struct vector *vector);
 
-int vector_set_eps(struct vector *vector, float eps);
-int vector_del_small(struct vector *vector);
-
 int vector_empty(struct vector *vector);
 int vector_clear(struct vector *vector);
 
@@ -1568,6 +1563,7 @@ int vector_sub_vector(struct vector *out, struct vector *vector, float weight);
 
 int vector_del_entry(struct vector *vector, uint64_t index);
 int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries);
+int vector_del_small(struct vector *vector, float eps);
 
 int vector_mul_const(struct vector *vector, float constant);
 double vector_sum_weights(const struct vector *vector);
@@ -1596,9 +1592,6 @@ int graph_inc_bits_source(struct graph *graph);
 int graph_dec_bits_source(struct graph *graph);
 void graph_optimize(struct graph *graph);
 
-int graph_set_eps(struct graph *graph, float eps);
-int graph_del_small(struct graph *graph);
-
 int graph_empty(struct graph *graph);
 int graph_clear(struct graph *graph);
 
@@ -1624,6 +1617,7 @@ int graph_sub_graph(struct graph *out, struct graph *graph, float weight);
 
 int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target);
 int graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges);
+int graph_del_small(struct graph *graph, float eps);
 
 int graph_mul_const(struct graph *graph, float constant);
 struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector);

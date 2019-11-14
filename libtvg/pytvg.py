@@ -50,14 +50,12 @@ class c_objectid(Structure):
 class c_vector(Structure):
     _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint),
-                ("revision", c_uint64),
-                ("eps",      c_float)]
+                ("revision", c_uint64)]
 
 class c_graph(Structure):
     _fields_ = [("refcount", c_uint64),
                 ("flags",    c_uint),
                 ("revision", c_uint64),
-                ("eps",      c_float),
                 ("ts",       c_uint64),
                 ("objectid", c_objectid)]
 
@@ -142,10 +140,7 @@ lib.vector_memory_usage.restype = c_uint64
 lib.vector_clear.argtypes = (c_vector_p,)
 lib.vector_clear.restype = c_int
 
-lib.vector_set_eps.argtypes = (c_vector_p, c_float)
-lib.vector_set_eps.restype = c_int
-
-lib.vector_del_small.argtypes = (c_vector_p,)
+lib.vector_del_small.argtypes = (c_vector_p, c_float)
 lib.vector_del_small.restype = c_int
 
 lib.vector_empty.argtypes = (c_vector_p,)
@@ -234,10 +229,7 @@ lib.prev_graph.restype = c_graph_p
 lib.next_graph.argtypes = (c_graph_p,)
 lib.next_graph.restype = c_graph_p
 
-lib.graph_set_eps.argtypes = (c_graph_p, c_float)
-lib.graph_set_eps.restype = c_int
-
-lib.graph_del_small.argtypes = (c_graph_p,)
+lib.graph_del_small.argtypes = (c_graph_p, c_float)
 lib.graph_del_small.restype = c_int
 
 lib.graph_empty.argtypes = (c_graph_p,)
@@ -952,20 +944,6 @@ class Vector(object):
         return self._obj.contents.revision
 
     @property
-    def eps(self):
-        """
-        Get/set the current value of epsilon. This is used to determine whether an
-        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
-        """
-        return self._obj.contents.eps
-
-    @eps.setter
-    def eps(self, value):
-        res = lib.vector_set_eps(self._obj, value)
-        if not res:
-            raise MemoryError
-
-    @property
     @cacheable
     def memory_usage(self):
         """ Return the memory usage currently associated with the vector. """
@@ -1221,9 +1199,9 @@ class Vector(object):
         if not res:
             raise RuntimeError
 
-    def del_small(self):
+    def del_small(self, eps=0.0):
         """ Drop entries smaller than the selected `eps`. """
-        res = lib.vector_del_small(self._obj)
+        res = lib.vector_del_small(self._obj, eps)
         if not res:
             raise RuntimeError
 
@@ -1327,20 +1305,6 @@ class Graph(object):
         to check the cache validity.
         """
         return self._obj.contents.revision
-
-    @property
-    def eps(self):
-        """
-        Get/set the current value of epsilon. This is used to determine whether an
-        entry is equal to zero. Whenever |x| < eps, it is treated as zero.
-        """
-        return self._obj.contents.eps
-
-    @eps.setter
-    def eps(self, value):
-        res = lib.graph_set_eps(self._obj, value)
-        if not res:
-            raise RuntimeError
 
     @property
     def ts(self):
@@ -1785,9 +1749,9 @@ class Graph(object):
         if not res:
             raise RuntimeError
 
-    def del_small(self):
+    def del_small(self, eps=0.0):
         """ Drop entries smaller than the selected `eps`. """
-        res = lib.graph_del_small(self._obj)
+        res = lib.graph_del_small(self._obj, eps)
         if not res:
             raise RuntimeError
 
@@ -2878,7 +2842,6 @@ if __name__ == '__main__':
 
             v = Vector(nonzero=True)
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
-            self.assertEqual(v.eps, 0.0)
             v[0] = 0.0
             v.del_small()
             self.assertFalse(v.has_entry(0))
@@ -2899,31 +2862,28 @@ if __name__ == '__main__':
             del v
 
             v = Vector(nonzero=True)
-            v.eps = 0.5
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
-            self.assertEqual(v.eps, 0.5)
             v[0] = 0.0
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.25)
             self.assertEqual(v[0], 0.75)
             v.add_entry(0, -0.25)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
             self.assertEqual(v[0], -1.0)
             v.sub_entry(0, -0.25)
             self.assertEqual(v[0], -0.75)
             v.sub_entry(0, -0.25)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             del v
 
             v = Vector(positive=True)
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
-            self.assertEqual(v.eps, 0.0)
             v[0] = 0.0
             v.del_small()
             self.assertFalse(v.has_entry(0))
@@ -2942,27 +2902,25 @@ if __name__ == '__main__':
             del v
 
             v = Vector(positive=True)
-            v.eps = 0.5
             self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
-            self.assertEqual(v.eps, 0.5)
             v[0] = 0.0
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.add_entry(0, 1.0)
             self.assertEqual(v[0], 1.0)
             v.add_entry(0, -0.25)
             self.assertEqual(v[0], 0.75)
             v.add_entry(0, -0.25)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, 1.0)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.25)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.5)
-            v.del_small()
+            v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
             v.sub_entry(0, -0.75)
             self.assertEqual(v[0], 0.75)
@@ -3397,7 +3355,6 @@ if __name__ == '__main__':
             g = Graph(nonzero=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
             self.assertFalse(g.directed)
-            self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
             g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
@@ -3418,33 +3375,30 @@ if __name__ == '__main__':
             del g
 
             g = Graph(nonzero=True)
-            g.eps = 0.5
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
             self.assertFalse(g.directed)
-            self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], 0.75)
             g.add_edge((0, 0), -0.25)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], -1.0)
             g.sub_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], -0.75)
             g.sub_edge((0, 0), -0.25)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
             g = Graph(positive=True)
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertFalse(g.directed)
-            self.assertEqual(g.eps, 0.0)
             g[0, 0] = 0.0
             g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
@@ -3463,28 +3417,26 @@ if __name__ == '__main__':
             del g
 
             g = Graph(positive=True)
-            g.eps = 0.5
             self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
             self.assertFalse(g.directed)
-            self.assertEqual(g.eps, 0.5)
             g[0, 0] = 0.0
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.add_edge((0, 0), 1.0)
             self.assertEqual(g[0, 0], 1.0)
             g.add_edge((0, 0), -0.25)
             self.assertEqual(g[0, 0], 0.75)
             g.add_edge((0, 0), -0.25)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), 1.0)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.25)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.5)
-            g.del_small()
+            g.del_small(eps=0.5)
             self.assertFalse(g.has_edge((0, 0)))
             g.sub_edge((0, 0), -0.75)
             self.assertEqual(g[0, 0], 0.75)
@@ -4186,8 +4138,6 @@ if __name__ == '__main__':
             with self.assertRaises(RuntimeError):
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
-                g.eps = 2.0
-            with self.assertRaises(RuntimeError):
                 g.del_small()
 
             g.unlink()
@@ -4197,7 +4147,6 @@ if __name__ == '__main__':
             g.add_edge((0, 0), 1.0)
             del g[0, 0]
             g.mul_const(2.0)
-            g.eps = 2.0
             g.del_small()
 
             del tvg
@@ -5691,8 +5640,6 @@ if __name__ == '__main__':
             with self.assertRaises(RuntimeError):
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
-                g.eps = 2.0
-            with self.assertRaises(RuntimeError):
                 g.del_small()
 
             g.unlink()
@@ -5702,7 +5649,6 @@ if __name__ == '__main__':
             g.add_edge((0, 0), 1.0)
             del g[0, 0]
             g.mul_const(2.0)
-            g.eps = 2.0
             g.del_small()
 
             del tvg
@@ -5742,8 +5688,6 @@ if __name__ == '__main__':
             with self.assertRaises(RuntimeError):
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
-                g.eps = 2.0
-            with self.assertRaises(RuntimeError):
                 g.del_small()
 
             g.unlink()
@@ -5753,7 +5697,6 @@ if __name__ == '__main__':
             g.add_edge((0, 0), 1.0)
             del g[0, 0]
             g.mul_const(2.0)
-            g.eps = 2.0
             g.del_small()
 
             del tvg

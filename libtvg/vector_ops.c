@@ -130,16 +130,7 @@ int vector_mul_const(struct vector *vector, float constant)
     return 1;
 }
 
-int vector_set_eps(struct vector *vector, float eps)
-{
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    vector->eps = (float)fabs(eps);
-    return vector_del_small(vector);
-}
-
-int vector_del_small(struct vector *vector)
+int vector_del_small(struct vector *vector, float eps)
 {
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
@@ -147,6 +138,8 @@ int vector_del_small(struct vector *vector)
 
     if (UNLIKELY(vector->readonly))
         return 0;
+
+    eps = fabs(eps);  /* ensure eps is positive */
 
     if (vector->flags & TVG_FLAGS_POSITIVE)
     {
@@ -158,7 +151,7 @@ int vector_del_small(struct vector *vector)
 
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
-                if (entry->weight <= vector->eps) continue;
+                if (entry->weight <= eps) continue;
                 if (out != entry) *out = *entry;
                 out++;
             }
@@ -177,7 +170,7 @@ int vector_del_small(struct vector *vector)
 
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
-                if (fabs(entry->weight) <= vector->eps) continue;
+                if (fabs(entry->weight) <= eps) continue;
                 if (out != entry) *out = *entry;
                 out++;
             }

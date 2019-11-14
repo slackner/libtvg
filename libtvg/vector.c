@@ -37,7 +37,6 @@ struct vector *alloc_vector(uint32_t flags)
     vector->refcount = 1;
     vector->flags    = flags;
     vector->revision = 0;
-    vector->eps      = 0.0;
     vector->query    = NULL;
     vector->readonly = 0;
     vector->bits     = bits;
@@ -104,7 +103,6 @@ struct vector *vector_duplicate(struct vector *source)
     vector->refcount = 1;
     vector->flags    = source->flags;
     vector->revision = source->revision;
-    vector->eps      = source->eps;
     vector->query    = NULL;
     vector->readonly = 0;
     vector->bits     = source->bits;

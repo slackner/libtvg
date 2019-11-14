@@ -44,7 +44,6 @@ struct graph *alloc_graph(uint32_t flags)
     graph->refcount    = 1;
     graph->flags       = flags;
     graph->revision    = 0;
-    graph->eps         = 0.0;
     graph->ts          = 0.0;
     objectid_init(&graph->objectid);
     graph->query       = NULL;
@@ -162,7 +161,6 @@ struct graph *graph_duplicate(struct graph *source)
     graph->flags       = source->flags & ~(TVG_FLAGS_LOAD_NEXT |
                                            TVG_FLAGS_LOAD_PREV);
     graph->revision    = source->revision;
-    graph->eps         = source->eps;
     graph->ts          = source->ts;
     graph->objectid    = source->objectid;
     graph->query       = NULL;
