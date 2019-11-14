@@ -38,7 +38,7 @@ int vector_clear(struct vector *vector)
 {
     uint64_t i, num_buckets;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     num_buckets = 1ULL << vector->bits;
@@ -56,7 +56,7 @@ int vector_set_entry(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (!(entry = _vector_get_entry(vector, index, 1)))
@@ -75,7 +75,7 @@ int vector_add_entry(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (!(entry = _vector_get_entry(vector, index, 1)))
@@ -95,7 +95,7 @@ int vector_del_entry(struct vector *vector, uint64_t index)
     struct bucket1 *bucket;
     struct entry1 *entry;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     bucket = _vector_get_bucket(vector, index);
@@ -115,7 +115,7 @@ int vector_mul_const(struct vector *vector, float constant)
 {
     struct entry1 *entry;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (constant == 1.0)
@@ -136,7 +136,7 @@ int vector_del_small(struct vector *vector, float eps)
     struct entry1 *entry, *out;
     uint64_t i, num_buckets;
 
-    if (UNLIKELY(vector->readonly))
+    if (UNLIKELY(vector->flags & TVG_FLAGS_READONLY))
         return 0;
 
     eps = fabs(eps);  /* ensure eps is positive */

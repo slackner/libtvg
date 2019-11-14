@@ -835,7 +835,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         assert(!graph->tvg);
         graph->ts  = ts;
         graph->objectid = objectid;
-        graph->readonly = 1;  /* block changes */
+        graph->flags |= TVG_FLAGS_READONLY;  /* block changes */
         graph->tvg = tvg;
 
         if (direction > 0)

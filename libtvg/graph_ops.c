@@ -56,7 +56,7 @@ int graph_clear(struct graph *graph)
 {
     uint64_t i, num_buckets;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
@@ -74,7 +74,7 @@ int graph_set_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 {
     struct entry2 *edge;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
@@ -106,7 +106,7 @@ int graph_add_edge(struct graph *graph, uint64_t source, uint64_t target, float 
 {
     struct entry2 *edge;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
@@ -139,7 +139,7 @@ int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
 {
     int changed = 0;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (_graph_del_edge(graph, source, target))
@@ -165,7 +165,7 @@ int graph_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     if (constant == 1.0)
@@ -186,7 +186,7 @@ int graph_del_small(struct graph *graph, float eps)
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
 
-    if (UNLIKELY(graph->readonly))
+    if (UNLIKELY(graph->flags & TVG_FLAGS_READONLY))
         return 0;
 
     eps = fabs(eps);  /* ensure eps is positive */

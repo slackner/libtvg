@@ -27,6 +27,7 @@
 
 #define TVG_FLAGS_LOAD_NEXT 0x00010000U
 #define TVG_FLAGS_LOAD_PREV 0x00020000U
+#define TVG_FLAGS_READONLY  0x00040000U  /* readonly */
 
 #define OBJECTID_NONE   0
 #define OBJECTID_INT    1
@@ -83,8 +84,6 @@ struct vector
     /* private: */
     struct query *query;
 
-
-    int         readonly;
     uint32_t    bits;
     struct bucket1 *buckets;
     uint64_t    optimize;
@@ -123,7 +122,6 @@ struct graph
     uint64_t    cache;       /* 0 if not cached, otherwise size of graph */
     struct list cache_entry;
 
-    int         readonly;
     uint32_t    bits_source; /* 0...31 */
     uint32_t    bits_target; /* 0...31 */
     struct bucket2 *buckets; /* (H(target) << bits_source) | H(source) */

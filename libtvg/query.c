@@ -326,7 +326,7 @@ static int query_sum_edges_finalize(struct query *query_base)
     if (!graph_del_small(query->result, query->eps))
         return 0;
 
-    query->result->readonly = 1;  /* block changes */
+    query->result->flags |= TVG_FLAGS_READONLY;  /* block changes */
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
     return 1;
 }
@@ -441,7 +441,7 @@ static int query_sum_edges_exp_finalize(struct query *query_base)
     if (!graph_del_small(query->result, query->eps))
         return 0;
 
-    query->result->readonly = 1;  /* block changes */
+    query->result->flags |= TVG_FLAGS_READONLY;  /* block changes */
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
     return 1;
 }
@@ -535,7 +535,7 @@ static int query_count_edges_finalize(struct query *query_base)
     if (!graph_del_small(query->result, 0.5))
         return 0;
 
-    query->result->readonly = 1;  /* block changes */
+    query->result->flags |= TVG_FLAGS_READONLY;  /* block changes */
     query->base.cache = sizeof(*query) + graph_memory_usage(query->result);
     return 1;
 }
@@ -627,7 +627,7 @@ static int query_count_nodes_finalize(struct query *query_base)
     if (!vector_del_small(query->result, 0.5))
         return 0;
 
-    query->result->readonly = 1;  /* block changes */
+    query->result->flags |= TVG_FLAGS_READONLY;  /* block changes */
     query->base.cache = sizeof(*query) + vector_memory_usage(query->result);
     return 1;
 }

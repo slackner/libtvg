@@ -36,6 +36,7 @@ TVG_FLAGS_STREAMING = 0x00000008
 
 TVG_FLAGS_LOAD_NEXT = 0x00010000
 TVG_FLAGS_LOAD_PREV = 0x00020000
+TVG_FLAGS_READONLY  = 0x00040000
 
 OBJECTID_NONE   = 0
 OBJECTID_INT    = 1
@@ -932,6 +933,10 @@ class Vector(object):
         return self._obj.contents.flags
 
     @property
+    def readonly(self):
+        return (self._obj.contents.flags & TVG_FLAGS_READONLY) != 0
+
+    @property
     def revision(self):
         """
         Return the current revision of the vector object. This value is incremented
@@ -1291,6 +1296,10 @@ class Graph(object):
     @property
     def directed(self):
         return (self._obj.contents.flags & TVG_FLAGS_DIRECTED) != 0
+
+    @property
+    def readonly(self):
+        return (self._obj.contents.flags & TVG_FLAGS_READONLY) != 0
 
     @property
     def revision(self):
@@ -3782,19 +3791,19 @@ if __name__ == '__main__':
 
             g1 = Graph(positive=True)
             tvg.link_graph(g1, 100)
-            self.assertEqual(g1.flags, TVG_FLAGS_POSITIVE)
+            self.assertEqual(g1.flags, TVG_FLAGS_POSITIVE | TVG_FLAGS_READONLY)
             self.assertEqual(g1.ts, 100)
             self.assertEqual(g1.id, None)
 
             g2 = Graph(positive=True)
             tvg.link_graph(g2, 200)
-            self.assertEqual(g2.flags, TVG_FLAGS_POSITIVE)
+            self.assertEqual(g2.flags, TVG_FLAGS_POSITIVE | TVG_FLAGS_READONLY)
             self.assertEqual(g2.ts, 200)
             self.assertEqual(g2.id, None)
 
             g3 = Graph(positive=True)
             tvg.link_graph(g3, 300)
-            self.assertEqual(g3.flags, TVG_FLAGS_POSITIVE)
+            self.assertEqual(g3.flags, TVG_FLAGS_POSITIVE | TVG_FLAGS_READONLY)
             self.assertEqual(g3.ts, 300)
             self.assertEqual(g3.id, None)
             self.assertGreater(tvg.memory_usage, mem)
@@ -4111,8 +4120,10 @@ if __name__ == '__main__':
         def test_readonly(self):
             tvg = TVG(positive=True)
             g = Graph(positive=True)
+            self.assertEqual(g.readonly, False)
             tvg.link_graph(g, 0)
             self.assertEqual(g.ts, 0)
+            self.assertEqual(g.readonly, True)
 
             with self.assertRaises(RuntimeError):
                 g.clear()
@@ -4128,6 +4139,7 @@ if __name__ == '__main__':
                 g.del_small()
 
             g.unlink()
+            self.assertEqual(g.readonly, False)
 
             g.clear()
             g[0, 0] = 1.0
@@ -5251,14 +5263,14 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546300800000)
             self.assertEqual(g.id, 10)
             self.assertEqual(g[1, 2], 1.0)
 
             g = g.next
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g.id, 11)
             self.assertEqual(g[1, 3], 1.0)
@@ -5286,14 +5298,14 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g.id, 12)
             self.assertEqual(g[1, 4], 1.0)
 
             g = g.next
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546560000000)
             self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
@@ -5320,14 +5332,14 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546732800000)
             self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
 
             g = g.prev
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546646400000)
             self.assertEqual(g.id, 14)
             self.assertEqual(g[1, 6], 1.0)
@@ -5347,14 +5359,14 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, 0)
+            self.assertEqual(g.flags, TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546560000000)
             self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
 
             g = tvg.lookup_ge(1546732800000)
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546732800000)
             self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
@@ -5376,7 +5388,7 @@ if __name__ == '__main__':
 
             for i, g in enumerate(tvg):
                 self.assertEqual(g.revision, 0)
-                self.assertEqual(g.flags, 0)
+                self.assertEqual(g.flags, TVG_FLAGS_READONLY)
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g.id, 10 + i)
                 self.assertEqual(g[1, 2 + i], 1.0)
@@ -5409,13 +5421,13 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g[1, 3], 1.0)
 
             g = g.prev
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546300800000)
             self.assertEqual(g[1, 2], 1.0)
 
@@ -5439,13 +5451,13 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g[1, 4], 1.0)
 
             g2 = g.prev
             self.assertEqual(g2.revision, 0)
-            self.assertEqual(g2.flags, 0)
+            self.assertEqual(g2.flags, TVG_FLAGS_READONLY)
             self.assertEqual(g2.ts, 1546387200000)
             self.assertEqual(g2[1, 3], 1.0)
 
@@ -5465,7 +5477,7 @@ if __name__ == '__main__':
             self.assertEqual(g2, None)
 
             self.assertEqual(g.revision, 0)
-            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT)
+            self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g[1, 4], 1.0)
 
@@ -5615,6 +5627,7 @@ if __name__ == '__main__':
             tvg = future()
             g = tvg.lookup_ge()
             self.assertEqual(g.ts, 1546387200000)
+            self.assertEqual(g.readonly, True)
 
             with self.assertRaises(RuntimeError):
                 g.clear()
@@ -5630,6 +5643,7 @@ if __name__ == '__main__':
                 g.del_small()
 
             g.unlink()
+            self.assertEqual(g.readonly, False)
 
             g.clear()
             g[0, 0] = 1.0
@@ -5663,6 +5677,7 @@ if __name__ == '__main__':
 
             g = future()
             self.assertEqual(g.ts, 1546387200000)
+            self.assertEqual(g.readonly, True)
 
             with self.assertRaises(RuntimeError):
                 g.clear()
@@ -5678,6 +5693,7 @@ if __name__ == '__main__':
                 g.del_small()
 
             g.unlink()
+            self.assertEqual(g.readonly, False)
 
             g.clear()
             g[0, 0] = 1.0
