@@ -190,49 +190,33 @@ int graph_del_small(struct graph *graph, float eps)
         return 0;
 
     eps = fabs(eps);  /* ensure eps is positive */
-
-    if (graph->flags & TVG_FLAGS_POSITIVE)
+    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+    for (i = 0; i < num_buckets; i++)
     {
-        num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
-        for (i = 0; i < num_buckets; i++)
-        {
-            bucket = &graph->buckets[i];
-            out = &bucket->entries[0];
+        bucket = &graph->buckets[i];
+        out = &bucket->entries[0];
 
+        if (graph->flags & TVG_FLAGS_POSITIVE)
+        {
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
                 if (edge->weight <= eps) continue;
                 if (out != edge) *out = *edge;
                 out++;
             }
-
-            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-            assert(bucket->num_entries <= bucket->max_entries);
         }
-    }
-    else if (graph->flags & TVG_FLAGS_NONZERO)
-    {
-        num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
-        for (i = 0; i < num_buckets; i++)
+        else
         {
-            bucket = &graph->buckets[i];
-            out = &bucket->entries[0];
-
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
                 if (fabs(edge->weight) <= eps) continue;
                 if (out != edge) *out = *edge;
                 out++;
             }
-
-            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-            assert(bucket->num_entries <= bucket->max_entries);
         }
-    }
-    else
-    {
-        /* Nothing to do */
-        return 1;
+
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+        assert(bucket->num_entries <= bucket->max_entries);
     }
 
     graph->revision++;

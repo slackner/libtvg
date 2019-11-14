@@ -2930,10 +2930,8 @@ if __name__ == '__main__':
             v = Vector()
             v[0] = 1.0
             v.mul_const(-1.0)
-            v.del_small()
             self.assertEqual(v[0], -1.0)
             v.mul_const(0.0)
-            v.del_small()
             self.assertTrue(v.has_entry(0))
             self.assertEqual(v[0], 0.0)
             del v
@@ -3526,10 +3524,8 @@ if __name__ == '__main__':
             g = Graph()
             g[0, 0] = 1.0
             g.mul_const(-1.0)
-            g.del_small()
             self.assertEqual(g[0, 0], -1.0)
             g.mul_const(0.0)
-            g.del_small()
             self.assertTrue(g.has_edge((0, 0)))
             self.assertEqual(g[0, 0], 0.0)
             del g

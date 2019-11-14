@@ -140,49 +140,33 @@ int vector_del_small(struct vector *vector, float eps)
         return 0;
 
     eps = fabs(eps);  /* ensure eps is positive */
-
-    if (vector->flags & TVG_FLAGS_POSITIVE)
+    num_buckets = 1ULL << vector->bits;
+    for (i = 0; i < num_buckets; i++)
     {
-        num_buckets = 1ULL << vector->bits;
-        for (i = 0; i < num_buckets; i++)
-        {
-            bucket = &vector->buckets[i];
-            out = &bucket->entries[0];
+        bucket = &vector->buckets[i];
+        out = &bucket->entries[0];
 
+        if (vector->flags & TVG_FLAGS_POSITIVE)
+        {
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
                 if (entry->weight <= eps) continue;
                 if (out != entry) *out = *entry;
                 out++;
             }
-
-            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-            assert(bucket->num_entries <= bucket->max_entries);
         }
-    }
-    else if (vector->flags & TVG_FLAGS_NONZERO)
-    {
-        num_buckets = 1ULL << vector->bits;
-        for (i = 0; i < num_buckets; i++)
+        else
         {
-            bucket = &vector->buckets[i];
-            out = &bucket->entries[0];
-
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
                 if (fabs(entry->weight) <= eps) continue;
                 if (out != entry) *out = *entry;
                 out++;
             }
-
-            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-            assert(bucket->num_entries <= bucket->max_entries);
         }
-    }
-    else
-    {
-        /* Nothing to do */
-        return 1;
+
+        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+        assert(bucket->num_entries <= bucket->max_entries);
     }
 
     vector->revision++;
