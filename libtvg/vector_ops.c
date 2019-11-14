@@ -34,7 +34,7 @@ float vector_get_entry(struct vector *vector, uint64_t index)
     return entry->weight;
 }
 
-static int generic_clear(struct vector *vector)
+int vector_clear(struct vector *vector)
 {
     uint64_t i, num_buckets;
 
@@ -52,7 +52,7 @@ static int generic_clear(struct vector *vector)
     return 1;
 }
 
-static int generic_set(struct vector *vector, uint64_t index, float weight)
+int vector_set_entry(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
 
@@ -71,7 +71,7 @@ static int generic_set(struct vector *vector, uint64_t index, float weight)
     return 1;
 }
 
-static int generic_add(struct vector *vector, uint64_t index, float weight)
+int vector_add_entry(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
 
@@ -90,7 +90,7 @@ static int generic_add(struct vector *vector, uint64_t index, float weight)
     return 1;
 }
 
-static int generic_del(struct vector *vector, uint64_t index)
+int vector_del_entry(struct vector *vector, uint64_t index)
 {
     struct bucket1 *bucket;
     struct entry1 *entry;
@@ -139,10 +139,6 @@ static int generic_set_eps(struct vector *vector, float eps)
 const struct vector_ops vector_generic_ops =
 {
     generic_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     generic_mul_const,
 };
 
@@ -189,10 +185,6 @@ static int nonzero_set_eps(struct vector *vector, float eps)
 const struct vector_ops vector_nonzero_ops =
 {
     nonzero_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     nonzero_mul_const,
 };
 
@@ -239,9 +231,5 @@ static int positive_set_eps(struct vector *vector, float eps)
 const struct vector_ops vector_positive_ops =
 {
     positive_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     positive_mul_const,
 };

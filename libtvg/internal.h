@@ -76,10 +76,6 @@
 struct vector_ops
 {
     int       (*set_eps)(struct vector *, float);
-    int       (*clear)(struct vector *);
-    int       (*set)(struct vector *, uint64_t, float);
-    int       (*add)(struct vector *, uint64_t, float);
-    int       (*del)(struct vector *, uint64_t);
     int       (*mul_const)(struct vector *, float);
 };
 

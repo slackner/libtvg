@@ -281,11 +281,6 @@ int vector_empty(struct vector *vector)
     return 1;
 }
 
-int vector_clear(struct vector *vector)
-{
-    return vector->ops->clear(vector);
-}
-
 uint64_t vector_num_entries(struct vector *vector)
 {
     uint64_t i, num_buckets;
@@ -321,18 +316,13 @@ uint64_t vector_get_entries(struct vector *vector, uint64_t *indices, float *wei
     return count;
 }
 
-int vector_set_entry(struct vector *vector, uint64_t index, float weight)
-{
-    return vector->ops->set(vector, index, weight);
-}
-
 int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
 {
     if (weights)
     {
         while (num_entries--)
         {
-            if (!vector->ops->set(vector, indices[0], weights[0]))
+            if (!vector_set_entry(vector, indices[0], weights[0]))
                 return 0;
 
             indices++;
@@ -343,7 +333,7 @@ int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights,
     {
         while (num_entries--)
         {
-            if (!vector->ops->set(vector, indices[0], 1.0f))
+            if (!vector_set_entry(vector, indices[0], 1.0f))
                 return 0;
 
             indices++;
@@ -353,18 +343,13 @@ int vector_set_entries(struct vector *vector, uint64_t *indices, float *weights,
     return 1;
 }
 
-int vector_add_entry(struct vector *vector, uint64_t index, float weight)
-{
-    return vector->ops->add(vector, index, weight);
-}
-
 int vector_add_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
 {
     if (weights)
     {
         while (num_entries--)
         {
-            if (!vector->ops->add(vector, indices[0], weights[0]))
+            if (!vector_add_entry(vector, indices[0], weights[0]))
                 return 0;
 
             indices++;
@@ -375,7 +360,7 @@ int vector_add_entries(struct vector *vector, uint64_t *indices, float *weights,
     {
         while (num_entries--)
         {
-            if (!vector->ops->add(vector, indices[0], 1.0f))
+            if (!vector_add_entry(vector, indices[0], 1.0f))
                 return 0;
 
             indices++;
@@ -391,8 +376,6 @@ int vector_add_vector(struct vector *out, struct vector *vector, float weight)
 
     VECTOR_FOR_EACH_ENTRY(vector, entry)
     {
-        /* Note that we intentionally don't use out->ops->add here. It is safer to
-         * always use exported functions when working on other objects. */
         if (!vector_add_entry(out, entry->index, entry->weight * weight))
             return 0;
     }
@@ -403,7 +386,7 @@ int vector_add_vector(struct vector *out, struct vector *vector, float weight)
 
 int vector_sub_entry(struct vector *vector, uint64_t index, float weight)
 {
-    return vector->ops->add(vector, index, -weight);
+    return vector_add_entry(vector, index, -weight);
 }
 
 int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights, uint64_t num_entries)
@@ -412,7 +395,7 @@ int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights,
     {
         while (num_entries--)
         {
-            if (!vector->ops->add(vector, indices[0], -weights[0]))
+            if (!vector_add_entry(vector, indices[0], -weights[0]))
                 return 0;
 
             indices++;
@@ -423,7 +406,7 @@ int vector_sub_entries(struct vector *vector, uint64_t *indices, float *weights,
     {
         while (num_entries--)
         {
-            if (!vector->ops->add(vector, indices[0], -1.0f))
+            if (!vector_add_entry(vector, indices[0], -1.0f))
                 return 0;
 
             indices++;
@@ -438,16 +421,11 @@ int vector_sub_vector(struct vector *out, struct vector *vector, float weight)
     return vector_add_vector(out, vector, -weight);
 }
 
-int vector_del_entry(struct vector *vector, uint64_t index)
-{
-    return vector->ops->del(vector, index);
-}
-
 int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_entries)
 {
     while (num_entries--)
     {
-        if (!vector->ops->del(vector, indices[0]))
+        if (!vector_del_entry(vector, indices[0]))
             return 0;
 
         indices++;
