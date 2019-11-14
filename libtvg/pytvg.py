@@ -4172,6 +4172,7 @@ if __name__ == '__main__':
                 tvg.sum_edges(1, 0)
 
             g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertEqual(g.readonly, True)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
@@ -4205,6 +4206,7 @@ if __name__ == '__main__':
                 tvg.sum_edges_exp(1, 0, beta=beta)
 
             g = tvg.sum_edges_exp(0, 100, beta=beta)
+            self.assertEqual(g.readonly, True)
             self.assertTrue(abs(g[0, 0] - math.pow(beta, 100.0)) < 1e-7)
 
             g = tvg.sum_edges_exp(0, 0, beta=beta)
@@ -4259,6 +4261,7 @@ if __name__ == '__main__':
                 tvg.count_edges(1, 0)
 
             g = tvg.count_edges(51, 150)
+            self.assertEqual(g.readonly, True)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
@@ -4300,6 +4303,7 @@ if __name__ == '__main__':
                 tvg.count_nodes(1, 0)
 
             v = tvg.count_nodes(51, 150)
+            self.assertEqual(v.readonly, True)
             self.assertEqual(v[0], 1.0)
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
