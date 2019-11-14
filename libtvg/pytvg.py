@@ -234,6 +234,9 @@ lib.next_graph.restype = c_graph_p
 lib.graph_set_eps.argtypes = (c_graph_p, c_float)
 lib.graph_set_eps.restype = c_int
 
+lib.graph_del_small.argtypes = (c_graph_p,)
+lib.graph_del_small.restype = c_int
+
 lib.graph_empty.argtypes = (c_graph_p,)
 lib.graph_empty.restype = c_int
 
@@ -1770,6 +1773,12 @@ class Graph(object):
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of all graph edges with `constant`. """
         res = lib.graph_mul_const(self._obj, constant)
+        if not res:
+            raise RuntimeError
+
+    def del_small(self):
+        """ Drop entries smaller than the selected `eps`. """
+        res = lib.graph_del_small(self._obj)
         if not res:
             raise RuntimeError
 
@@ -3526,8 +3535,10 @@ if __name__ == '__main__':
             g = Graph()
             g[0, 0] = 1.0
             g.mul_const(-1.0)
+            g.del_small()
             self.assertEqual(g[0, 0], -1.0)
             g.mul_const(0.0)
+            g.del_small()
             self.assertTrue(g.has_edge((0, 0)))
             self.assertEqual(g[0, 0], 0.0)
             del g
@@ -3535,14 +3546,17 @@ if __name__ == '__main__':
             g = Graph(nonzero=True)
             g[0, 0] = 1.0
             g.mul_const(-1.0)
+            g.del_small()
             self.assertEqual(g[0, 0], -1.0)
             g.mul_const(0.0)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
             g = Graph(positive=True)
             g[0, 0] = 1.0
             g.mul_const(-1.0)
+            g.del_small()
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
@@ -3550,6 +3564,7 @@ if __name__ == '__main__':
             g[0, 0] = 1.0
             for i in range(200):
                 g.mul_const(0.5)
+                g.del_small()
                 if not g.has_edge((0, 0)):
                     break
             else:
@@ -4133,6 +4148,8 @@ if __name__ == '__main__':
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
                 g.eps = 2.0
+            with self.assertRaises(RuntimeError):
+                g.del_small()
 
             g.unlink()
 
@@ -4142,6 +4159,7 @@ if __name__ == '__main__':
             del g[0, 0]
             g.mul_const(2.0)
             g.eps = 2.0
+            g.del_small()
 
             del tvg
             del g
@@ -5635,6 +5653,18 @@ if __name__ == '__main__':
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
                 g.eps = 2.0
+            with self.assertRaises(RuntimeError):
+                g.del_small()
+
+            g.unlink()
+
+            g.clear()
+            g[0, 0] = 1.0
+            g.add_edge((0, 0), 1.0)
+            del g[0, 0]
+            g.mul_const(2.0)
+            g.eps = 2.0
+            g.del_small()
 
             del tvg
             del g
@@ -5674,7 +5704,20 @@ if __name__ == '__main__':
                 g.mul_const(2.0)
             with self.assertRaises(RuntimeError):
                 g.eps = 2.0
+            with self.assertRaises(RuntimeError):
+                g.del_small()
 
+            g.unlink()
+
+            g.clear()
+            g[0, 0] = 1.0
+            g.add_edge((0, 0), 1.0)
+            del g[0, 0]
+            g.mul_const(2.0)
+            g.eps = 2.0
+            g.del_small()
+
+            del tvg
             del g
 
     # Run the unit tests

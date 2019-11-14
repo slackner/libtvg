@@ -1596,6 +1596,7 @@ int graph_dec_bits_source(struct graph *graph);
 void graph_optimize(struct graph *graph);
 
 int graph_set_eps(struct graph *graph, float eps);
+int graph_del_small(struct graph *graph);
 
 int graph_empty(struct graph *graph);
 int graph_clear(struct graph *graph);

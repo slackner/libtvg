@@ -163,6 +163,34 @@ int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
 
 int graph_mul_const(struct graph *graph, float constant)
 {
+    struct entry2 *edge;
+
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
+    if (constant == 1.0)
+        return 1;
+
+    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
+    {
+        edge->weight *= constant;
+    }
+
+    graph->revision++;
+    return 1;
+}
+
+int graph_set_eps(struct graph *graph, float eps)
+{
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
+    graph->eps = (float)fabs(eps);
+    return graph_del_small(graph);
+}
+
+int graph_del_small(struct graph *graph)
+{
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
@@ -180,7 +208,6 @@ int graph_mul_const(struct graph *graph, float constant)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                edge->weight *= constant;
                 if (edge->weight <= graph->eps)
                     continue;
                 *out++ = *edge;
@@ -200,7 +227,6 @@ int graph_mul_const(struct graph *graph, float constant)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                edge->weight *= constant;
                 if (fabs(edge->weight) <= graph->eps)
                     continue;
                 *out++ = *edge;
@@ -212,22 +238,11 @@ int graph_mul_const(struct graph *graph, float constant)
     }
     else
     {
-        GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
-        {
-            edge->weight *= constant;
-        }
+        /* Nothing to do */
+        return 1;
     }
 
     graph->revision++;
     /* FIXME: Trigger graph_optimize? */
     return 1;
-}
-
-int graph_set_eps(struct graph *graph, float eps)
-{
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    graph->eps = (float)fabs(eps);
-    return graph_mul_const(graph, 1.0);
 }

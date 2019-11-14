@@ -323,7 +323,7 @@ static int query_sum_edges_finalize(struct query *query_base)
 {
     struct query_sum_edges *query = QUERY_SUM_EDGES(query_base);
 
-    if (!graph_mul_const(query->result, 1.0))
+    if (!graph_del_small(query->result))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -442,7 +442,7 @@ static int query_sum_edges_exp_finalize(struct query *query_base)
 {
     struct query_sum_edges_exp *query = QUERY_SUM_EDGES_EXP(query_base);
 
-    if (!graph_mul_const(query->result, 1.0))
+    if (!graph_del_small(query->result))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
@@ -540,7 +540,7 @@ static int query_count_edges_finalize(struct query *query_base)
 {
     struct query_count_edges *query = QUERY_COUNT_EDGES(query_base);
 
-    if (!graph_mul_const(query->result, 1.0))
+    if (!graph_del_small(query->result))
         return 0;
 
     query->result->readonly = 1;  /* block changes */
