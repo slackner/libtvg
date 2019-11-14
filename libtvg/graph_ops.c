@@ -52,7 +52,7 @@ float graph_get_edge(struct graph *graph, uint64_t source, uint64_t target)
     return edge->weight;
 }
 
-static int generic_clear(struct graph *graph)
+int graph_clear(struct graph *graph)
 {
     uint64_t i, num_buckets;
 
@@ -70,7 +70,7 @@ static int generic_clear(struct graph *graph)
     return 1;
 }
 
-static int generic_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
+int graph_set_edge(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
     struct entry2 *edge;
 
@@ -102,7 +102,7 @@ static int generic_set(struct graph *graph, uint64_t source, uint64_t target, fl
     return 1;
 }
 
-static int generic_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
+int graph_add_edge(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
     struct entry2 *edge;
 
@@ -135,7 +135,7 @@ static int generic_add(struct graph *graph, uint64_t source, uint64_t target, fl
     return 1;
 }
 
-static int generic_del(struct graph *graph, uint64_t source, uint64_t target)
+int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
 {
     int changed = 0;
 
@@ -189,10 +189,6 @@ static int generic_set_eps(struct graph *graph, float eps)
 const struct graph_ops graph_generic_ops =
 {
     generic_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     generic_mul_const,
 };
 
@@ -240,10 +236,6 @@ static int nonzero_set_eps(struct graph *graph, float eps)
 const struct graph_ops graph_nonzero_ops =
 {
     nonzero_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     nonzero_mul_const,
 };
 
@@ -291,9 +283,5 @@ static int positive_set_eps(struct graph *graph, float eps)
 const struct graph_ops graph_positive_ops =
 {
     positive_set_eps,
-    generic_clear,
-    generic_set,
-    generic_add,
-    generic_del,
     positive_mul_const,
 };

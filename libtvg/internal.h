@@ -86,10 +86,6 @@ struct vector_ops
 struct graph_ops
 {
     int       (*set_eps)(struct graph *, float);
-    int       (*clear)(struct graph *);
-    int       (*set)(struct graph *, uint64_t, uint64_t, float);
-    int       (*add)(struct graph *, uint64_t, uint64_t, float);
-    int       (*del)(struct graph *, uint64_t, uint64_t);
     int       (*mul_const)(struct graph *, float);
 };
 
