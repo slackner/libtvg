@@ -74,8 +74,6 @@ struct bucket1
     uint64_t    hint;
 };
 
-struct vector_ops;
-
 struct vector
 {
     uint64_t    refcount;
@@ -86,7 +84,7 @@ struct vector
     /* private: */
     struct query *query;
 
-    const struct vector_ops *ops;
+
     int         readonly;
     uint32_t    bits;
     struct bucket1 *buckets;

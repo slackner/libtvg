@@ -73,12 +73,6 @@
 #define C_ASSERT(e) extern void __C_ASSERT__(int [(e) ? 1 : -1])
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-struct vector_ops
-{
-    int       (*set_eps)(struct vector *, float);
-    int       (*mul_const)(struct vector *, float);
-};
-
 struct query_ops
 {
     void     *(*grab)(struct query *);
@@ -176,10 +170,6 @@ int bucket1_merge(struct bucket1 *bucket1, struct bucket1 *bucket2) DECL_INTERNA
 struct entry1 *bucket1_get_entry(struct bucket1 *bucket, uint64_t index, int allocate) DECL_INTERNAL;
 void bucket1_del_entry(struct bucket1 *bucket, struct entry1 *entry) DECL_INTERNAL;
 uint64_t bucket1_num_entries(struct bucket1 *bucket) DECL_INTERNAL;
-
-extern const struct vector_ops vector_generic_ops DECL_INTERNAL;
-extern const struct vector_ops vector_nonzero_ops DECL_INTERNAL;
-extern const struct vector_ops vector_positive_ops DECL_INTERNAL;
 
 void init_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source) DECL_INTERNAL;

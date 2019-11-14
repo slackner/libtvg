@@ -111,38 +111,7 @@ int vector_del_entry(struct vector *vector, uint64_t index)
     return 1;
 }
 
-static int generic_mul_const(struct vector *vector, float constant)
-{
-    struct entry1 *entry;
-
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    VECTOR_FOR_EACH_ENTRY(vector, entry)
-    {
-        entry->weight *= constant;
-    }
-
-    vector->revision++;
-    return 1;
-}
-
-static int generic_set_eps(struct vector *vector, float eps)
-{
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    vector->eps = (float)fabs(eps);
-    return 1;
-}
-
-const struct vector_ops vector_generic_ops =
-{
-    generic_set_eps,
-    generic_mul_const,
-};
-
-static int nonzero_mul_const(struct vector *vector, float constant)
+int vector_mul_const(struct vector *vector, float constant)
 {
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
@@ -151,21 +120,50 @@ static int nonzero_mul_const(struct vector *vector, float constant)
     if (UNLIKELY(vector->readonly))
         return 0;
 
-    num_buckets = 1ULL << vector->bits;
-    for (i = 0; i < num_buckets; i++)
+    if (vector->flags & TVG_FLAGS_POSITIVE)
     {
-        bucket = &vector->buckets[i];
-        out = &bucket->entries[0];
+        num_buckets = 1ULL << vector->bits;
+        for (i = 0; i < num_buckets; i++)
+        {
+            bucket = &vector->buckets[i];
+            out = &bucket->entries[0];
 
-        BUCKET1_FOR_EACH_ENTRY(bucket, entry)
+            BUCKET1_FOR_EACH_ENTRY(bucket, entry)
+            {
+                entry->weight *= constant;
+                if (entry->weight <= vector->eps) continue;
+                *out++ = *entry;
+            }
+
+            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+            assert(bucket->num_entries <= bucket->max_entries);
+        }
+    }
+    else if (vector->flags & TVG_FLAGS_NONZERO)
+    {
+        num_buckets = 1ULL << vector->bits;
+        for (i = 0; i < num_buckets; i++)
+        {
+            bucket = &vector->buckets[i];
+            out = &bucket->entries[0];
+
+            BUCKET1_FOR_EACH_ENTRY(bucket, entry)
+            {
+                entry->weight *= constant;
+                if (fabs(entry->weight) <= vector->eps) continue;
+                *out++ = *entry;
+            }
+
+            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+            assert(bucket->num_entries <= bucket->max_entries);
+        }
+    }
+    else
+    {
+        VECTOR_FOR_EACH_ENTRY(vector, entry)
         {
             entry->weight *= constant;
-            if (fabs(entry->weight) <= vector->eps) continue;
-            *out++ = *entry;
         }
-
-        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-        assert(bucket->num_entries <= bucket->max_entries);
     }
 
     vector->revision++;
@@ -173,63 +171,11 @@ static int nonzero_mul_const(struct vector *vector, float constant)
     return 1;
 }
 
-static int nonzero_set_eps(struct vector *vector, float eps)
+int vector_set_eps(struct vector *vector, float eps)
 {
     if (UNLIKELY(vector->readonly))
         return 0;
 
     vector->eps = (float)fabs(eps);
-    return nonzero_mul_const(vector, 1.0);
+    return vector_mul_const(vector, 1.0);
 }
-
-const struct vector_ops vector_nonzero_ops =
-{
-    nonzero_set_eps,
-    nonzero_mul_const,
-};
-
-static int positive_mul_const(struct vector *vector, float constant)
-{
-    struct bucket1 *bucket;
-    struct entry1 *entry, *out;
-    uint64_t i, num_buckets;
-
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    num_buckets = 1ULL << vector->bits;
-    for (i = 0; i < num_buckets; i++)
-    {
-        bucket = &vector->buckets[i];
-        out = &bucket->entries[0];
-
-        BUCKET1_FOR_EACH_ENTRY(bucket, entry)
-        {
-            entry->weight *= constant;
-            if (entry->weight <= vector->eps) continue;
-            *out++ = *entry;
-        }
-
-        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-        assert(bucket->num_entries <= bucket->max_entries);
-    }
-
-    vector->revision++;
-    /* FIXME: Trigger vector_optimize? */
-    return 1;
-}
-
-static int positive_set_eps(struct vector *vector, float eps)
-{
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    vector->eps = (float)fabs(eps);
-    return positive_mul_const(vector, 1.0);
-}
-
-const struct vector_ops vector_positive_ops =
-{
-    positive_set_eps,
-    positive_mul_const,
-};

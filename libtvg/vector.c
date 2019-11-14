@@ -7,16 +7,6 @@
 
 #include "internal.h"
 
-static const struct vector_ops *get_vector_ops(uint32_t flags)
-{
-    if (flags & TVG_FLAGS_POSITIVE)
-        return &vector_positive_ops;
-    else if (flags & TVG_FLAGS_NONZERO)
-        return &vector_nonzero_ops;
-    else
-        return &vector_generic_ops;
-}
-
 struct vector *alloc_vector(uint32_t flags)
 {
     static const uint32_t bits = 0;
@@ -49,7 +39,6 @@ struct vector *alloc_vector(uint32_t flags)
     vector->revision = 0;
     vector->eps      = 0.0;
     vector->query    = NULL;
-    vector->ops      = get_vector_ops(flags);
     vector->readonly = 0;
     vector->bits     = bits;
     vector->buckets  = buckets;
@@ -117,7 +106,6 @@ struct vector *vector_duplicate(struct vector *source)
     vector->revision = source->revision;
     vector->eps      = source->eps;
     vector->query    = NULL;
-    vector->ops      = get_vector_ops(vector->flags);
     vector->readonly = 0;
     vector->bits     = source->bits;
     vector->buckets  = buckets;
@@ -262,11 +250,6 @@ void vector_optimize(struct vector *vector)
 error:
     fprintf(stderr, "%s: Failed to optimize vector, trying again later.\n", __func__);
     vector->optimize = 1024;
-}
-
-int vector_set_eps(struct vector *vector, float eps)
-{
-    return vector->ops->set_eps(vector, eps);
 }
 
 int vector_empty(struct vector *vector)
@@ -432,11 +415,6 @@ int vector_del_entries(struct vector *vector, uint64_t *indices, uint64_t num_en
     }
 
     return 1;
-}
-
-int vector_mul_const(struct vector *vector, float constant)
-{
-    return vector->ops->mul_const(vector, constant);
 }
 
 double vector_sum_weights(const struct vector *vector)
