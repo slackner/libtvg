@@ -23,9 +23,6 @@ c_vector(*args, **kwargs)
 ```
 
 
-### eps
-Structure/Union member
-
 ### flags
 Structure/Union member
 
@@ -40,9 +37,6 @@ Structure/Union member
 c_graph(*args, **kwargs)
 ```
 
-
-### eps
-Structure/Union member
 
 ### flags
 Structure/Union member
@@ -333,12 +327,6 @@ __Arguments__
 - __positive__: Enforce that all entries must be positive.
 
 
-### eps
-
-Get/set the current value of epsilon. This is used to determine whether an
-entry is equal to zero. Whenever |x| < eps, it is treated as zero.
-
-
 ### memory_usage
 Return the memory usage currently associated with the vector.
 
@@ -496,6 +484,12 @@ Vector.mul_const(constant)
 ```
 Perform inplace element-wise multiplication of the vector with `constant`.
 
+### del_small
+```python
+Vector.del_small(eps=0.0)
+```
+Drop entries smaller than the selected `eps`.
+
 ### sum_weights
 ```python
 Vector.sum_weights()
@@ -545,12 +539,6 @@ __Arguments__
 - __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed graph.
-
-
-### eps
-
-Get/set the current value of epsilon. This is used to determine whether an
-entry is equal to zero. Whenever |x| < eps, it is treated as zero.
 
 
 ### id
@@ -801,6 +789,12 @@ __Arguments__
 Graph.mul_const(constant)
 ```
 Perform inplace element-wise multiplication of all graph edges with `constant`.
+
+### del_small
+```python
+Graph.del_small(eps=0.0)
+```
+Drop entries smaller than the selected `eps`.
 
 ### mul_vector
 ```python
