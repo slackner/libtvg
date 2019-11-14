@@ -30,7 +30,6 @@ libc = cdll.LoadLibrary(find_library('c'))
 
 LIBTVG_API_VERSION  = 0x00000009
 
-TVG_FLAGS_NONZERO   = 0x00000001
 TVG_FLAGS_POSITIVE  = 0x00000002
 TVG_FLAGS_DIRECTED  = 0x00000004
 TVG_FLAGS_STREAMING = 0x00000008
@@ -888,14 +887,12 @@ class Vector(object):
     that are stored in contiguous blocks of memory and in sorted order for faster access.
 
     # Arguments
-    nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     """
 
-    def __init__(self, nonzero=False, positive=False, obj=None):
+    def __init__(self, positive=False, obj=None):
         if obj is None:
             flags = 0
-            flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
             flags |= (TVG_FLAGS_POSITIVE if positive else 0)
             obj = lib.alloc_vector(flags)
 
@@ -1245,15 +1242,13 @@ class Graph(object):
     sorted order for faster access.
 
     # Arguments
-    nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     directed: Create a directed graph.
     """
 
-    def __init__(self, nonzero=False, positive=False, directed=False, obj=None):
+    def __init__(self, positive=False, directed=False, obj=None):
         if obj is None:
             flags = 0
-            flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
             flags |= (TVG_FLAGS_POSITIVE if positive else 0)
             flags |= (TVG_FLAGS_DIRECTED if directed else 0)
             obj = lib.alloc_graph(flags)
@@ -1332,17 +1327,16 @@ class Graph(object):
         raise NotImplementedError
 
     @staticmethod
-    def load_from_file(filename, nonzero=False, positive=False, directed=False):
+    def load_from_file(filename, positive=False, directed=False):
         raise NotImplementedError
 
     @staticmethod
-    def load_from_mongodb(mongodb, id, nonzero=False, positive=False, directed=False):
+    def load_from_mongodb(mongodb, id, positive=False, directed=False):
         """
         Load a single graph from a MongoDB database.
 
         # Arguments
         id: Identifier (numeric or objectid) of the document to load
-        nonzero: Enforce that all entries must be non-zero.
         positive: Enforce that all entries must be positive.
         directed: Create a directed graph.
         """
@@ -1370,7 +1364,6 @@ class Graph(object):
             raise ValueError("Objectid is not valid")
 
         flags = 0
-        flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
         flags |= (TVG_FLAGS_POSITIVE if positive else 0)
         flags |= (TVG_FLAGS_DIRECTED if directed else 0)
 
@@ -2096,17 +2089,15 @@ class TVG(object):
     This object represents a time-varying graph.
 
     # Arguments
-    nonzero: Enforce that all entries must be non-zero.
     positive: Enforce that all entries must be positive.
     directed: Create a directed time-varying graph.
     streaming: Support for streaming / differential updates.
     primary_key: List or semicolon separated string of attributes.
     """
 
-    def __init__(self, nonzero=False, positive=False, directed=False, streaming=False, primary_key=None, obj=None):
+    def __init__(self, positive=False, directed=False, streaming=False, primary_key=None, obj=None):
         if obj is None:
             flags = 0
-            flags |= (TVG_FLAGS_NONZERO  if nonzero  else 0)
             flags |= (TVG_FLAGS_POSITIVE if positive else 0)
             flags |= (TVG_FLAGS_DIRECTED if directed else 0)
             flags |= (TVG_FLAGS_STREAMING if streaming else 0)
@@ -2840,8 +2831,8 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 0.0)
             del v
 
-            v = Vector(nonzero=True)
-            self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
+            v = Vector()
+            self.assertEqual(v.flags, 0)
             v[0] = 0.0
             v.del_small()
             self.assertFalse(v.has_entry(0))
@@ -2861,8 +2852,8 @@ if __name__ == '__main__':
             self.assertFalse(v.has_entry(0))
             del v
 
-            v = Vector(nonzero=True)
-            self.assertEqual(v.flags, TVG_FLAGS_NONZERO)
+            v = Vector()
+            self.assertEqual(v.flags, 0)
             v[0] = 0.0
             v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
@@ -2883,7 +2874,7 @@ if __name__ == '__main__':
             del v
 
             v = Vector(positive=True)
-            self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(v.flags, TVG_FLAGS_POSITIVE)
             v[0] = 0.0
             v.del_small()
             self.assertFalse(v.has_entry(0))
@@ -2902,7 +2893,7 @@ if __name__ == '__main__':
             del v
 
             v = Vector(positive=True)
-            self.assertEqual(v.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(v.flags, TVG_FLAGS_POSITIVE)
             v[0] = 0.0
             v.del_small(eps=0.5)
             self.assertFalse(v.has_entry(0))
@@ -2936,7 +2927,7 @@ if __name__ == '__main__':
             self.assertEqual(v[0], 0.0)
             del v
 
-            v = Vector(nonzero=True)
+            v = Vector()
             v[0] = 1.0
             v.mul_const(-1.0)
             v.del_small()
@@ -3350,8 +3341,8 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 0], 0.0)
             del g
 
-            g = Graph(nonzero=True)
-            self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
+            g = Graph()
+            self.assertEqual(g.flags, 0)
             self.assertFalse(g.directed)
             g[0, 0] = 0.0
             g.del_small()
@@ -3372,8 +3363,8 @@ if __name__ == '__main__':
             self.assertFalse(g.has_edge((0, 0)))
             del g
 
-            g = Graph(nonzero=True)
-            self.assertEqual(g.flags, TVG_FLAGS_NONZERO)
+            g = Graph()
+            self.assertEqual(g.flags, 0)
             self.assertFalse(g.directed)
             g[0, 0] = 0.0
             g.del_small(eps=0.5)
@@ -3395,7 +3386,7 @@ if __name__ == '__main__':
             del g
 
             g = Graph(positive=True)
-            self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(g.flags, TVG_FLAGS_POSITIVE)
             self.assertFalse(g.directed)
             g[0, 0] = 0.0
             g.del_small()
@@ -3415,7 +3406,7 @@ if __name__ == '__main__':
             del g
 
             g = Graph(positive=True)
-            self.assertEqual(g.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(g.flags, TVG_FLAGS_POSITIVE)
             self.assertFalse(g.directed)
             g[0, 0] = 0.0
             g.del_small(eps=0.5)
@@ -3530,7 +3521,7 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 0], 0.0)
             del g
 
-            g = Graph(nonzero=True)
+            g = Graph()
             g[0, 0] = 1.0
             g.mul_const(-1.0)
             g.del_small()
@@ -3791,19 +3782,19 @@ if __name__ == '__main__':
 
             g1 = Graph(positive=True)
             tvg.link_graph(g1, 100)
-            self.assertEqual(g1.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(g1.flags, TVG_FLAGS_POSITIVE)
             self.assertEqual(g1.ts, 100)
             self.assertEqual(g1.id, None)
 
             g2 = Graph(positive=True)
             tvg.link_graph(g2, 200)
-            self.assertEqual(g2.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(g2.flags, TVG_FLAGS_POSITIVE)
             self.assertEqual(g2.ts, 200)
             self.assertEqual(g2.id, None)
 
             g3 = Graph(positive=True)
             tvg.link_graph(g3, 300)
-            self.assertEqual(g3.flags, TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE)
+            self.assertEqual(g3.flags, TVG_FLAGS_POSITIVE)
             self.assertEqual(g3.ts, 300)
             self.assertEqual(g3.id, None)
             self.assertGreater(tvg.memory_usage, mem)

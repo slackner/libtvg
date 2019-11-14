@@ -357,10 +357,7 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
 
     query->eps = eps;
 
-    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-    graph_flags |= TVG_FLAGS_NONZERO;
-
     if (!(query->result = alloc_graph(graph_flags)))
     {
         free_graph(query->result);
@@ -478,10 +475,7 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
     query->log_beta    = log_beta;
     query->eps         = eps;
 
-    /* Enforce TVG_FLAGS_NONZERO, our update mechanism relies on it. */
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
-    graph_flags |= TVG_FLAGS_NONZERO;
-
     if (!(query->result = alloc_graph(graph_flags)))
     {
         free_graph(query->result);
@@ -570,9 +564,9 @@ struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
     query_init(&query->base, &query_count_edges_ops, ts_min, ts_max);
 
-    /* Enforce TVG_FLAGS_POSITIVE and TVG_FLAGS_NONZERO, our update mechanism relies on it. */
+    /* Enforce TVG_FLAGS_POSITIVE, our update mechanism relies on it. */
     graph_flags = tvg->flags & TVG_FLAGS_DIRECTED;
-    graph_flags |= TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
+    graph_flags |= TVG_FLAGS_POSITIVE;
 
     if (!(query->result = alloc_graph(graph_flags)))
     {
@@ -652,7 +646,7 @@ const struct query_ops query_count_nodes_ops =
 struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 {
     struct query_count_nodes *query;
-    uint32_t vector_flags = TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO;
+    uint32_t vector_flags = TVG_FLAGS_POSITIVE;
 
     if (ts_max < ts_min)
         return NULL;

@@ -20,13 +20,9 @@ struct graph *alloc_graph(uint32_t flags)
     struct bucket2 *buckets;
     uint64_t i, num_buckets;
 
-    if (flags & ~(TVG_FLAGS_NONZERO |
-                  TVG_FLAGS_POSITIVE |
+    if (flags & ~(TVG_FLAGS_POSITIVE |
                   TVG_FLAGS_DIRECTED))
         return NULL;
-
-    if (flags & TVG_FLAGS_POSITIVE)
-        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
 
     num_buckets = 1ULL << (bits_source + bits_target);
     if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
@@ -848,7 +844,7 @@ struct vector *graph_in_degrees(const struct graph *graph)
     struct entry2 *edge;
 
     /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(vector = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
@@ -890,7 +886,7 @@ struct vector *graph_out_degrees(const struct graph *graph)
     struct entry2 *edge;
 
     /* FIXME: Appropriate flags? */
-    if (!(vector = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(vector = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
@@ -935,7 +931,7 @@ struct vector *graph_degree_anomalies(const struct graph *graph)
     if (!(vector = graph_out_degrees(graph)))
         return NULL;
 
-    if (!(temp = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(temp = alloc_vector(0)))
     {
         free_vector(vector);
         return NULL;
@@ -969,7 +965,7 @@ struct vector *graph_weight_anomalies(const struct graph *graph)
     if (!(vector = graph_out_weights(graph)))
         return NULL;
 
-    if (!(temp = alloc_vector(TVG_FLAGS_NONZERO)))
+    if (!(temp = alloc_vector(0)))
     {
         free_vector(vector);
         return NULL;
@@ -1076,8 +1072,7 @@ struct graph *graph_filter_nodes(const struct graph *graph, struct vector *nodes
     struct entry2 *edge;
     struct graph *out;
 
-    graph_flags = graph->flags & (TVG_FLAGS_NONZERO |
-                                  TVG_FLAGS_POSITIVE |
+    graph_flags = graph->flags & (TVG_FLAGS_POSITIVE |
                                   TVG_FLAGS_DIRECTED);
 
 

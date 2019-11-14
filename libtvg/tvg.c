@@ -71,8 +71,7 @@ struct tvg *alloc_tvg(uint32_t flags)
 {
     struct tvg *tvg;
 
-    if (flags & ~(TVG_FLAGS_NONZERO |
-                  TVG_FLAGS_POSITIVE |
+    if (flags & ~(TVG_FLAGS_POSITIVE |
                   TVG_FLAGS_DIRECTED |
                   TVG_FLAGS_STREAMING))
         return NULL;
@@ -376,8 +375,7 @@ int tvg_load_graphs_from_file(struct tvg *tvg, const char *filename)
     int ret = 0;
     FILE *fp;
 
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
+    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE |
                                 TVG_FLAGS_DIRECTED);
 
     if (!(fp = fopen(filename, "r")))
@@ -813,8 +811,7 @@ struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(str
     struct graph *out;
     float weight;
 
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
+    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE |
                                 TVG_FLAGS_DIRECTED);
 
     if (!(out = alloc_graph(graph_flags)))

@@ -42,8 +42,7 @@ static struct tvg *alloc_random_tvg(uint32_t flags, uint32_t count)
     tvg = alloc_tvg(flags);
     assert(tvg != NULL);
 
-    graph_flags = flags & (TVG_FLAGS_NONZERO |
-                           TVG_FLAGS_POSITIVE |
+    graph_flags = flags & (TVG_FLAGS_POSITIVE |
                            TVG_FLAGS_DIRECTED);
 
     for (i = 0; i < count; i++)
@@ -67,19 +66,9 @@ static void test_alloc_vector(void)
     assert(vector->flags == 0);
     free_vector(vector);
 
-    vector = alloc_vector(TVG_FLAGS_NONZERO);
-    assert(vector != NULL);
-    assert(vector->flags == TVG_FLAGS_NONZERO);
-    free_vector(vector);
-
     vector = alloc_vector(TVG_FLAGS_POSITIVE);
     assert(vector != NULL);
-    assert(vector->flags == (TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE));
-    free_vector(vector);
-
-    vector = alloc_vector(TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE);
-    assert(vector != NULL);
-    assert(vector->flags == (TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE));
+    assert(vector->flags == TVG_FLAGS_POSITIVE);
     free_vector(vector);
 
     vector = alloc_vector(0x80000000);
@@ -95,19 +84,9 @@ static void test_alloc_graph(void)
     assert(graph->flags == 0);
     free_graph(graph);
 
-    graph = alloc_graph(TVG_FLAGS_NONZERO);
-    assert(graph != NULL);
-    assert(graph->flags == TVG_FLAGS_NONZERO);
-    free_graph(graph);
-
     graph = alloc_graph(TVG_FLAGS_POSITIVE);
     assert(graph != NULL);
-    assert(graph->flags == (TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE));
-    free_graph(graph);
-
-    graph = alloc_graph(TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE);
-    assert(graph != NULL);
-    assert(graph->flags == (TVG_FLAGS_NONZERO | TVG_FLAGS_POSITIVE));
+    assert(graph->flags == TVG_FLAGS_POSITIVE);
     free_graph(graph);
 
     graph = alloc_graph(0x80000000);
@@ -697,7 +676,7 @@ static void test_sum_edges(void)
     uint64_t ts;
     int ret;
 
-    tvg = alloc_tvg(TVG_FLAGS_POSITIVE | TVG_FLAGS_NONZERO);
+    tvg = alloc_tvg(TVG_FLAGS_POSITIVE);
     assert(tvg != NULL);
 
     ret = tvg_enable_query_cache(tvg, 0x8000);  /* 32 kB */

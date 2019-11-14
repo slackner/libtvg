@@ -649,8 +649,7 @@ int tvg_load_graphs_from_mongodb(struct tvg *tvg, struct mongodb *mongodb)
         return 0;
     }
 
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
+    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE |
                                 TVG_FLAGS_DIRECTED);
 
     while (mongoc_cursor_next(cursor, &doc))
@@ -755,8 +754,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
         return;
     }
 
-    graph_flags = tvg->flags & (TVG_FLAGS_NONZERO |
-                                TVG_FLAGS_POSITIVE |
+    graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE |
                                 TVG_FLAGS_DIRECTED);
 
     list_init(&todo);

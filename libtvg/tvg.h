@@ -20,7 +20,7 @@
 
 #define LIBTVG_API_VERSION  0x00000009ULL
 
-#define TVG_FLAGS_NONZERO   0x00000001U  /* weights are always nonzero */
+#define TVG_FLAGS_RESERVED  0x00000001U  /* currently unused */
 #define TVG_FLAGS_POSITIVE  0x00000002U  /* weights are always positive */
 #define TVG_FLAGS_DIRECTED  0x00000004U  /* edges are directed */
 #define TVG_FLAGS_STREAMING 0x00000008U  /* streaming mode */

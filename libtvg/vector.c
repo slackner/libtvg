@@ -14,12 +14,8 @@ struct vector *alloc_vector(uint32_t flags)
     struct bucket1 *buckets;
     uint64_t i, num_buckets;
 
-    if (flags & ~(TVG_FLAGS_NONZERO |
-                  TVG_FLAGS_POSITIVE))
+    if (flags & ~TVG_FLAGS_POSITIVE)
         return NULL;
-
-    if (flags & TVG_FLAGS_POSITIVE)
-        flags |= TVG_FLAGS_NONZERO;  /* positive implies nonzero */
 
     num_buckets = 1ULL << bits;
     if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
