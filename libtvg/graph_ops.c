@@ -208,9 +208,9 @@ int graph_del_small(struct graph *graph)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                if (edge->weight <= graph->eps)
-                    continue;
-                *out++ = *edge;
+                if (edge->weight <= graph->eps) continue;
+                if (out != edge) *out = *edge;
+                out++;
             }
 
             bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
@@ -227,9 +227,9 @@ int graph_del_small(struct graph *graph)
 
             BUCKET2_FOR_EACH_ENTRY(bucket, edge)
             {
-                if (fabs(edge->weight) <= graph->eps)
-                    continue;
-                *out++ = *edge;
+                if (fabs(edge->weight) <= graph->eps) continue;
+                if (out != edge) *out = *edge;
+                out++;
             }
 
             bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);

@@ -159,7 +159,8 @@ int vector_del_small(struct vector *vector)
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
                 if (entry->weight <= vector->eps) continue;
-                *out++ = *entry;
+                if (out != entry) *out = *entry;
+                out++;
             }
 
             bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
@@ -177,7 +178,8 @@ int vector_del_small(struct vector *vector)
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
                 if (fabs(entry->weight) <= vector->eps) continue;
-                *out++ = *entry;
+                if (out != entry) *out = *entry;
+                out++;
             }
 
             bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
