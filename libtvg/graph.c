@@ -12,16 +12,6 @@
 /* graph_debug relies on that */
 C_ASSERT(sizeof(long long unsigned int) == sizeof(uint64_t));
 
-static const struct graph_ops *get_graph_ops(uint32_t flags)
-{
-    if (flags & TVG_FLAGS_POSITIVE)
-        return &graph_positive_ops;
-    else if (flags & TVG_FLAGS_NONZERO)
-        return &graph_nonzero_ops;
-    else
-        return &graph_generic_ops;
-}
-
 struct graph *alloc_graph(uint32_t flags)
 {
     static const uint32_t bits_source = 0;
@@ -61,7 +51,6 @@ struct graph *alloc_graph(uint32_t flags)
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);
-    graph->ops         = get_graph_ops(flags);
     graph->readonly    = 0;
     graph->bits_source = bits_source;
     graph->bits_target = bits_target;
@@ -180,7 +169,6 @@ struct graph *graph_duplicate(struct graph *source)
     graph->tvg         = NULL;
     graph->cache       = 0;
     list_init(&graph->cache_entry);
-    graph->ops         = get_graph_ops(graph->flags);
     graph->readonly    = 0;
     graph->bits_source = source->bits_source;
     graph->bits_target = source->bits_target;
@@ -536,11 +524,6 @@ error:
     graph->optimize = 1024;
 }
 
-int graph_set_eps(struct graph *graph, float eps)
-{
-    return graph->ops->set_eps(graph, eps);
-}
-
 int graph_empty(struct graph *graph)
 {
     struct entry2 *edge;
@@ -836,11 +819,6 @@ int graph_del_edges(struct graph *graph, uint64_t *indices, uint64_t num_edges)
     }
 
     return 1;
-}
-
-int graph_mul_const(struct graph *graph, float constant)
-{
-    return graph->ops->mul_const(graph, constant);
 }
 
 struct vector *graph_mul_vector(const struct graph *graph, const struct vector *vector)

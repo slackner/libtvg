@@ -109,8 +109,6 @@ struct bucket2
     uint64_t    hint;
 };
 
-struct graph_ops;
-
 struct graph
 {
     uint64_t    refcount;
@@ -129,7 +127,6 @@ struct graph
     uint64_t    cache;       /* 0 if not cached, otherwise size of graph */
     struct list cache_entry;
 
-    const struct graph_ops *ops;
     int         readonly;
     uint32_t    bits_source; /* 0...31 */
     uint32_t    bits_target; /* 0...31 */

@@ -79,12 +79,6 @@ struct vector_ops
     int       (*mul_const)(struct vector *, float);
 };
 
-struct graph_ops
-{
-    int       (*set_eps)(struct graph *, float);
-    int       (*mul_const)(struct graph *, float);
-};
-
 struct query_ops
 {
     void     *(*grab)(struct query *);
@@ -197,10 +191,6 @@ int bucket2_merge(struct bucket2 *bucket1, struct bucket2 *bucket2) DECL_INTERNA
 struct entry2 *bucket2_get_entry(struct bucket2 *bucket, uint64_t source, uint64_t target, int allocate) DECL_INTERNAL;
 void bucket2_del_entry(struct bucket2 *bucket, struct entry2 *entry) DECL_INTERNAL;
 uint64_t bucket2_num_entries(struct bucket2 *bucket) DECL_INTERNAL;
-
-extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
-extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
-extern const struct graph_ops graph_positive_ops DECL_INTERNAL;
 
 struct minheap *alloc_minheap(size_t entry_size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
 void free_minheap(struct minheap *h) DECL_INTERNAL;

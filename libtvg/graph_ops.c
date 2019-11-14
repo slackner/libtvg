@@ -161,38 +161,7 @@ int graph_del_edge(struct graph *graph, uint64_t source, uint64_t target)
     return 1;
 }
 
-static int generic_mul_const(struct graph *graph, float constant)
-{
-    struct entry2 *edge;
-
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
-    {
-        edge->weight *= constant;
-    }
-
-    graph->revision++;
-    return 1;
-}
-
-static int generic_set_eps(struct graph *graph, float eps)
-{
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    graph->eps = (float)fabs(eps);
-    return 1;
-}
-
-const struct graph_ops graph_generic_ops =
-{
-    generic_set_eps,
-    generic_mul_const,
-};
-
-static int nonzero_mul_const(struct graph *graph, float constant)
+int graph_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
@@ -201,22 +170,52 @@ static int nonzero_mul_const(struct graph *graph, float constant)
     if (UNLIKELY(graph->readonly))
         return 0;
 
-    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
-    for (i = 0; i < num_buckets; i++)
+    if (graph->flags & TVG_FLAGS_POSITIVE)
     {
-        bucket = &graph->buckets[i];
-        out = &bucket->entries[0];
+        num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+        for (i = 0; i < num_buckets; i++)
+        {
+            bucket = &graph->buckets[i];
+            out = &bucket->entries[0];
 
-        BUCKET2_FOR_EACH_ENTRY(bucket, edge)
+            BUCKET2_FOR_EACH_ENTRY(bucket, edge)
+            {
+                edge->weight *= constant;
+                if (edge->weight <= graph->eps)
+                    continue;
+                *out++ = *edge;
+            }
+
+            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+            assert(bucket->num_entries <= bucket->max_entries);
+        }
+    }
+    else if (graph->flags & TVG_FLAGS_NONZERO)
+    {
+        num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
+        for (i = 0; i < num_buckets; i++)
+        {
+            bucket = &graph->buckets[i];
+            out = &bucket->entries[0];
+
+            BUCKET2_FOR_EACH_ENTRY(bucket, edge)
+            {
+                edge->weight *= constant;
+                if (fabs(edge->weight) <= graph->eps)
+                    continue;
+                *out++ = *edge;
+            }
+
+            bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
+            assert(bucket->num_entries <= bucket->max_entries);
+        }
+    }
+    else
+    {
+        GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
         {
             edge->weight *= constant;
-            if (fabs(edge->weight) <= graph->eps)
-                continue;
-            *out++ = *edge;
         }
-
-        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-        assert(bucket->num_entries <= bucket->max_entries);
     }
 
     graph->revision++;
@@ -224,64 +223,11 @@ static int nonzero_mul_const(struct graph *graph, float constant)
     return 1;
 }
 
-static int nonzero_set_eps(struct graph *graph, float eps)
+int graph_set_eps(struct graph *graph, float eps)
 {
     if (UNLIKELY(graph->readonly))
         return 0;
 
     graph->eps = (float)fabs(eps);
-    return nonzero_mul_const(graph, 1.0);
+    return graph_mul_const(graph, 1.0);
 }
-
-const struct graph_ops graph_nonzero_ops =
-{
-    nonzero_set_eps,
-    nonzero_mul_const,
-};
-
-static int positive_mul_const(struct graph *graph, float constant)
-{
-    struct entry2 *edge, *out;
-    struct bucket2 *bucket;
-    uint64_t i, num_buckets;
-
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
-    for (i = 0; i < num_buckets; i++)
-    {
-        bucket = &graph->buckets[i];
-        out = &bucket->entries[0];
-
-        BUCKET2_FOR_EACH_ENTRY(bucket, edge)
-        {
-            edge->weight *= constant;
-            if (edge->weight <= graph->eps)
-                continue;
-            *out++ = *edge;
-        }
-
-        bucket->num_entries = (uint64_t)(out - &bucket->entries[0]);
-        assert(bucket->num_entries <= bucket->max_entries);
-    }
-
-    graph->revision++;
-    /* FIXME: Trigger graph_optimize? */
-    return 1;
-}
-
-static int positive_set_eps(struct graph *graph, float eps)
-{
-    if (UNLIKELY(graph->readonly))
-        return 0;
-
-    graph->eps = (float)fabs(eps);
-    return positive_mul_const(graph, 1.0);
-}
-
-const struct graph_ops graph_positive_ops =
-{
-    positive_set_eps,
-    positive_mul_const,
-};
