@@ -205,7 +205,7 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
     if (tvg->mongodb)
         graph->flags |= TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_LOAD_PREV;
 
-    graph->ops = &graph_readonly_ops;  /* block changes */
+    graph->readonly = 1;  /* block changes */
     graph->tvg = tvg;
     grab_graph(graph);  /* grab extra reference */
 

@@ -4134,6 +4134,15 @@ if __name__ == '__main__':
             with self.assertRaises(RuntimeError):
                 g.eps = 2.0
 
+            g.unlink()
+
+            g.clear()
+            g[0, 0] = 1.0
+            g.add_edge((0, 0), 1.0)
+            del g[0, 0]
+            g.mul_const(2.0)
+            g.eps = 2.0
+
             del tvg
             del g
 

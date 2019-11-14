@@ -56,6 +56,9 @@ static int generic_clear(struct graph *graph)
 {
     uint64_t i, num_buckets;
 
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
         bucket2_clear(&graph->buckets[i]);
@@ -70,6 +73,9 @@ static int generic_clear(struct graph *graph)
 static int generic_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
     struct entry2 *edge;
+
+    if (UNLIKELY(graph->readonly))
+        return 0;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
         return 0;
@@ -99,6 +105,9 @@ static int generic_set(struct graph *graph, uint64_t source, uint64_t target, fl
 static int generic_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
 {
     struct entry2 *edge;
+
+    if (UNLIKELY(graph->readonly))
+        return 0;
 
     if (!(edge = _graph_get_edge(graph, source, target, 1)))
         return 0;
@@ -130,6 +139,9 @@ static int generic_del(struct graph *graph, uint64_t source, uint64_t target)
 {
     int changed = 0;
 
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     if (_graph_del_edge(graph, source, target))
         changed = 1;
 
@@ -153,6 +165,9 @@ static int generic_mul_const(struct graph *graph, float constant)
 {
     struct entry2 *edge;
 
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
     {
         edge->weight *= constant;
@@ -164,6 +179,9 @@ static int generic_mul_const(struct graph *graph, float constant)
 
 static int generic_set_eps(struct graph *graph, float eps)
 {
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     graph->eps = (float)fabs(eps);
     return 1;
 }
@@ -183,6 +201,9 @@ static int nonzero_mul_const(struct graph *graph, float constant)
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
+
+    if (UNLIKELY(graph->readonly))
+        return 0;
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
@@ -209,6 +230,9 @@ static int nonzero_mul_const(struct graph *graph, float constant)
 
 static int nonzero_set_eps(struct graph *graph, float eps)
 {
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     graph->eps = (float)fabs(eps);
     return nonzero_mul_const(graph, 1.0);
 }
@@ -228,6 +252,9 @@ static int positive_mul_const(struct graph *graph, float constant)
     struct entry2 *edge, *out;
     struct bucket2 *bucket;
     uint64_t i, num_buckets;
+
+    if (UNLIKELY(graph->readonly))
+        return 0;
 
     num_buckets = 1ULL << (graph->bits_source + graph->bits_target);
     for (i = 0; i < num_buckets; i++)
@@ -254,6 +281,9 @@ static int positive_mul_const(struct graph *graph, float constant)
 
 static int positive_set_eps(struct graph *graph, float eps)
 {
+    if (UNLIKELY(graph->readonly))
+        return 0;
+
     graph->eps = (float)fabs(eps);
     return positive_mul_const(graph, 1.0);
 }
@@ -266,44 +296,4 @@ const struct graph_ops graph_positive_ops =
     generic_add,
     generic_del,
     positive_mul_const,
-};
-
-static int readonly_clear(struct graph *graph)
-{
-    return 0;
-}
-
-static int readonly_set(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    return 0;
-}
-
-static int readonly_add(struct graph *graph, uint64_t source, uint64_t target, float weight)
-{
-    return 0;
-}
-
-static int readonly_del(struct graph *graph, uint64_t source, uint64_t target)
-{
-    return 0;
-}
-
-static int readonly_mul_const(struct graph *graph, float constant)
-{
-    return 0;
-}
-
-static int readonly_set_eps(struct graph *graph, float eps)
-{
-    return 0;
-}
-
-const struct graph_ops graph_readonly_ops =
-{
-    readonly_set_eps,
-    readonly_clear,
-    readonly_set,
-    readonly_add,
-    readonly_del,
-    readonly_mul_const,
 };

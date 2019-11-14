@@ -38,6 +38,9 @@ static int generic_clear(struct vector *vector)
 {
     uint64_t i, num_buckets;
 
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     num_buckets = 1ULL << vector->bits;
     for (i = 0; i < num_buckets; i++)
         bucket1_clear(&vector->buckets[i]);
@@ -52,6 +55,9 @@ static int generic_clear(struct vector *vector)
 static int generic_set(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
+
+    if (UNLIKELY(vector->readonly))
+        return 0;
 
     if (!(entry = _vector_get_entry(vector, index, 1)))
         return 0;
@@ -68,6 +74,9 @@ static int generic_set(struct vector *vector, uint64_t index, float weight)
 static int generic_add(struct vector *vector, uint64_t index, float weight)
 {
     struct entry1 *entry;
+
+    if (UNLIKELY(vector->readonly))
+        return 0;
 
     if (!(entry = _vector_get_entry(vector, index, 1)))
         return 0;
@@ -86,6 +95,9 @@ static int generic_del(struct vector *vector, uint64_t index)
     struct bucket1 *bucket;
     struct entry1 *entry;
 
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     bucket = _vector_get_bucket(vector, index);
     if (!(entry = bucket1_get_entry(bucket, index, 0)))
         return 1;
@@ -103,6 +115,9 @@ static int generic_mul_const(struct vector *vector, float constant)
 {
     struct entry1 *entry;
 
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     VECTOR_FOR_EACH_ENTRY(vector, entry)
     {
         entry->weight *= constant;
@@ -114,6 +129,9 @@ static int generic_mul_const(struct vector *vector, float constant)
 
 static int generic_set_eps(struct vector *vector, float eps)
 {
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     vector->eps = (float)fabs(eps);
     return 1;
 }
@@ -133,6 +151,9 @@ static int nonzero_mul_const(struct vector *vector, float constant)
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
     uint64_t i, num_buckets;
+
+    if (UNLIKELY(vector->readonly))
+        return 0;
 
     num_buckets = 1ULL << vector->bits;
     for (i = 0; i < num_buckets; i++)
@@ -158,6 +179,9 @@ static int nonzero_mul_const(struct vector *vector, float constant)
 
 static int nonzero_set_eps(struct vector *vector, float eps)
 {
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     vector->eps = (float)fabs(eps);
     return nonzero_mul_const(vector, 1.0);
 }
@@ -177,6 +201,9 @@ static int positive_mul_const(struct vector *vector, float constant)
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
     uint64_t i, num_buckets;
+
+    if (UNLIKELY(vector->readonly))
+        return 0;
 
     num_buckets = 1ULL << vector->bits;
     for (i = 0; i < num_buckets; i++)
@@ -202,6 +229,9 @@ static int positive_mul_const(struct vector *vector, float constant)
 
 static int positive_set_eps(struct vector *vector, float eps)
 {
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
     vector->eps = (float)fabs(eps);
     return positive_mul_const(vector, 1.0);
 }
@@ -214,44 +244,4 @@ const struct vector_ops vector_positive_ops =
     generic_add,
     generic_del,
     positive_mul_const,
-};
-
-static int readonly_clear(struct vector *vector)
-{
-    return 0;
-}
-
-static int readonly_set(struct vector *vector, uint64_t index, float weight)
-{
-    return 0;
-}
-
-static int readonly_add(struct vector *vector, uint64_t index, float weight)
-{
-    return 0;
-}
-
-static int readonly_del(struct vector *vector, uint64_t index)
-{
-    return 0;
-}
-
-static int readonly_mul_const(struct vector *vector, float constant)
-{
-    return 0;
-}
-
-static int readonly_set_eps(struct vector *vector, float eps)
-{
-    return 0;
-}
-
-const struct vector_ops vector_readonly_ops =
-{
-    readonly_set_eps,
-    readonly_clear,
-    readonly_set,
-    readonly_add,
-    readonly_del,
-    readonly_mul_const,
 };

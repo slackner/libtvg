@@ -62,6 +62,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = get_graph_ops(flags);
+    graph->readonly    = 0;
     graph->bits_source = bits_source;
     graph->bits_target = bits_target;
     graph->buckets     = buckets;
@@ -130,7 +131,7 @@ void unlink_graph(struct graph *graph)
 
     avl_remove(&graph->entry);
     graph->tvg = NULL;
-    graph->ops = get_graph_ops(graph->flags);  /* re-enable graph ops */
+    graph->readonly = 0;  /* allow changes */
 
     if (!cache)
         tvg_invalidate_queries(tvg, graph->ts, graph->ts);
@@ -180,6 +181,7 @@ struct graph *graph_duplicate(struct graph *source)
     graph->cache       = 0;
     list_init(&graph->cache_entry);
     graph->ops         = get_graph_ops(graph->flags);
+    graph->readonly    = 0;
     graph->bits_source = source->bits_source;
     graph->bits_target = source->bits_target;
     graph->buckets     = buckets;

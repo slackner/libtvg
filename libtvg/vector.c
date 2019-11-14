@@ -50,6 +50,7 @@ struct vector *alloc_vector(uint32_t flags)
     vector->eps      = 0.0;
     vector->query    = NULL;
     vector->ops      = get_vector_ops(flags);
+    vector->readonly = 0;
     vector->bits     = bits;
     vector->buckets  = buckets;
     vector->optimize = 0;
@@ -117,6 +118,7 @@ struct vector *vector_duplicate(struct vector *source)
     vector->eps      = source->eps;
     vector->query    = NULL;
     vector->ops      = get_vector_ops(vector->flags);
+    vector->readonly = 0;
     vector->bits     = source->bits;
     vector->buckets  = buckets;
     vector->optimize = source->optimize;

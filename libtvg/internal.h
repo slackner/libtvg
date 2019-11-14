@@ -194,7 +194,6 @@ uint64_t bucket1_num_entries(struct bucket1 *bucket) DECL_INTERNAL;
 extern const struct vector_ops vector_generic_ops DECL_INTERNAL;
 extern const struct vector_ops vector_nonzero_ops DECL_INTERNAL;
 extern const struct vector_ops vector_positive_ops DECL_INTERNAL;
-extern const struct vector_ops vector_readonly_ops DECL_INTERNAL;
 
 void init_bucket2(struct bucket2 *bucket) DECL_INTERNAL;
 int init_bucket2_from(struct bucket2 *bucket, struct bucket2 *source) DECL_INTERNAL;
@@ -210,7 +209,6 @@ uint64_t bucket2_num_entries(struct bucket2 *bucket) DECL_INTERNAL;
 extern const struct graph_ops graph_generic_ops DECL_INTERNAL;
 extern const struct graph_ops graph_nonzero_ops DECL_INTERNAL;
 extern const struct graph_ops graph_positive_ops DECL_INTERNAL;
-extern const struct graph_ops graph_readonly_ops DECL_INTERNAL;
 
 struct minheap *alloc_minheap(size_t entry_size, int (*compar)(const void *, const void *, void *), void *userdata) DECL_INTERNAL;
 void free_minheap(struct minheap *h) DECL_INTERNAL;

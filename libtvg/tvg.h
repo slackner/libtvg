@@ -87,6 +87,7 @@ struct vector
     struct query *query;
 
     const struct vector_ops *ops;
+    int         readonly;
     uint32_t    bits;
     struct bucket1 *buckets;
     uint64_t    optimize;
@@ -129,6 +130,7 @@ struct graph
     struct list cache_entry;
 
     const struct graph_ops *ops;
+    int         readonly;
     uint32_t    bits_source; /* 0...31 */
     uint32_t    bits_target; /* 0...31 */
     struct bucket2 *buckets; /* (H(target) << bits_source) | H(source) */
