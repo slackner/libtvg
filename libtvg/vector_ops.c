@@ -113,6 +113,34 @@ int vector_del_entry(struct vector *vector, uint64_t index)
 
 int vector_mul_const(struct vector *vector, float constant)
 {
+    struct entry1 *entry;
+
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
+    if (constant == 1.0)
+        return 1;
+
+    VECTOR_FOR_EACH_ENTRY(vector, entry)
+    {
+        entry->weight *= constant;
+    }
+
+    vector->revision++;
+    return 1;
+}
+
+int vector_set_eps(struct vector *vector, float eps)
+{
+    if (UNLIKELY(vector->readonly))
+        return 0;
+
+    vector->eps = (float)fabs(eps);
+    return vector_del_small(vector);
+}
+
+int vector_del_small(struct vector *vector)
+{
     struct bucket1 *bucket;
     struct entry1 *entry, *out;
     uint64_t i, num_buckets;
@@ -130,7 +158,6 @@ int vector_mul_const(struct vector *vector, float constant)
 
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
-                entry->weight *= constant;
                 if (entry->weight <= vector->eps) continue;
                 *out++ = *entry;
             }
@@ -149,7 +176,6 @@ int vector_mul_const(struct vector *vector, float constant)
 
             BUCKET1_FOR_EACH_ENTRY(bucket, entry)
             {
-                entry->weight *= constant;
                 if (fabs(entry->weight) <= vector->eps) continue;
                 *out++ = *entry;
             }
@@ -160,22 +186,11 @@ int vector_mul_const(struct vector *vector, float constant)
     }
     else
     {
-        VECTOR_FOR_EACH_ENTRY(vector, entry)
-        {
-            entry->weight *= constant;
-        }
+        /* Nothing to do */
+        return 1;
     }
 
     vector->revision++;
     /* FIXME: Trigger vector_optimize? */
     return 1;
-}
-
-int vector_set_eps(struct vector *vector, float eps)
-{
-    if (UNLIKELY(vector->readonly))
-        return 0;
-
-    vector->eps = (float)fabs(eps);
-    return vector_mul_const(vector, 1.0);
 }

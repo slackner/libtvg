@@ -1544,6 +1544,7 @@ int vector_dec_bits(struct vector *vector);
 void vector_optimize(struct vector *vector);
 
 int vector_set_eps(struct vector *vector, float eps);
+int vector_del_small(struct vector *vector);
 
 int vector_empty(struct vector *vector);
 int vector_clear(struct vector *vector);

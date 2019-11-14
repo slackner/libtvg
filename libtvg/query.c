@@ -633,7 +633,7 @@ static int query_count_nodes_finalize(struct query *query_base)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
 
-    if (!vector_mul_const(query->result, 1.0))
+    if (!vector_del_small(query->result))
         return 0;
 
     query->result->readonly = 1;  /* block changes */

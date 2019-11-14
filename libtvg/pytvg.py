@@ -145,6 +145,9 @@ lib.vector_clear.restype = c_int
 lib.vector_set_eps.argtypes = (c_vector_p, c_float)
 lib.vector_set_eps.restype = c_int
 
+lib.vector_del_small.argtypes = (c_vector_p,)
+lib.vector_del_small.restype = c_int
+
 lib.vector_empty.argtypes = (c_vector_p,)
 lib.vector_empty.restype = c_int
 
@@ -1215,6 +1218,12 @@ class Vector(object):
     def mul_const(self, constant):
         """ Perform inplace element-wise multiplication of the vector with `constant`. """
         res = lib.vector_mul_const(self._obj, constant)
+        if not res:
+            raise RuntimeError
+
+    def del_small(self):
+        """ Drop entries smaller than the selected `eps`. """
+        res = lib.vector_del_small(self._obj)
         if not res:
             raise RuntimeError
 
@@ -2951,8 +2960,10 @@ if __name__ == '__main__':
             v = Vector()
             v[0] = 1.0
             v.mul_const(-1.0)
+            v.del_small()
             self.assertEqual(v[0], -1.0)
             v.mul_const(0.0)
+            v.del_small()
             self.assertTrue(v.has_entry(0))
             self.assertEqual(v[0], 0.0)
             del v
@@ -2960,14 +2971,17 @@ if __name__ == '__main__':
             v = Vector(nonzero=True)
             v[0] = 1.0
             v.mul_const(-1.0)
+            v.del_small()
             self.assertEqual(v[0], -1.0)
             v.mul_const(0.0)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             del v
 
             v = Vector(positive=True)
             v[0] = 1.0
             v.mul_const(-1.0)
+            v.del_small()
             self.assertFalse(v.has_entry(0))
             del v
 
@@ -2975,6 +2989,7 @@ if __name__ == '__main__':
             v[0] = 1.0
             for i in range(200):
                 v.mul_const(0.5)
+                v.del_small()
                 if not v.has_entry(0):
                     break
             else:
