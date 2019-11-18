@@ -491,7 +491,11 @@ if __name__ == "__main__":
     dataset_tvg.enable_query_cache(cache_size=args.query_cache)
     dataset_tvg.verbosity = args.verbose
 
-    webserver = TCPServer(("", 8080), WebHandler)
+    # Inherit TCPServer and enable allow_reuse_address.
+    class WebServer(TCPServer):
+        allow_reuse_address = True
+
+    webserver = WebServer(("", 8080), WebHandler)
     try:
         server = SimpleWebSocketServer('', 8000, Client)
         Thread(target=webserver.serve_forever).start()
