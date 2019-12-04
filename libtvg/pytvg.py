@@ -2676,7 +2676,6 @@ if __name__ == '__main__':
     import unittest
     import mockupdb
     import tempfile
-    import bson
     import gc
 
     # Ancient versions of mockupdb ship their own bson library.
