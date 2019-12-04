@@ -2679,6 +2679,12 @@ if __name__ == '__main__':
     import bson
     import gc
 
+    # Ancient versions of mockupdb ship their own bson library.
+    try:
+        bson = mockupdb._bson
+    except AttributeError:
+        import bson
+
     class VectorTests(unittest.TestCase):
         def test_add_entry(self):
             v = Vector()
