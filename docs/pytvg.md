@@ -313,7 +313,7 @@ Metric for each node or edge.
 
 ## Vector
 ```python
-Vector(nonzero=False, positive=False, obj=None)
+Vector(positive=False, obj=None)
 ```
 
 This object represents a vector of arbitrary / infinite dimension. To achieve that,
@@ -323,7 +323,6 @@ that are stored in contiguous blocks of memory and in sorted order for faster ac
 
 __Arguments__
 
-- __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 
 
@@ -525,7 +524,7 @@ Generate a Vector object from a dictionary.
 
 ## Graph
 ```python
-Graph(nonzero=False, positive=False, directed=False, obj=None)
+Graph(positive=False, directed=False, obj=None)
 ```
 
 This object represents a graph of arbitrary / infinite dimension. To achieve that,
@@ -536,7 +535,6 @@ sorted order for faster access.
 
 __Arguments__
 
-- __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed graph.
 
@@ -582,7 +580,6 @@ Load a single graph from a MongoDB database.
 __Arguments__
 
 - __id__: Identifier (numeric or objectid) of the document to load
-- __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed graph.
 
@@ -895,6 +892,27 @@ __Returns__
 Resulting graph.
 
 
+### save_binary
+```python
+Graph.save_binary(filename)
+```
+
+Store a graph in a file using binary format.
+
+__Arguments__
+
+- __filename__: Path to the file to create
+
+
+### load_binary
+
+Load a graph from a binary file into memory.
+
+__Arguments__
+
+- __filename__: Path to the file to load
+
+
 ### sparse_subgraph
 ```python
 Graph.sparse_subgraph(seeds=None, num_seeds=8, num_neighbors=3)
@@ -1001,8 +1019,7 @@ Return a dictionary containing all node attributes.
 
 ## TVG
 ```python
-TVG(nonzero=False,
-    positive=False,
+TVG(positive=False,
     directed=False,
     streaming=False,
     primary_key=None,
@@ -1013,7 +1030,6 @@ This object represents a time-varying graph.
 
 __Arguments__
 
-- __nonzero__: Enforce that all entries must be non-zero.
 - __positive__: Enforce that all entries must be positive.
 - __directed__: Create a directed time-varying graph.
 - __streaming__: Support for streaming / differential updates.
@@ -1115,6 +1131,22 @@ Node object.
 TVG.node_by_text(text)
 ```
 Lookup a node by its text (assumes that `text` is the primary key).
+
+### node_label
+```python
+TVG.node_label(index)
+```
+
+Shortcut to get the label of a specific node by index.
+
+__Arguments__
+
+- __index__: Index of the node.
+
+__Returns__
+
+Node label.
+
 
 ### load
 

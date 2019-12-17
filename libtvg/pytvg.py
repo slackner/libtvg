@@ -2285,6 +2285,34 @@ class TVG(object):
         """ Lookup a node by its text (assumes that `text` is the primary key). """
         return self.node_by_primary_key(text=text)
 
+    def node_label(self, index):
+        """
+        Shortcut to get the label of a specific node by index.
+
+        # Arguments
+        index: Index of the node.
+
+        # Returns
+        Node label.
+        """
+
+        try:
+            node = self.node_by_index(index)
+        except KeyError:
+            node = {}
+
+        for key in ['label', 'norm', 'text', 'entity_name']:
+            try:
+                text = node[key]
+            except KeyError:
+                pass
+            else:
+                break
+        else:
+            text = "Node %d" % (index,)
+
+        return text
+
     @staticmethod
     def load(source, nodes=None, *args, **kwargs):
         """
@@ -4177,6 +4205,23 @@ if __name__ == '__main__':
             with self.assertRaises(RuntimeError):
                 tvg.link_node(l)
             self.assertEqual(l.index, 0xffffffffffffffff)
+
+            del tvg
+
+        def test_node_label(self):
+            tvg = TVG()
+
+            l = tvg.Node(label="A")
+            self.assertEqual(tvg.node_label(l.index), "A")
+
+            l = tvg.Node(norm="B")
+            self.assertEqual(tvg.node_label(l.index), "B")
+
+            l = tvg.Node(text="C")
+            self.assertEqual(tvg.node_label(l.index), "C")
+
+            l = tvg.Node(entity_name="D")
+            self.assertEqual(tvg.node_label(l.index), "D")
 
             del tvg
 
