@@ -1580,6 +1580,7 @@ static void test_ranges(void)
     uint64_t total_len;
     int64_t *weights;
     struct ranges *r;
+    uint64_t max_pos = 4096;
     int64_t weight;
     int i, j;
     int ret;
@@ -1595,11 +1596,27 @@ static void test_ranges(void)
 
     for (j = 0; j < 10000; j++)
     {
-        pos  = random_uint64() % 4096;
-        pos2 = random_uint64() % 4096;
+        /* Periodically clear ranges to increase chances of
+         * triggering different corner cases. */
+        if (random_float() < 0.05)
+        {
+            free_ranges(r);
+            r = alloc_ranges();
+            assert(r != NULL);
+
+            for (i = 0; i < 4096; i++)
+                weights[i] = 0;
+
+            max_pos = 16;
+            while (max_pos < 4096 && random_float() < 0.9)
+                max_pos += 16;
+        }
+
+        pos  = random_uint64() % max_pos;
+        pos2 = random_uint64() % max_pos;
         if (pos > pos2) SWAP(pos, pos2);
         len = (pos2 - pos + 1);
-        assert(pos + len <= 4096);
+        assert(pos + len <= max_pos);
 
         weight = (random_uint64() & 1) ? 1 : -1;
 
@@ -1613,11 +1630,11 @@ static void test_ranges(void)
         for (i = 0; i < 4096; i++)
             assert(ranges_get_weight(r, i) == weights[i]);
 
-        pos = random_uint64() % 4096;
-        pos2 = random_uint64() % 4096;
+        pos  = random_uint64() % max_pos;
+        pos2 = random_uint64() % max_pos;
         if (pos > pos2) SWAP(pos, pos2);
         len = (pos2 - pos + 1);
-        assert(pos + len <= 4096);
+        assert(pos + len <= max_pos);
 
         total_len = ranges_get_length(r);
         total_len += ranges_get_delta_length(r, pos, len, &weight);

@@ -194,7 +194,7 @@ int ranges_add_range(struct ranges *ranges, uint64_t pos, uint64_t len, int64_t 
 
         assert(!range || range->pos > pos);
 
-        prev_range = range ? AVL_PREV(range, &ranges->tree, struct range, entry) : NULL;
+        prev_range = AVL_PREV(range, &ranges->tree, struct range, entry);
         if (prev_range && prev_range->pos + prev_range->len == pos &&
             prev_range->weight == weight)
         {
