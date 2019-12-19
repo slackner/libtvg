@@ -3,8 +3,7 @@ set -e -x
 cd "$(dirname "$0")"
 make clean
 
-make CC="clang" CFLAGS="-ftest-coverage -fprofile-arcs"
-make tests
+make CC="clang" CFLAGS="-ftest-coverage -fprofile-arcs" tests
 
 ./tests
 ./pytvg.py
