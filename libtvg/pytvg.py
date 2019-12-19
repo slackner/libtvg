@@ -5130,6 +5130,11 @@ if __name__ == '__main__':
             self.assertTrue(isinstance(result, Graph))
             self.assertEqual(result.as_dict(), {(0, 0): 2.0, (0, 1): 3.0,
                                                 (1, 1): 3.0, (2, 2): 1.0})
+
+            result = metric_stability_pareto(graphs, base=0.5)
+            self.assertTrue(isinstance(result, Graph))
+            self.assertEqual(result.as_dict(), {(0, 0): 0.5,  (0, 1): 0.25,
+                                                (1, 1): 0.25, (2, 2): 1.0})
             del graphs
 
             values = [
@@ -5143,6 +5148,10 @@ if __name__ == '__main__':
             result = metric_stability_pareto(vectors)
             self.assertTrue(isinstance(result, Vector))
             self.assertEqual(result.as_dict(), {0: 2.0, 1: 3.0, 2: 3.0, 3: 1.0})
+
+            result = metric_stability_pareto(vectors, base=0.5)
+            self.assertTrue(isinstance(result, Vector))
+            self.assertEqual(result.as_dict(), {0: 0.5, 1: 0.25, 2: 0.25, 3: 1.0})
             del vectors
 
         def test_metric_stability_pareto_compare(self):
