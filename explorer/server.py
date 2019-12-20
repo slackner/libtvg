@@ -395,9 +395,15 @@ class UpdateTask(object):
 class WebHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), "html")
-        super().__init__(*args, **kwargs)
+        # Python < 3.7 doesn't support the 'directory' argument yet. In this case,
+        # patch the translate_path() function to workaround this issue.
+        try:
+            super().__init__(*args, directory=self.directory, **kwargs)
+        except TypeError:
+            self.translate_path = self._translate_path
+            super().__init__(*args, **kwargs)
 
-    def translate_path(self, path):
+    def _translate_path(self, path):
         """Translate a /-separated PATH to the local filename syntax."""
         # abandon query parameters
         path = path.split('?',1)[0]
