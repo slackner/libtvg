@@ -9,6 +9,12 @@ ifeq ($(UNAME_S),Darwin)
 	LIBNAME      = libtvg.dylib
 	LIB_LDFLAGS += -install_name @rpath/$(LIBNAME)
 	APP_LDFLAGS += -Wl,-rpath,@executable_path
+ifndef NOMONGODB
+	LIB_CFLAGS  += -I/usr/local/Cellar/mongo-c-driver/1.15.1/include/libbson-1.0 \
+	               -I/usr/local/Cellar/mongo-c-driver/1.15.1/include/libmongoc-1.0 \
+	               -DHAVE_LIBMONGOC
+	LIB_LDFLAGS += -lmongoc-1.0 -lbson-1.0
+endif
 else
 	LIBNAME      = libtvg.so
 	LIB_LDFLAGS += -Wl,-soname,$(LIBNAME) -Wl,--no-undefined

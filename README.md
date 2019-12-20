@@ -23,6 +23,23 @@ sudo apt-get install python3-numpy
 pip3 install SimpleWebSocketServer
 ```
 
+On macOS, the following commands can be used to install required dependencies:
+
+```bash
+# Build dependencies:
+xcode-select --install
+brew install wget
+brew install mongo-c-driver
+
+# Test dependencies:
+pip3 install mockupdb
+
+# Runtime dependencies:
+brew install python3
+pip3 install numpy
+pip3 install SimpleWebSocketServer
+```
+
 Afterwards, just clone this repository and run (in the root directory of this
 repository):
 
