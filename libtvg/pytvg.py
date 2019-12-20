@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from ctypes import cdll
 from ctypes import cast
 from ctypes import c_int, c_int64

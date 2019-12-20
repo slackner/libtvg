@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from SimpleWebSocketServer import SimpleWebSocketServer
 from SimpleWebSocketServer import WebSocket
 from http.server import SimpleHTTPRequestHandler
