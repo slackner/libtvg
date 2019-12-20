@@ -539,7 +539,10 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
             if (entry->ent == new_entry.ent)
                 continue;  /* never create self-loops */
             if (entry->sen > new_entry.sen)
-                continue;  /* unexpected, entries are not sorted! */
+            {
+                fprintf(stderr, "%s: MongoDB returned elements in wrong order?\n", __func__);
+                continue;
+            }
 
             weight = (float)exp(-(double)(new_entry.sen - entry->sen));
             if (!process_edge(graph, entry->ent, new_entry.ent, weight))
