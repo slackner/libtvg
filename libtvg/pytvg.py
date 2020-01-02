@@ -203,6 +203,12 @@ lib.vector_mul_vector.restype = c_double
 lib.vector_sub_vector_norm.argtypes = (c_vector_p, c_vector_p)
 lib.vector_sub_vector_norm.restype = c_double
 
+lib.vector_save_binary.argtypes = (c_vector_p, c_char_p)
+lib.vector_save_binary.restype = c_int
+
+lib.vector_load_binary.argtypes = (c_char_p,)
+lib.vector_load_binary.restype = c_vector_p
+
 # Graph functions
 
 lib.alloc_graph.argtypes = (c_uint,)
@@ -1242,6 +1248,32 @@ class Vector(object):
         vector = Vector(*args, **kwargs)
         vector.set_entries(entries)
         return vector
+
+    def save_binary(self, filename):
+        """
+        Store a vector in a file using binary format.
+
+        # Arguments
+        filename: Path to the file to create
+        """
+
+        res = lib.vector_save_binary(self._obj, filename.encode("utf-8"))
+        if not res:
+            raise IOError
+
+    @staticmethod
+    def load_binary(filename):
+        """
+        Load a vector from a binary file into memory.
+
+        # Arguments
+        filename: Path to the file to load
+        """
+
+        obj = lib.vector_load_binary(filename.encode("utf-8"))
+        if not obj:
+            raise IOError
+        return Vector(obj=obj)
 
 @libtvgobject
 class Graph(object):
@@ -3102,6 +3134,60 @@ if __name__ == '__main__':
             del v
             del v2
 
+        def test_save_binary(self):
+            v = Vector()
+            for i in range(5):
+                v[i] = i + 1.0
+
+            with tempfile.NamedTemporaryFile() as temp:
+                v.save_binary(temp.name)
+                data = temp.read()
+                with self.assertRaises(IOError):
+                    Graph.load_binary(temp.name)
+                w = Vector.load_binary(temp.name)
+
+            self.assertEqual(data.hex(), "54564756010000000000000000000000" +
+                                         "0500000000000000" +
+                                         "00000000000000000000803f00000000" +
+                                         "01000000000000000000004000000000" +
+                                         "02000000000000000000404000000000" +
+                                         "03000000000000000000804000000000" +
+                                         "04000000000000000000a04000000000")
+
+            self.assertEqual(w.flags, 0)
+            self.assertEqual(w.revision, 0)
+            self.assertEqual(w.num_entries, 5)
+            self.assertEqual(w.as_dict(), {0: 1.0, 1: 2.0, 2: 3.0, 3: 4.0, 4: 5.0})
+
+            del v
+            del w
+
+            for length in range(len(data)):
+                with tempfile.NamedTemporaryFile() as temp:
+                    temp.write(data[:length])
+                    temp.flush()
+                    with self.assertRaises(IOError):
+                        Vector.load_binary(temp.name)
+
+            v = Vector()
+            for i in range(10000):
+                v[i] = i
+
+            with tempfile.NamedTemporaryFile() as temp:
+                v.save_binary(temp.name)
+                w = Vector.load_binary(temp.name)
+
+            self.assertEqual(w.flags, 0)
+            self.assertEqual(w.revision, 0)
+            self.assertEqual(w.num_entries, 10000)
+
+            for i in range(10000):
+                self.assertTrue(w.has_entry(i))
+                self.assertEqual(w[i], i)
+
+            del v
+            del w
+
     class GraphTests(unittest.TestCase):
         def test_add_edge(self):
             g = Graph(directed=True)
@@ -3775,6 +3861,8 @@ if __name__ == '__main__':
             with tempfile.NamedTemporaryFile() as temp:
                 g.save_binary(temp.name)
                 data = temp.read()
+                with self.assertRaises(IOError):
+                    Vector.load_binary(temp.name)
                 h = Graph.load_binary(temp.name)
 
             self.assertEqual(data.hex(), "5456474701000000040000000000000000000000" +
@@ -3817,7 +3905,7 @@ if __name__ == '__main__':
 
             for i in range(10000):
                 s, t = i//100, i%100
-                self.assertTrue(i == 0 or h.has_edge((s, t)))
+                self.assertTrue(h.has_edge((s, t)))
                 self.assertEqual(h[s, t], i)
 
             del g

@@ -7,6 +7,22 @@
 
 #include "internal.h"
 
+#define FILE_TAG     0x56475654U /* "TVGV" */
+#define FILE_VERSION 0x00000001U
+
+struct file_header
+{
+    uint32_t tag;
+    uint32_t version;
+    uint32_t flags;
+    uint32_t bits;
+};
+
+/* vector_load_binary relies on that */
+C_ASSERT(sizeof(struct file_header) == 16);
+C_ASSERT(sizeof(((struct bucket1 *)0)->num_entries) == 8);
+C_ASSERT(sizeof(struct entry1) == 16);
+
 struct vector *alloc_vector(uint32_t flags)
 {
     static const uint32_t bits = 0;
@@ -470,4 +486,122 @@ double vector_sub_vector_norm(const struct vector *vector1, const struct vector 
     }
 
     return sqrt(norm);
+}
+
+int vector_save_binary(struct vector *vector, const char *filename)
+{
+    struct file_header header;
+    struct bucket1 *bucket;
+    uint64_t i, num_buckets;
+    FILE *fp;
+    int ret = 0;
+
+    if (!(fp = fopen(filename, "wb")))
+    {
+        fprintf(stderr, "%s: Failed to create file '%s'\n", __func__, filename);
+        return 0;
+    }
+
+    header.tag      = FILE_TAG;
+    header.version  = FILE_VERSION;
+    header.flags    = vector->flags & ~TVG_FLAGS_READONLY;
+    header.bits     = vector->bits;
+
+    if (fwrite(&header, sizeof(header), 1, fp) != 1)
+        goto error;
+
+    num_buckets = 1ULL << vector->bits;
+    for (i = 0; i < num_buckets; i++)
+    {
+        bucket = &vector->buckets[i];
+        if (fwrite(&bucket->num_entries, sizeof(bucket->num_entries), 1, fp) != 1)
+            goto error;
+        if (!bucket->num_entries)
+            continue;  /* nothing to save */
+        if (fwrite(bucket->entries, sizeof(*bucket->entries), bucket->num_entries, fp) != bucket->num_entries)
+            goto error;
+    }
+
+    /* Saving successful. */
+    ret = 1;
+
+error:
+    fclose(fp);
+    return ret;
+}
+
+struct vector *vector_load_binary(const char *filename)
+{
+    struct file_header header;
+    uint64_t i, num_buckets;
+    uint64_t num_entries;
+    struct bucket1 *bucket;
+    struct vector *result = NULL;
+    FILE *fp;
+    int ret = 0;
+
+    if (!(fp = fopen(filename, "rb")))
+    {
+        fprintf(stderr, "%s: File '%s' not found\n", __func__, filename);
+        return NULL;
+    }
+
+    if (fread(&header, sizeof(header), 1, fp) != 1)
+        goto error;
+
+    if (header.tag != FILE_TAG)
+    {
+        fprintf(stderr, "%s: Expected tag %08x, got %08x\n", __func__, FILE_TAG, header.tag);
+        goto error;
+    }
+    if (header.version != FILE_VERSION)
+    {
+        fprintf(stderr, "%s: Expected version %08x, got %08x\n", __func__, FILE_VERSION, header.version);
+        goto error;
+    }
+    if (header.bits > 63)
+    {
+        fprintf(stderr, "%s: Vector is too large to load into memory\n", __func__);
+        goto error;
+    }
+
+    if (!(result = alloc_vector(header.flags)))
+        goto error;
+
+    num_buckets = 1ULL << header.bits;
+    if (!(bucket = malloc(sizeof(*bucket) * num_buckets)))
+        goto error;
+
+    for (i = 0; i < num_buckets; i++)
+        init_bucket1(&bucket[i]);
+
+    free(result->buckets);  /* buckets have no references */
+    result->bits    = header.bits;
+    result->buckets = bucket;
+
+    for (i = 0; i < num_buckets; i++)
+    {
+        bucket = &result->buckets[i];
+        if (fread(&num_entries, sizeof(num_entries), 1, fp) != 1)
+            goto error;
+        if (!num_entries)
+            continue;  /* nothing to load */
+        if (!bucket1_reserve(bucket, num_entries))
+            goto error;
+        if (fread(bucket->entries, sizeof(*bucket->entries), num_entries, fp) != num_entries)
+            goto error;
+        bucket->num_entries = num_entries;
+    }
+
+    /* Loading successful. */
+    ret = 1;
+
+error:
+    if (!ret)
+    {
+        free_vector(result);
+        result = NULL;
+    }
+    fclose(fp);
+    return result;
 }
