@@ -72,3 +72,43 @@ float random_float(void)
     random_bytes((uint8_t *)&value, sizeof(value));
     return (float)value / (float)(1ULL << (8 * sizeof(value)));
 }
+
+void random_pool_init(struct random_pool *pool)
+{
+    pool->pos = sizeof(pool->buffer);
+}
+
+void random_pool_bytes(struct random_pool *pool, uint8_t *buffer, size_t length)
+{
+    size_t remaining;
+
+    /* For sufficiently large requests, directly forward to kernel. */
+    if (length >= sizeof(pool->buffer) / 8)
+        return random_bytes(buffer, length);
+
+    assert(pool->pos <= sizeof(pool->buffer));
+
+    /* Try to fulfill request by doing partial copy from the existing
+     * buffer. Most of the time this will be sufficient. */
+    remaining = MIN(sizeof(pool->buffer) - pool->pos, length);
+    memcpy(buffer, &pool->buffer[pool->pos], remaining);
+    pool->pos += remaining;
+
+    /* If this did not work (or was not sufficient) refill the buffer,
+     * and copy over a part of it. */
+    length -= remaining;
+    if (length > 0)
+    {
+        buffer += remaining;
+        random_bytes(pool->buffer, sizeof(pool->buffer));
+        memcpy(buffer, &pool->buffer[0], length);
+        pool->pos = length;
+    }
+}
+
+float random_pool_float(struct random_pool *pool)
+{
+    uint32_t value;
+    random_pool_bytes(pool, (uint8_t *)&value, sizeof(value));
+    return (float)value / (float)(1ULL << (8 * sizeof(value)));
+}

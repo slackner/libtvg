@@ -85,6 +85,12 @@ struct query_ops
     int       (*finalize)(struct query *);
 };
 
+struct random_pool
+{
+    size_t pos;
+    uint8_t buffer[4096];
+};
+
 static inline void objectid_init(struct objectid *objectid)
 {
     objectid->type = OBJECTID_NONE;
@@ -159,6 +165,10 @@ void rwlock_unlock_r(struct rwlock *rwlock) DECL_INTERNAL;
 
 void random_bytes(uint8_t *buffer, size_t length) DECL_INTERNAL;
 float random_float(void) DECL_INTERNAL;
+
+void random_pool_init(struct random_pool *pool) DECL_INTERNAL;
+void random_pool_bytes(struct random_pool *pool, uint8_t *buffer, size_t length) DECL_INTERNAL;
+float random_pool_float(struct random_pool *pool) DECL_INTERNAL;
 
 void init_bucket1(struct bucket1 *bucket) DECL_INTERNAL;
 int init_bucket1_from(struct bucket1 *bucket, struct bucket1 *source) DECL_INTERNAL;

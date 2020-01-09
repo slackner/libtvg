@@ -1022,6 +1022,7 @@ double graph_sum_weights(const struct graph *graph)
 struct vector *graph_power_iteration(const struct graph *graph, struct vector *initial_guess,
                                      uint32_t num_iterations, double tolerance, double *ret_eigenvalue)
 {
+    struct random_pool pool;
     struct vector *vector;
     struct vector *temp;
     struct entry2 *edge;
@@ -1034,11 +1035,13 @@ struct vector *graph_power_iteration(const struct graph *graph, struct vector *i
     if (!(vector = alloc_vector(0)))
         return NULL;
 
+    random_pool_init(&pool);
+
     GRAPH_FOR_EACH_DIRECTED_EDGE(graph, edge)
     {
         if (vector_has_entry(vector, edge->target)) continue;
         if (!initial_guess || !(value = vector_get_entry(initial_guess, edge->target)))
-            value = random_float();
+            value = random_pool_float(&pool);
         if (!vector_add_entry(vector, edge->target, value))
         {
             free_vector(vector);
