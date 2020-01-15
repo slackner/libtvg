@@ -249,31 +249,30 @@ class Collection(object):
         counts = [0] * num_snapshots
         last_snapshot = 0
 
-        tempdir = tempfile.TemporaryDirectory()
+        with tempfile.TemporaryDirectory() as tempdir:
 
-        with open(os.path.join(tempdir.name, "input-mult.dat"), 'w') as fp:
-            for doc in self.documents(ts_min, ts_max):
-                frequency = collections.Counter(doc.entity_ids)
-                fp.write("%d %s\n" % (len(frequency), " ".join(["%d:%d" % (k, v) for k, v in frequency.items()])))
+            with open(os.path.join(tempdir, "input-mult.dat"), 'w') as fp:
+                for doc in self.documents(ts_min, ts_max):
+                    frequency = collections.Counter(doc.entity_ids)
+                    fp.write("%d %s\n" % (len(frequency), " ".join(["%d:%d" % (k, v) for k, v in frequency.items()])))
 
-                snapshot = ts_to_snapshot(doc.ts)
-                assert snapshot >= last_snapshot
-                counts[snapshot] += 1
-                last_snapshot = snapshot
+                    snapshot = ts_to_snapshot(doc.ts)
+                    assert snapshot >= last_snapshot
+                    counts[snapshot] += 1
+                    last_snapshot = snapshot
 
-        with open(os.path.join(tempdir.name, "input-seq.dat"), 'w') as fp:
-            fp.write("%d\n" % (num_snapshots,))
-            for count in counts:
-                fp.write("%d\n" % (count,))
+            with open(os.path.join(tempdir, "input-seq.dat"), 'w') as fp:
+                fp.write("%d\n" % (num_snapshots,))
+                for count in counts:
+                    fp.write("%d\n" % (count,))
 
-        try:
             subprocess.check_call([dtm_filename,
                 "--ntopics=%d" % (num_topics,),
                 "--mode=fit",
                 "--rng_seed=0",
                 "--initialize_lda=true",
-                "--corpus_prefix=%s" % (os.path.join(tempdir.name, "input"),),
-                "--outname=%s" % (os.path.join(tempdir.name, "output"),),
+                "--corpus_prefix=%s" % (os.path.join(tempdir, "input"),),
+                "--outname=%s" % (os.path.join(tempdir, "output"),),
                 "--top_chain_var=0.005",
                 "--alpha=0.01",
                 "--lda_sequence_min_iter=6",
@@ -283,7 +282,7 @@ class Collection(object):
 
             log_probs = []
             for i in range(num_topics):
-                data = np.loadtxt(os.path.join(tempdir.name, "output/lda-seq/topic-%03d-var-e-log-prob.dat" % (i,)))
+                data = np.loadtxt(os.path.join(tempdir, "output/lda-seq/topic-%03d-var-e-log-prob.dat" % (i,)))
                 assert len(data.shape) == 1
                 data = data.reshape((-1, num_snapshots))
                 log_probs.append(data.T)
@@ -293,7 +292,7 @@ class Collection(object):
 
             """
             num_documents = sum(counts)
-            data = np.loadtxt(os.path.join(tempdir.name, "output/lda-seq/gam.dat"))
+            data = np.loadtxt(os.path.join(tempdir, "output/lda-seq/gam.dat"))
             data = data.reshape((num_documents, num_topics))
             # data[doc][...]
             """
@@ -301,8 +300,6 @@ class Collection(object):
             return Topics(collection=self,
                           log_probs=log_probs,
                           ts_to_snapshot=ts_to_snapshot)
-        finally:
-            tempdir.cleanup()
 
 if __name__ == '__main__':
     source = {
@@ -334,4 +331,4 @@ if __name__ == '__main__':
     print ("snapshots = ", t.num_snapshots)
 
     for i in range(t.num_topics):
-        print ("Topic %d: %s" % (i, t.ranked_list(t)))
+        print ("Topic %d: %s" % (i, t.ranked_list(i)))
