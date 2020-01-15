@@ -2744,6 +2744,32 @@ if __name__ == '__main__':
     except AttributeError:
         import bson
 
+    class CaptureStderr(object):
+        def __init__(self):
+            self.output = None
+
+        def __enter__(self):
+            sys.stderr.flush()
+            self.orig_fd = os.dup(2)
+            self.buffer = tempfile.TemporaryFile()
+            os.dup2(self.buffer.fileno(), 2)
+            return self
+
+        def __exit__(self, *args):
+            sys.stderr.flush()
+            os.dup2(self.orig_fd, 2)
+            os.close(self.orig_fd)
+
+            # Load stderr messages from file
+            self.buffer.seek(0)
+            output = self.buffer.read()
+            self.buffer.close()
+
+            # Store messages, duplicate to stderr
+            self.output = output.decode("utf-8")
+            sys.stderr.buffer.write(output)
+            return False
+
     class VectorTests(unittest.TestCase):
         def test_add_entry(self):
             v = Vector()
@@ -4779,26 +4805,36 @@ if __name__ == '__main__':
             tvg.link_graph(g, 300)
 
             # test 1
-            g = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
             del g
-            g = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
             del g
 
             # test 2
-            g1 = tvg.sum_edges(51, 150, eps=0.5)
-            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g1 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
+            with CaptureStderr() as stderr:
+                g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("1 queries and 0 graphs", stderr.output)
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
             del g2
             tvg.invalidate_queries(100, 100)
-            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
@@ -4808,18 +4844,24 @@ if __name__ == '__main__':
             tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
 
             # test 3
-            g = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
             del g
-            g = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("1 queries and 0 graphs", stderr.output)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
             del g
             tvg.invalidate_queries(100, 100)
-            g = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
@@ -4829,14 +4871,20 @@ if __name__ == '__main__':
             tvg.enable_query_cache(cache_size=0x8000) # 32 kB cache
 
             # test 4
-            g1 = tvg.sum_edges(51, 150, eps=0.5)
-            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g1 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
+            with CaptureStderr() as stderr:
+                g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("1 queries and 0 graphs", stderr.output)
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
             del g2
             tvg.invalidate_queries(100, 100)
-            g2 = tvg.sum_edges(51, 150, eps=0.5)
+            with CaptureStderr() as stderr:
+                g2 = tvg.sum_edges(51, 150, eps=0.5)
+            self.assertIn("0 queries and 1 graphs", stderr.output)
             self.assertEqual(g2[0, 0], 1.0)
             self.assertEqual(g2[0, 1], 0.0)
             self.assertEqual(g2[0, 2], 0.0)
