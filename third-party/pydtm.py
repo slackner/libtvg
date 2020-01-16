@@ -102,7 +102,7 @@ class Topics(object):
     def num_snapshots(self):
         return self._log_probs.shape[1]
 
-    def ranked_list(self, topic, ts=0, snapshot=None, max_words=10):
+    def ranked_list(self, topic, ts=None, snapshot=None, max_words=10):
         if topic < 0 or topic >= self._log_probs.shape[0]:
             raise IndexError("Topic out of range")
 
@@ -215,36 +215,25 @@ class Collection(object):
             return doc
         return None
 
-    def topics(self, ts_min=None, ts_max=None, step=86400000, offset=0, num_topics=10):
-        if step <= 0:
-            raise ValueError("Step should be > 0")
+    def topics(self, ranges, num_topics=10):
+        ranges = sorted(list(ranges))
+        num_snapshots = len(ranges)
+
+        if num_snapshots == 0:
+            raise ValueError("At least one range required")
         if num_topics > 999:
             raise ValueError("More than 999 topics are not supported")
 
-        if ts_min is None:
-            doc = self.lookup_ge()
-            if doc is None:
-                raise RuntimeError("Dataset is empty")
-            ts_min = doc.ts
+        def ts_to_snapshot(ts):
+            if ts is None:
+                return 0
+            for i, (ts_min, ts_max) in enumerate(ranges):
+                if ts_min <= ts and ts <= ts_max:
+                    return i
+            raise RuntimeError("Snapshot not found")
 
-        if ts_max is None:
-            doc = self.lookup_le()
-            if doc is None:
-                raise RuntimeError("Dataset is empty")
-            ts_max = doc.ts
-
-        offset -= (offset // step) * step
-
-        if ts_max < offset:
-            num_snapshots = 1
-            ts_to_snapshot = lambda ts: 0
-        elif ts_min < offset:
-            num_snapshots = (ts_max - offset) // step + 2
-            ts_to_snapshot = lambda ts: (ts - offset) // step + 1 if doc.ts >= offset else 0
-        else:
-            num_snapshots = (ts_max - offset) // step - \
-                            (ts_min - offset) // step + 1
-            ts_to_snapshot = lambda ts: (ts - offset) // step - (ts_min - offset) // step
+        ts_min = min([t for t, _ in ranges])
+        ts_max = max([t for _, t in ranges])
 
         counts = [0] * num_snapshots
         last_snapshot = 0
@@ -325,7 +314,13 @@ if __name__ == '__main__':
     for doc in c.documents(limit=10):
         print ("ts = ", doc.ts)
 
-    t = c.topics(ts_min=ts_min, ts_max=ts_min + 86400000 * 30 - 1, offset=ts_min)
+    ranges = [
+        (ts_min + 86400000 * 0, ts_min + 86400000 * 1 - 1),
+        (ts_min + 86400000 * 1, ts_min + 86400000 * 2 - 1),
+        (ts_min + 86400000 * 2, ts_min + 86400000 * 3 - 1),
+    ]
+
+    t = c.topics(ranges)
 
     print ("topics = ", t.num_topics)
     print ("snapshots = ", t.num_snapshots)
