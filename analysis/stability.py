@@ -113,11 +113,11 @@ if __name__ == "__main__":
             assert data_ts_min <= data_ts_max
 
             ts_min = data_ts_min
-            while ts_min < data_ts_max:
-                ts_max = min(next_func(ts_min, mul), data_ts_max)
-                assert ts_max > ts_min
+            while ts_min <= data_ts_max:
+                ts_max = min(next_func(ts_min, mul) - 1, data_ts_max)
+                assert ts_max >= ts_min
                 yield (ts_min, ts_max)
-                ts_min = ts_max
+                ts_min = ts_max + 1
 
         return _ranges
 
