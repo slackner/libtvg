@@ -1038,6 +1038,14 @@ class Vector(object):
         indices, weights = self.entries()
         return zip(indices, weights)
 
+    def __iter__(self):
+        """ Iterate over indices of a vector. """
+        return self.keys()
+
+    def tolist(self):
+        """ Return list of indices of a vector. """
+        return list(self.keys())
+
     @property
     @cacheable
     def num_entries(self):
@@ -1518,6 +1526,10 @@ class Graph(object):
         for i, w in zip(indices, weights):
             yield (tuple(i), w)
 
+    def __iter__(self):
+        """ Iterate over indices of a graph. """
+        return self.keys()
+
     def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False):
         """
         Return indices and/or weights of the top edges.
@@ -1560,13 +1572,12 @@ class Graph(object):
     @cacheable
     def nodes(self):
         """
-        Return a list of all nodes. A node is considered present, when it is connected
-        to at least one other node (either as a source or target).
+        Return nodes and their frequencies. A node is considered present, when it is
+        connected to at least one other node (either as a source or target). For MongoDB
+        graphs, a node is present when it appears at least once in the occurrence list
+        (even if it doesn't co-occur with any other node).
         """
-
-        nodes = Vector(obj=lib.graph_get_nodes(self._obj))
-        indices, _ = nodes.entries(ret_weights=False)
-        return indices
+        return Vector(obj=lib.graph_get_nodes(self._obj))
 
     @property
     @cacheable
@@ -2873,6 +2884,10 @@ if __name__ == '__main__':
             self.assertEqual(list(v.values()), [1.0, 2.0, 3.0])
             self.assertEqual(list(v.items()), [(0, 1.0), (1, 2.0), (2, 3.0)])
 
+            self.assertEqual(list(v), [0, 1, 2])
+            for entry1, entry2 in zip(v, [0, 1, 2]):
+                self.assertEqual(entry1, entry2)
+
             indices, _ = v.entries(ret_weights=False)
             self.assertEqual(indices.tolist(), [0, 1, 2])
 
@@ -3376,11 +3391,16 @@ if __name__ == '__main__':
             self.assertEqual(g.num_edges, 3)
             self.assertEqual(len(g), 3)
             self.assertEqual(g.nodes().tolist(), [0, 1, 2])
+            self.assertEqual(g.nodes().as_dict(), {0: 2.0, 1: 2.0, 2: 2.0})
             self.assertEqual(g.num_nodes, 3)
 
             self.assertEqual(list(g.keys()), [(2, 0), (0, 1), (1, 2)])
             self.assertEqual(list(g.values()), [3.0, 1.0, 2.0])
             self.assertEqual(list(g.items()), [((2, 0), 3.0), ((0, 1), 1.0), ((1, 2), 2.0)])
+
+            self.assertEqual(list(g), [(2, 0), (0, 1), (1, 2)])
+            for edge1, edge2 in zip(g, [(2, 0), (0, 1), (1, 2)]):
+                self.assertEqual(edge1, edge2)
 
             indices, _ = g.edges(ret_weights=False)
             self.assertEqual(indices.tolist(), [[2, 0], [0, 1], [1, 2]])
@@ -3450,6 +3470,7 @@ if __name__ == '__main__':
             self.assertEqual(g.num_edges, 0)
             self.assertEqual(len(g), 0)
             self.assertEqual(g.nodes().tolist(), [])
+            self.assertEqual(g.nodes().as_dict(), {})
             self.assertEqual(g.num_nodes, 0)
 
             g.set_edges(set())
@@ -3464,6 +3485,7 @@ if __name__ == '__main__':
             self.assertEqual(g.num_edges, 0)
             self.assertEqual(len(g), 0)
             self.assertEqual(g.nodes().tolist(), [])
+            self.assertEqual(g.nodes().as_dict(), {})
             self.assertEqual(g.num_nodes, 0)
 
             for i in range(1000):
@@ -3491,6 +3513,7 @@ if __name__ == '__main__':
             self.assertEqual(weights.tolist(), [2.0, 1.0])
             self.assertEqual(g.num_edges, 2)
             self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 3.0, 2: 1.0})
             self.assertEqual(g.num_nodes, 2)
             del g
 
@@ -3506,6 +3529,7 @@ if __name__ == '__main__':
             self.assertEqual(weights.tolist(), [2.0, 1.0])
             self.assertEqual(g.num_edges, 2)
             self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 3.0, 2: 1.0})
             self.assertEqual(g.num_nodes, 2)
             del g
 
@@ -5468,19 +5492,8 @@ if __name__ == '__main__':
                 occurrences.append({'sen': i, 'ent': 1})
             g = self.load_from_occurrences(occurrences)
             self.assertEqual(g.num_edges, 0)
-
-        def test_max_distance(self):
-            for i in range(10):
-                occurrences = [{'sen': 1,     'ent': 1},
-                               {'sen': 1 + i, 'ent': 2},
-                               {              'ent': 1}, # no sen
-                               {'sen': 1              }] # no ent
-                g = self.load_from_occurrences(occurrences)
-                if i <= 5:
-                    self.assertEqual(g.num_edges, 1)
-                    self.assertTrue(abs(g[1, 2]/math.exp(-i) - 1.0) < 1e-7)
-                else:
-                    self.assertEqual(g.num_edges, 0)
+            self.assertEqual(g.nodes().tolist(), [1])
+            self.assertEqual(g.nodes().as_dict(), {1: 20})
 
         def test_weight_sum(self):
             for i in range(10):
@@ -5494,6 +5507,41 @@ if __name__ == '__main__':
                     self.assertTrue(abs(g[1, 2]/math.exp(-i) - 1.0) < 1e-7)
                 else:
                     self.assertEqual(g.num_edges, 0)
+                self.assertEqual(g.nodes().tolist(), [1, 2])
+                self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
+
+                g = g.duplicate()
+                if i <= 5:
+                    self.assertEqual(g.num_edges, 1)
+                else:
+                    self.assertEqual(g.num_edges, 0)
+                self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
+
+                d = g.all_distances_graph()
+                c = g.connected_components()
+                if i <= 5:
+                    self.assertEqual(d.as_dict(), {(2, 1): 1.0, (1, 2): 1.0})
+                    self.assertEqual(c.as_dict(), {1: 0.0, 2: 0.0})
+                else:
+                    self.assertEqual(d.as_dict(), {})
+                    self.assertEqual(c.as_dict(), {1: 0.0, 2: 1.0})
+
+                g.del_small()
+                if i <= 5:
+                    self.assertEqual(g.num_edges, 1)
+                    self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
+                else:
+                    self.assertEqual(g.num_edges, 0)
+                    self.assertEqual(g.nodes().as_dict(), {})
+
+                d = g.all_distances_graph()
+                c = g.connected_components()
+                if i <= 5:
+                    self.assertEqual(d.as_dict(), {(2, 1): 1.0, (1, 2): 1.0})
+                    self.assertEqual(c.as_dict(), {1: 0.0, 2: 0.0})
+                else:
+                    self.assertEqual(d.as_dict(), {})
+                    self.assertEqual(c.as_dict(), {})
 
         def test_load(self):
             future = mockupdb.go(TVG.load, self.db, primary_key="dummy")
@@ -5523,6 +5571,8 @@ if __name__ == '__main__':
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g.id, 10 + i)
                 self.assertEqual(g[1, 2 + i], 1.0)
+                self.assertEqual(g.nodes().tolist(), [1, 2 + i])
+                self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2 + i: 1.0})
             del tvg
 
         def test_sync(self):
@@ -5557,6 +5607,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546300800000)
             self.assertEqual(g.id, 10)
             self.assertEqual(g[1, 2], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
 
             g = g.next
             self.assertEqual(g.revision, 0)
@@ -5564,6 +5616,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g.id, 11)
             self.assertEqual(g[1, 3], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 3])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 3: 1.0})
 
             future = mockupdb.go(getattr, g, 'next')
 
@@ -5592,6 +5646,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g.id, 12)
             self.assertEqual(g[1, 4], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 4])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 4: 1.0})
 
             g = g.next
             self.assertEqual(g.revision, 0)
@@ -5599,6 +5655,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546560000000)
             self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 5])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 5: 1.0})
 
             future = mockupdb.go(tvg.lookup_le, 1546732800000)
 
@@ -5626,6 +5684,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546732800000)
             self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 7])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 7: 1.0})
 
             g = g.prev
             self.assertEqual(g.revision, 0)
@@ -5633,6 +5693,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546646400000)
             self.assertEqual(g.id, 14)
             self.assertEqual(g[1, 6], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 6])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 6: 1.0})
 
             future = mockupdb.go(getattr, g, 'prev')
 
@@ -5653,6 +5715,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546560000000)
             self.assertEqual(g.id, 13)
             self.assertEqual(g[1, 5], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 5])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 5: 1.0})
 
             g = tvg.lookup_ge(1546732800000)
             self.assertEqual(g.revision, 0)
@@ -5660,6 +5724,8 @@ if __name__ == '__main__':
             self.assertEqual(g.ts, 1546732800000)
             self.assertEqual(g.id, 15)
             self.assertEqual(g[1, 7], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 7])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 7: 1.0})
 
             future = mockupdb.go(getattr, g, 'next')
 
@@ -5682,6 +5748,8 @@ if __name__ == '__main__':
                 self.assertEqual(g.ts, 1546300800000 + i * 86400000)
                 self.assertEqual(g.id, 10 + i)
                 self.assertEqual(g[1, 2 + i], 1.0)
+                self.assertEqual(g.nodes().tolist(), [1, 2 + i])
+                self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2 + i: 1.0})
 
             tvg.disable_mongodb_sync()
             del tvg
@@ -5714,12 +5782,16 @@ if __name__ == '__main__':
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g[1, 3], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 3])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 3: 1.0})
 
             g = g.prev
             self.assertEqual(g.revision, 0)
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_PREV | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546300800000)
             self.assertEqual(g[1, 2], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
 
             future = mockupdb.go(tvg.lookup_le)
 
@@ -5744,12 +5816,16 @@ if __name__ == '__main__':
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g[1, 4], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 4])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 4: 1.0})
 
             g2 = g.prev
             self.assertEqual(g2.revision, 0)
             self.assertEqual(g2.flags, TVG_FLAGS_READONLY)
             self.assertEqual(g2.ts, 1546387200000)
             self.assertEqual(g2[1, 3], 1.0)
+            self.assertEqual(g2.nodes().tolist(), [1, 3])
+            self.assertEqual(g2.nodes().as_dict(), {1: 1.0, 3: 1.0})
 
             future = mockupdb.go(getattr, g, 'next')
 
@@ -5770,6 +5846,8 @@ if __name__ == '__main__':
             self.assertEqual(g.flags, TVG_FLAGS_LOAD_NEXT | TVG_FLAGS_READONLY)
             self.assertEqual(g.ts, 1546473600000)
             self.assertEqual(g[1, 4], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 4])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 4: 1.0})
 
             tvg.disable_mongodb_sync()
             del tvg
@@ -5813,6 +5891,8 @@ if __name__ == '__main__':
                                         '123456781234567812345679',
                                         '12345678123456781234567a'][i])
                 self.assertEqual(g[1, 2 + i], 1.0)
+                self.assertEqual(g.nodes().tolist(), [1, 2 + i])
+                self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2 + i: 1.0})
             del tvg
 
             future = mockupdb.go(Graph.load_from_mongodb, self.db, '112233445566778899aabbcc')
@@ -5845,6 +5925,8 @@ if __name__ == '__main__':
 
             g = self.load_from_occurrences(occurrences)
             self.assertFalse(g.has_edge((1, 2)))
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
             del g
 
             self.db = self.MongoDB(self.s.uri, "database", "col_articles",
@@ -5854,6 +5936,8 @@ if __name__ == '__main__':
             g = self.load_from_occurrences(occurrences)
             self.assertTrue(g.has_edge((1, 2)))
             self.assertEqual(g[1, 2], 0.0)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
             del g
 
         def test_sum_weights(self):
@@ -5867,10 +5951,14 @@ if __name__ == '__main__':
 
             g = self.load_from_occurrences(occurrences1)
             self.assertTrue(abs(g[1, 2]/(math.exp(-1.0) + np.exp(-2.0)) - 1.0) < 1e-7)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
-            g = self.load_from_occurrences(occurrences1)
+            g = self.load_from_occurrences(occurrences2)
             self.assertTrue(abs(g[1, 2]/(math.exp(-1.0) + np.exp(-2.0)) - 1.0) < 1e-7)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
             self.db = self.MongoDB(self.s.uri, "database", "col_articles",
@@ -5879,10 +5967,14 @@ if __name__ == '__main__':
 
             g = self.load_from_occurrences(occurrences1)
             self.assertTrue(abs(g[1, 2]/math.exp(-1.0) - 1.0) < 1e-7)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
             g = self.load_from_occurrences(occurrences2)
             self.assertTrue(abs(g[1, 2]/math.exp(-1.0) - 1.0) < 1e-7)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
             self.db = self.MongoDB(self.s.uri, "database", "col_articles",
@@ -5891,10 +5983,14 @@ if __name__ == '__main__':
 
             g = self.load_from_occurrences(occurrences1)
             self.assertEqual(g[1, 2], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
             g = self.load_from_occurrences(occurrences2)
             self.assertEqual(g[1, 2], 1.0)
+            self.assertEqual(g.nodes().tolist(), [1, 2])
+            self.assertEqual(g.nodes().as_dict(), {1: 2.0, 2: 1.0})
             del g
 
         def test_readonly(self):
@@ -5918,6 +6014,7 @@ if __name__ == '__main__':
             g = tvg.lookup_ge()
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g.readonly, True)
+            self.assertEqual(g.nodes().readonly, True)
 
             with self.assertRaises(RuntimeError):
                 g.clear()
@@ -5934,6 +6031,7 @@ if __name__ == '__main__':
 
             g.unlink()
             self.assertEqual(g.readonly, False)
+            self.assertEqual(g.nodes().readonly, True)
 
             g.clear()
             g[0, 0] = 1.0
@@ -5968,6 +6066,8 @@ if __name__ == '__main__':
             g = future()
             self.assertEqual(g.ts, 1546387200000)
             self.assertEqual(g.readonly, True)
+            self.assertEqual(g.nodes().readonly, True)
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
 
             with self.assertRaises(RuntimeError):
                 g.clear()
@@ -5984,6 +6084,8 @@ if __name__ == '__main__':
 
             g.unlink()
             self.assertEqual(g.readonly, False)
+            self.assertEqual(g.nodes().readonly, True)
+            self.assertEqual(g.nodes().as_dict(), {1: 1.0, 2: 1.0})
 
             g.clear()
             g[0, 0] = 1.0
@@ -5991,6 +6093,11 @@ if __name__ == '__main__':
             del g[0, 0]
             g.mul_const(2.0)
             g.del_small()
+
+            g.add_edge((2, 3), 1.0)
+            self.assertEqual(g.readonly, False)
+            self.assertEqual(g.nodes().readonly, True)
+            self.assertEqual(g.nodes().as_dict(), {2: 1.0, 3: 1.0})
 
             del tvg
             del g

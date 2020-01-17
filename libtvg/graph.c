@@ -59,6 +59,7 @@ struct graph *alloc_graph(uint32_t flags)
     graph->revision    = 0;
     graph->ts          = 0.0;
     objectid_init(&graph->objectid);
+    graph->nodes       = NULL;
     graph->query       = NULL;
     graph->tvg         = NULL;
     graph->cache       = 0;
@@ -96,6 +97,7 @@ void free_graph(struct graph *graph)
     assert(!graph->tvg);
     assert(!graph->cache);
 
+    free_vector(graph->nodes);
     free_query(graph->query);
     free(graph->buckets);
     free(graph);
@@ -141,9 +143,9 @@ void unlink_graph(struct graph *graph)
 
 struct graph *graph_duplicate(struct graph *source)
 {
-    struct graph *graph;
     struct bucket2 *buckets;
     uint64_t i, num_buckets;
+    struct graph *graph;
 
     num_buckets = 1ULL << (source->bits_source + source->bits_target);
     if (!(buckets = malloc(sizeof(*buckets) * num_buckets)))
@@ -176,6 +178,7 @@ struct graph *graph_duplicate(struct graph *source)
     graph->revision    = source->revision;
     graph->ts          = source->ts;
     graph->objectid    = source->objectid;
+    graph->nodes       = grab_vector(source->nodes);  /* readonly */
     graph->query       = NULL;
     graph->tvg         = NULL;
     graph->cache       = 0;
@@ -229,6 +232,9 @@ uint64_t graph_memory_usage(struct graph *graph)
         bucket = &graph->buckets[i];
         size += sizeof(bucket->entries) * bucket->max_entries;
     }
+
+    if (graph->nodes)
+        size += vector_memory_usage(graph->nodes);
 
     return size;
 }
@@ -620,23 +626,35 @@ struct vector *graph_get_nodes(struct graph *graph)
     struct vector *nodes;
     struct entry2 *edge;
 
+    /* For graphs loaded from a MongoDB, return the occurrence
+     * vector instead of computing the nodes dynamically. */
+    if (graph->nodes)
+    {
+        if (!graph->revision)
+            return grab_vector(graph->nodes);
+
+        free_vector(graph->nodes);
+        graph->nodes = NULL;
+    }
+
     if (!(nodes = alloc_vector(0)))
         return NULL;
 
     GRAPH_FOR_EACH_EDGE(graph, edge)
     {
-        if (!vector_set_entry(nodes, edge->source, 1))
+        if (!vector_add_entry(nodes, edge->source, 1))
         {
             free_vector(nodes);
             return NULL;
         }
-        if (!vector_set_entry(nodes, edge->target, 1))
+        if (!vector_add_entry(nodes, edge->target, 1))
         {
             free_vector(nodes);
             return NULL;
         }
     }
 
+    nodes->flags |= TVG_FLAGS_READONLY;  /* block changes */
     return nodes;
 }
 

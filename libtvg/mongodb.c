@@ -509,6 +509,12 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
         goto error;
     }
 
+    if (!(graph->nodes = alloc_vector(0)))
+    {
+        fprintf(stderr, "%s: Out of memory!\n", __func__);
+        goto error;
+    }
+
     if (!(queue = alloc_queue(sizeof(struct occurrence))))
     {
         fprintf(stderr, "%s: Out of memory!\n", __func__);
@@ -526,6 +532,12 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
         {
             fprintf(stderr, "%s: %s field not found or not an entity\n", __func__, config->entity_ent);
             continue;
+        }
+
+        if (!vector_add_entry(graph->nodes, new_entry.ent, 1.0))
+        {
+            fprintf(stderr, "%s: Out of memory!\n", __func__);
+            goto error;
         }
 
         while ((entry = (const struct occurrence *)queue_ptr(queue, 0)))
@@ -576,6 +588,9 @@ struct graph *mongodb_load_graph(struct tvg *tvg, struct mongodb *mongodb, struc
     }
 
     /* Success if we didn't encounter any error. */
+    graph->revision = 0;
+    graph->nodes->flags |= TVG_FLAGS_READONLY;  /* block changes */
+    graph->nodes->revision = 0;
     ret = 1;
 
 error:
@@ -583,7 +598,6 @@ error:
     mongoc_collection_destroy(entities);
     mongodb_push_client(mongodb, client);
 
-    if (graph) graph->revision = 0;
     if (!ret)
     {
         free_graph(graph);

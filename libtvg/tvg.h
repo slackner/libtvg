@@ -114,6 +114,8 @@ struct graph
     struct objectid objectid;
 
     /* private: */
+    struct vector *nodes;    /* pre-computed node vector, readonly */
+
     struct query *query;
 
     struct tvg *tvg;         /* NULL for disconnected graphs */
