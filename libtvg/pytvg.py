@@ -2056,7 +2056,7 @@ class GraphIter(object):
         self._graph = graph
 
     def __next__(self):
-        if not self._graph:
+        if self._graph is None:
             raise StopIteration
 
         result = self._graph
@@ -2071,7 +2071,7 @@ class GraphIterReversed(object):
         return self
 
     def __next__(self):
-        if not self._graph:
+        if self._graph is None:
             raise StopIteration
 
         result = self._graph
