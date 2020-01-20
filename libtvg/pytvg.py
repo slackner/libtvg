@@ -2665,6 +2665,23 @@ class TVG(object):
         obj = lib.tvg_lookup_graph_near(self._obj, ts)
         return Graph(obj=obj) if obj else None
 
+    def documents(self, ts_min=0, ts_max=0xffffffffffffffff, limit=None):
+        """ Iterates through all graphs in the given time frame. """
+
+        graph = self.lookup_ge(ts_min)
+        count = 0
+
+        while graph is not None:
+            if graph.ts > ts_max:
+                break
+            if limit is not None and count >= limit:
+                break
+
+            yield graph
+
+            graph = graph.next
+            count += 1
+
     def compress(self, step, offset=0):
         """ Compress the graph by aggregating timestamps differing by at most `step`. """
         if step > 0 and np.isinf(step):
@@ -4094,6 +4111,24 @@ if __name__ == '__main__':
             self.assertEqual(g, g1)
             g = tvg.lookup_near(151)
             self.assertEqual(g, g2)
+
+            graphs = list(tvg.documents())
+            self.assertEqual(graphs, [g1, g2, g3])
+            graphs = list(tvg.documents(limit=2))
+            self.assertEqual(graphs, [g1, g2])
+            graphs = list(tvg.documents(limit=1))
+            self.assertEqual(graphs, [g1])
+
+            graphs = list(tvg.documents(50, 150))
+            self.assertEqual(graphs, [g1])
+            graphs = list(tvg.documents(50, 250))
+            self.assertEqual(graphs, [g1, g2])
+            graphs = list(tvg.documents(50, 350))
+            self.assertEqual(graphs, [g1, g2, g3])
+            graphs = list(tvg.documents(150, 350))
+            self.assertEqual(graphs, [g2, g3])
+            graphs = list(tvg.documents(250, 350))
+            self.assertEqual(graphs, [g3])
 
             # For backwards compatibility, we still allow passing float values.
 
