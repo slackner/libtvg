@@ -201,6 +201,12 @@ struct query_sum_edges
     float       eps;
 };
 
+struct query_sum_nodes
+{
+    struct query base;
+    struct vector *result;
+};
+
 struct query_sum_edges_exp
 {
     struct query base;
@@ -1706,6 +1712,7 @@ struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(str
 /* Query functions */
 
 struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, float eps);
+struct vector *tvg_sum_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
                                        float weight, float log_beta, float eps);
 struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);

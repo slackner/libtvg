@@ -442,6 +442,9 @@ lib.tvg_compress.restype = c_int
 lib.tvg_sum_edges.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float)
 lib.tvg_sum_edges.restype = c_graph_p
 
+lib.tvg_sum_nodes.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_sum_nodes.restype = c_vector_p
+
 lib.tvg_sum_edges_exp.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float, c_float, c_float)
 lib.tvg_sum_edges_exp.restype = c_graph_p
 
@@ -2468,6 +2471,22 @@ class TVG(object):
             eps = 0.0
 
         return Graph(obj=lib.tvg_sum_edges(self._obj, ts_min, ts_max, eps))
+
+    def sum_nodes(self, ts_min, ts_max):
+        """
+        Add node frequencies in a given timeframe [ts_min, ts_max].
+
+        # Arguments
+        ts_min: Left boundary of the interval.
+        ts_max: Right boundary of the interval.
+        """
+
+        if ts_min < 0:
+            ts_min = 0
+        if ts_max > 0xffffffffffffffff:
+            ts_max = 0xffffffffffffffff
+
+        return Vector(obj=lib.tvg_sum_nodes(self._obj, ts_min, ts_max))
 
     def sum_edges_exp(self, ts_min, ts_max, beta=None, log_beta=None, weight=1.0, eps=None):
         """
@@ -4508,6 +4527,49 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_sum_nodes(self):
+            tvg = TVG(positive=True)
+            tvg.verbosity = True
+            self.assertEqual(tvg.verbosity, True)
+
+            g = Graph()
+            g[0, 0] = 1.0
+            tvg.link_graph(g, 100)
+
+            g = Graph()
+            g[0, 1] = 2.0
+            tvg.link_graph(g, 200)
+
+            g = Graph()
+            g[0, 2] = 3.0
+            tvg.link_graph(g, 300)
+
+            with self.assertRaises(MemoryError):
+                tvg.sum_nodes(1, 0)
+
+            v = tvg.sum_nodes(51, 150)
+            self.assertEqual(v.readonly, True)
+            self.assertEqual(v[0], 2.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 0.0)
+
+            v = tvg.sum_nodes(151, 250)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 0.0)
+
+            v = tvg.sum_nodes(251, 350)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 1.0)
+
+            v = tvg.sum_nodes(51, 350)
+            self.assertEqual(v[0], 4.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 1.0)
+
+            del tvg
+
         def test_sum_edges_exp_precision(self):
             tvg = TVG(positive=True)
             beta = 0.3
@@ -6136,6 +6198,58 @@ if __name__ == '__main__':
 
             del tvg
             del g
+
+        def test_sum_nodes(self):
+            tvg = TVG(positive=True)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 1}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 100)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 2},
+                           {'sen': 0, 'ent': 2}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 200)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 3},
+                           {'sen': 0, 'ent': 3},
+                           {'sen': 0, 'ent': 3}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 300)
+
+            with self.assertRaises(MemoryError):
+                tvg.sum_nodes(1, 0)
+
+            v = tvg.sum_nodes(51, 150)
+            self.assertEqual(v.readonly, True)
+            self.assertEqual(v[0], 2.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 0.0)
+            self.assertEqual(v[3], 0.0)
+
+            v = tvg.sum_nodes(151, 250)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 2.0)
+            self.assertEqual(v[3], 0.0)
+
+            v = tvg.sum_nodes(251, 350)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 0.0)
+            self.assertEqual(v[3], 3.0)
+
+            v = tvg.sum_nodes(51, 350)
+            self.assertEqual(v[0], 4.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 2.0)
+            self.assertEqual(v[3], 3.0)
+
+            del tvg
 
     # Run the unit tests
     unittest.main()

@@ -369,6 +369,101 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
     return (struct graph *)query_compute(tvg, &query->base);
 }
 
+/* query_sum_nodes functions */
+
+const struct query_ops query_sum_nodes_ops;
+
+static inline struct query_sum_nodes *QUERY_SUM_NODES(struct query *query_base)
+{
+    assert(query_base->ops == &query_sum_nodes_ops);
+    return CONTAINING_RECORD(query_base, struct query_sum_nodes, base);
+}
+
+static void *query_sum_nodes_grab(struct query *query_base)
+{
+    struct query_sum_nodes *query = QUERY_SUM_NODES(query_base);
+    return grab_vector(query->result);
+}
+
+static void query_sum_nodes_free(struct query *query_base)
+{
+    struct query_sum_nodes *query = QUERY_SUM_NODES(query_base);
+    free_vector(query->result);
+}
+
+static int query_sum_nodes_compatible(struct query *query_base, struct query *other_base)
+{
+    return (other_base->ops == &query_sum_nodes_ops);
+}
+
+static int query_sum_nodes_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
+{
+    struct query_sum_nodes *query = QUERY_SUM_NODES(query_base);
+    struct vector *nodes;
+    int ret;
+
+    if (!(nodes = graph_get_nodes(graph)))
+        return 0;
+
+    ret = vector_add_vector(query->result, nodes, weight);
+    free_vector(nodes);
+    return ret;
+}
+
+static int query_sum_nodes_add_query(struct query *query_base, struct query *other_base, int64_t weight)
+{
+    struct query_sum_nodes *query = QUERY_SUM_NODES(query_base);
+    struct query_sum_nodes *other = QUERY_SUM_NODES(other_base);
+    return vector_add_vector(query->result, other->result, weight);
+}
+
+static int query_sum_nodes_finalize(struct query *query_base)
+{
+    struct query_sum_nodes *query = QUERY_SUM_NODES(query_base);
+
+    if (!vector_del_small(query->result, 0.5))
+        return 0;
+
+    query->result->flags |= TVG_FLAGS_READONLY;  /* block changes */
+    query->base.cache = sizeof(*query) + vector_memory_usage(query->result);
+    return 1;
+}
+
+const struct query_ops query_sum_nodes_ops =
+{
+    query_sum_nodes_grab,
+    query_sum_nodes_free,
+
+    query_sum_nodes_compatible,
+    query_sum_nodes_add_graph,
+    query_sum_nodes_add_query,
+    query_sum_nodes_finalize,
+};
+
+struct vector *tvg_sum_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
+{
+    struct query_sum_nodes *query;
+    uint32_t vector_flags = TVG_FLAGS_POSITIVE;
+
+    if (ts_max < ts_min)
+        return NULL;
+
+    if (!(query = malloc(sizeof(*query))))
+        return NULL;
+
+    query_init(&query->base, &query_sum_nodes_ops, ts_min, ts_max);
+
+    if (!(query->result = alloc_vector(vector_flags)))
+    {
+        free(query);
+        return NULL;
+    }
+
+    query->result->query = &query->base;
+
+    return (struct vector *)query_compute(tvg, &query->base);
+}
+
 /* query_sum_edges_exp functions */
 
 const struct query_ops query_sum_edges_exp_ops;
