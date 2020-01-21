@@ -360,7 +360,6 @@ struct graph *tvg_sum_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, f
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
     if (!(query->result = alloc_graph(graph_flags)))
     {
-        free_graph(query->result);
         free(query);
         return NULL;
     }
@@ -478,7 +477,6 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
     graph_flags = tvg->flags & (TVG_FLAGS_POSITIVE | TVG_FLAGS_DIRECTED);
     if (!(query->result = alloc_graph(graph_flags)))
     {
-        free_graph(query->result);
         free(query);
         return NULL;
     }
@@ -570,7 +568,6 @@ struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
     if (!(query->result = alloc_graph(graph_flags)))
     {
-        free_graph(query->result);
         free(query);
         return NULL;
     }
@@ -658,7 +655,6 @@ struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max
 
     if (!(query->result = alloc_vector(vector_flags)))
     {
-        free_vector(query->result);
         free(query);
         return NULL;
     }
