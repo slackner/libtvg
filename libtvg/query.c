@@ -46,38 +46,18 @@ static int graph_add_count_edges(struct graph *out, struct graph *graph, float w
     return 1;
 }
 
-static int vector_add_count_nodes(struct vector *out, struct graph *graph, float weight)
+static int vector_add_count_nodes(struct vector *out, struct vector *nodes, float weight)
 {
-    struct vector *visited;
-    struct entry2 *edge;
-    int ret = 0;
+    struct entry1 *entry;
 
-    if (!(visited = alloc_vector(0)))
-        return 0;
-
-    GRAPH_FOR_EACH_EDGE(graph, edge)
+    VECTOR_FOR_EACH_ENTRY(nodes, entry)
     {
-        if (!vector_has_entry(visited, edge->source))
-        {
-            if (!vector_add_entry(out, edge->source, weight))
-                goto error;
-            if (!vector_set_entry(visited, edge->source, 1))
-                goto error;
-        }
-        if (!vector_has_entry(visited, edge->target))
-        {
-            if (!vector_add_entry(out, edge->target, weight))
-                goto error;
-            if (!vector_set_entry(visited, edge->target, 1))
-                goto error;
-        }
+        if (!vector_add_entry(out, entry->index, weight))
+            return 0;
     }
 
-    ret = 1;
-
-error:
-    free_vector(visited);
-    return ret;
+    /* vector_add_entry already updated the revision */
+    return 1;
 }
 
 static void query_init(struct query *query, const struct query_ops *ops,
@@ -702,7 +682,15 @@ static int query_count_nodes_compatible(struct query *query_base, struct query *
 static int query_count_nodes_add_graph(struct query *query_base, struct graph *graph, int64_t weight)
 {
     struct query_count_nodes *query = QUERY_COUNT_NODES(query_base);
-    return vector_add_count_nodes(query->result, graph, weight);
+    struct vector *nodes;
+    int ret;
+
+    if (!(nodes = graph_get_nodes(graph)))
+        return 0;
+
+    ret = vector_add_count_nodes(query->result, nodes, weight);
+    free_vector(nodes);
+    return ret;
 }
 
 static int query_count_nodes_add_query(struct query *query_base, struct query *other_base, int64_t weight)

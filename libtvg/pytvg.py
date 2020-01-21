@@ -6251,6 +6251,58 @@ if __name__ == '__main__':
 
             del tvg
 
+        def test_count_nodes(self):
+            tvg = TVG(positive=True)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 1}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 100)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 2},
+                           {'sen': 0, 'ent': 2}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 200)
+
+            occurrences = [{'sen': 0, 'ent': 0},
+                           {'sen': 0, 'ent': 3},
+                           {'sen': 0, 'ent': 3},
+                           {'sen': 0, 'ent': 3}]
+            g = self.load_from_occurrences(occurrences)
+            tvg.link_graph(g, 300)
+
+            with self.assertRaises(MemoryError):
+                tvg.count_nodes(1, 0)
+
+            v = tvg.count_nodes(51, 150)
+            self.assertEqual(v.readonly, True)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 0.0)
+            self.assertEqual(v[3], 0.0)
+
+            v = tvg.count_nodes(151, 250)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 1.0)
+            self.assertEqual(v[3], 0.0)
+
+            v = tvg.count_nodes(251, 350)
+            self.assertEqual(v[0], 1.0)
+            self.assertEqual(v[1], 0.0)
+            self.assertEqual(v[2], 0.0)
+            self.assertEqual(v[3], 1.0)
+
+            v = tvg.count_nodes(51, 350)
+            self.assertEqual(v[0], 3.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 1.0)
+            self.assertEqual(v[3], 1.0)
+
+            del tvg
+
     # Run the unit tests
     unittest.main()
     gc.collect()
