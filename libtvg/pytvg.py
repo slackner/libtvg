@@ -95,6 +95,10 @@ class c_bfs_entry(Structure):
                 ("edge_from", c_uint64),
                 ("edge_to",   c_uint64)]
 
+class c_snapshot_entry(Structure):
+    _fields_ = [("ts_min",   c_uint64),
+                ("ts_max",   c_uint64)]
+
 # Hacky: we need optional ndpointer parameters at some places.
 def or_null(t):
     class wrap:
@@ -111,8 +115,10 @@ c_node_p         = POINTER(c_node)
 c_tvg_p          = POINTER(c_tvg)
 c_mongodb_config_p = POINTER(c_mongodb_config)
 c_mongodb_p      = POINTER(c_mongodb)
+c_snapshot_entry_p = POINTER(c_snapshot_entry)
 c_bfs_entry_p    = POINTER(c_bfs_entry)
 c_bfs_callback_p = CFUNCTYPE(c_int, c_graph_p, c_bfs_entry_p, c_void_p)
+c_snapshot_callback_p = CFUNCTYPE(c_int, c_uint64, c_snapshot_entry_p, c_void_p)
 
 # Before proceeding with any other function calls, first make sure that the library
 # is compatible. This is especially important since there is no stable API yet.
@@ -457,7 +463,7 @@ lib.tvg_count_nodes.restype = c_vector_p
 lib.tvg_count_graphs.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_count_graphs.restype = c_uint64
 
-lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64, c_uint64, c_uint64)
+lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64, or_null(c_snapshot_callback_p), c_void_p)
 lib.tvg_topics.restype = c_graph_p
 
 # Metric functions
@@ -2592,7 +2598,24 @@ class TVG(object):
         if ts_max > 0xffffffffffffffff:
             ts_max = 0xffffffffffffffff
 
-        return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max, step, offset))
+        if step != 0:
+            offset = offset - (offset // step) * step
+
+            def wrapper(ts, entry, userdata):
+                if ts < offset:
+                    entry.contents.ts_min = 0
+                    entry.contents.ts_max = offset - 1
+                else:
+                    ts -= (ts - offset) % step
+                    entry.contents.ts_min = ts
+                    entry.contents.ts_max = ts + step - 1
+                return 1
+
+            callback = c_snapshot_callback_p(wrapper)
+        else:
+            callback = None
+
+        return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max, callback, None))
 
     def sample_graphs(self, ts_min, ts_max, sample_width, sample_steps=9,
                       method=None, *args, **kwargs):
@@ -2784,6 +2807,7 @@ if __name__ == '__main__':
     import mockupdb
     import tempfile
     import gc
+    import re
 
     # Ancient versions of mockupdb ship their own bson library.
     try:
@@ -4742,6 +4766,7 @@ if __name__ == '__main__':
 
         def test_topics(self):
             tvg = TVG(positive=True)
+            tvg.verbosity = True
 
             g = Graph()
             g[0, 1] = 1.0
@@ -4815,8 +4840,12 @@ if __name__ == '__main__':
             # \delta T = 1.0
             # |T(e)| = 1.0
 
-            g = tvg.topics(51, 150, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(51, 150, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 1.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["51, 150"])
 
             # |D(0) \cup D(1)| = 2.0
             # |D((0, 1))| = 1.0
@@ -4825,8 +4854,12 @@ if __name__ == '__main__':
             # \delta T = 1.0
             # |T(e)| = 1.0
 
-            g = tvg.topics(151, 250, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(151, 250, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 3.0 / 4.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["151, 250"])
 
             # |D(0) \cup D(1)| = 3.0
             # |D((0, 1))| = 2.0
@@ -4835,8 +4868,12 @@ if __name__ == '__main__':
             # \delta T = 1.0
             # |T(e)| = 1
 
-            g = tvg.topics(251, 350, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(251, 350, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 18.0 / 23.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["251, 350"])
 
             # |D(0) \cup D(1)| = 6.0
             # |D((0, 1))| = 4.0
@@ -4845,8 +4882,12 @@ if __name__ == '__main__':
             # \delta T = 3.0
             # |T(e)| = 3.0
 
-            g = tvg.topics(51, 350, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(51, 350, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 14.0 / 17.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["51, 150", "151, 250", "251, 350"])
 
             # |D(0) \cup D(1)| = 6.0
             # |D((0, 1))| = 4.0
@@ -4855,8 +4896,12 @@ if __name__ == '__main__':
             # \delta T = 4.0
             # |T(e)| = 3.0
 
-            g = tvg.topics(0, 350, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(0, 350, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 126.0 / 167.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["0, 50", "51, 150", "151, 250", "251, 350"])
 
             # |D(0) \cup D(1)| = 6.0
             # |D((0, 1))| = 4.0
@@ -4865,8 +4910,12 @@ if __name__ == '__main__':
             # \delta T = 5.0
             # |T(e)| = 3.0
 
-            g = tvg.topics(0, 400, step=100, offset=51)
+            with CaptureStderr() as stderr:
+                g = tvg.topics(0, 400, step=100, offset=51)
             self.assertTrue(abs(g[0, 1] - 126.0 / 181.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["0, 50", "51, 150", "151, 250", "251, 350", "351, 400"])
 
             del tvg
 

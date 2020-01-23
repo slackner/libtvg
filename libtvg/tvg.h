@@ -278,6 +278,12 @@ struct bfs_entry
     uint64_t to;
 };
 
+struct snapshot_entry
+{
+    uint64_t ts_min;
+    uint64_t ts_max;
+};
+
 #define _UNIQUE_VARIABLE3(a, b) (a ## b)
 #define _UNIQUE_VARIABLE2(a, b) _UNIQUE_VARIABLE3(a, b)
 #define _UNIQUE_VARIABLE(a) _UNIQUE_VARIABLE2(a, __COUNTER__)
@@ -1718,7 +1724,8 @@ struct graph *tvg_sum_edges_exp(struct tvg *tvg, uint64_t ts_min, uint64_t ts_ma
 struct graph *tvg_count_edges(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 struct vector *tvg_count_nodes(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
 uint64_t tvg_count_graphs(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max);
-struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint64_t step, uint64_t offset);
+struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
+                         int (*callback)(uint64_t, struct snapshot_entry *, void *), void *userdata);
 
 /* Metric functions */
 

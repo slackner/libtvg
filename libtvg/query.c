@@ -835,21 +835,21 @@ uint64_t tvg_count_graphs(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max)
 
 /* query_topics functions */
 
-struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint64_t step, uint64_t offset)
+struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
+                         int (*callback)(uint64_t, struct snapshot_entry *, void *), void *userdata)
 {
-    uint64_t ts_snap_min, ts_snap_max;
     struct vector *count_nodes = NULL;
-    struct graph **snapshots = NULL;
     struct graph *count_edges = NULL;
+    struct graph *count_times = NULL;
     struct graph *sum_edges = NULL;
+    struct snapshot_entry entry;
     struct graph *result = NULL;
     uint64_t num_snapshots = 0;
     uint32_t graph_flags;
+    struct graph *counts;
     struct entry2 *edge;
     static int warned = 0;
-    uint64_t count;
     float weight;
-    uint64_t i;
 
     if (ts_max < ts_min)
         return NULL;
@@ -862,45 +862,6 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
         warned = 1;
     }
 
-    if (step)
-    {
-        offset -= (offset / step) * step;
-
-        if (ts_max < offset)
-            num_snapshots = 1;
-        else if (ts_min < offset)
-            num_snapshots = (ts_max - offset) / step + 2;
-        else
-            num_snapshots = (ts_max - offset) / step -
-                            (ts_min - offset) / step + 1;
-
-        assert(num_snapshots > 0);
-        if (!(snapshots = malloc(sizeof(*snapshots) * num_snapshots)))
-            goto error;
-
-        ts_snap_min = ts_min;
-
-        for (i = 0; i < num_snapshots; i++)
-        {
-            if (i == num_snapshots - 1)
-                ts_snap_max = ts_max;
-            else if (ts_snap_min >= offset)
-                ts_snap_max = ts_snap_min + step - 1 - ((ts_snap_min - offset) % step);
-            else
-                ts_snap_max = offset - 1;
-
-            if (!(snapshots[i] = tvg_count_edges(tvg, ts_snap_min, ts_snap_max)))
-            {
-                for (; i < num_snapshots; i++) snapshots[i] = NULL;
-                goto error;
-            }
-
-            ts_snap_min = ts_snap_max + 1;
-        }
-
-        assert(ts_snap_max == ts_max);
-    }
-
     if (!(sum_edges = tvg_sum_edges(tvg, ts_min, ts_max, 0.0)))
         goto error;
     if (!(count_edges = tvg_count_edges(tvg, ts_min, ts_max)))
@@ -911,6 +872,61 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
     /* Enforce TVG_FLAGS_POSITIVE, our update mechanism relies on it. */
     graph_flags = tvg->flags & TVG_FLAGS_DIRECTED;
     graph_flags |= TVG_FLAGS_POSITIVE;
+
+    if (callback)
+    {
+        if (!(count_times = alloc_graph(graph_flags)))
+            goto error;
+
+        while (ts_min <= ts_max)
+        {
+            entry.ts_min = ~0ULL;
+            entry.ts_max = 0;
+
+            if (!callback(ts_min, &entry, userdata))
+            {
+                fprintf(stderr, "%s: Callback failed.\n", __func__);
+                goto error;
+            }
+
+            if (entry.ts_min > ts_min || entry.ts_max < ts_min)
+            {
+                fprintf(stderr, "%s: Time %llu not within [%llu, %llu].\n", __func__,
+                                (long long unsigned int)ts_min,
+                                (long long unsigned int)entry.ts_min,
+                                (long long unsigned int)entry.ts_max);
+                goto error;
+            }
+
+            /* clamp to the time within [ts_min, ts_max] */
+            entry.ts_min = ts_min;
+            entry.ts_max = MIN(entry.ts_max, ts_max);
+
+            if (tvg->verbosity)
+            {
+                fprintf(stderr, "%s: Computing snapshot [%llu, %llu].\n", __func__,
+                        (long long unsigned int)entry.ts_min,
+                        (long long unsigned int)entry.ts_max);
+            }
+
+            if (!(counts = tvg_count_edges(tvg, entry.ts_min, entry.ts_max)))
+                goto error;
+
+            GRAPH_FOR_EACH_EDGE(counts, edge)
+            {
+                if (!graph_add_edge(count_times, edge->source, edge->target, 1.0))
+                {
+                    free_graph(counts);
+                    goto error;
+                }
+            }
+
+            free_graph(counts);
+            num_snapshots++;
+
+            ts_min = entry.ts_max + 1;
+        }
+    }
 
     if (!(result = alloc_graph(graph_flags)))
         goto error;
@@ -935,13 +951,9 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
                    vector_get_entry(count_nodes, edge->target) - edge->weight) / edge->weight;
         weight += edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
 
-        if (snapshots)
+        if (count_times)
         {
-            count = 0;
-            for (i = 0; i < num_snapshots; i++)
-                count += graph_has_edge(snapshots[i], edge->source, edge->target);
-            weight += (float)num_snapshots / count;
-
+            weight += (float)num_snapshots / graph_get_edge(count_times, edge->source, edge->target);
             weight = 3.0 / weight;
         }
         else
@@ -960,15 +972,10 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max, uint
     /* Note: No need to make the object read-only since we do not hold any references. */
 
 error:
-    if (snapshots)
-    {
-        for (i = 0; i < num_snapshots; i++)
-            free_graph(snapshots[i]);
-        free(snapshots);
-    }
     free_graph(sum_edges);
     free_graph(count_edges);
     free_vector(count_nodes);
+    free_graph(count_times);
     return result;
 }
 
