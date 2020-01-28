@@ -1710,7 +1710,8 @@ struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
 struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts);
 
-int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset);
+int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entry *, void *),
+                 void *userdata);
 
 struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(struct graph *,
                           uint64_t, void *), void *userdata);

@@ -736,18 +736,16 @@ struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts)
     return graph;
 }
 
-int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
+int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entry *, void *),
+                 void *userdata)
 {
     struct graph *graph, *next_graph;
     struct graph *prev_graph = NULL;
-    uint64_t ts;
+    struct snapshot_entry prev_entry;
     int ret;
 
     if (tvg->mongodb)
         return 0;
-
-    if (step)
-        offset -= (offset / step) * step;
 
     tvg_invalidate_queries(tvg, 0, ~0ULL);
 
@@ -755,19 +753,9 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
     {
         assert(graph->tvg == tvg);
 
-        /* Round the timestamp to the desired step size. Afterwards,
-         * sum up graphs with the same timestamp. If step is 0,
-         * reduce the full TVG to a single timestamp. */
-
-        if (!step)
-            ts = offset;
-        else if (graph->ts >= offset)
-            ts = offset + ((graph->ts - offset) / step) * step;
-        else
-            ts = 0;
-
-        if (prev_graph && ts == prev_graph->ts)
+        if (prev_graph && graph->ts <= prev_entry.ts_max)
         {
+            assert(graph->ts >= prev_entry.ts_min);
             if (!graph_add_graph(prev_graph, graph, 1.0))
             {
                 tvg_link_graph(tvg, prev_graph, prev_graph->ts);
@@ -786,10 +774,28 @@ int tvg_compress(struct tvg *tvg, uint64_t step, uint64_t offset)
             if (!ret) return 0;
         }
 
+        prev_entry.ts_min = ~0ULL;
+        prev_entry.ts_max = 0;
+
+        if (!callback(graph->ts, &prev_entry, userdata))
+        {
+            fprintf(stderr, "%s: Callback failed.\n", __func__);
+            return 0;
+        }
+
+        if (prev_entry.ts_min > graph->ts || prev_entry.ts_max < graph->ts)
+        {
+            fprintf(stderr, "%s: Time %llu not within [%llu, %llu].\n", __func__,
+                            (long long unsigned int)graph->ts,
+                            (long long unsigned int)prev_entry.ts_min,
+                            (long long unsigned int)prev_entry.ts_max);
+            return 0;
+        }
+
         prev_graph = grab_graph(graph);
         unlink_graph(graph);
 
-        prev_graph->ts = ts;
+        prev_graph->ts = prev_entry.ts_min;
         prev_graph->objectid.type = OBJECTID_NONE;
     }
 

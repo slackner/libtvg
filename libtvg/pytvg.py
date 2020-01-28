@@ -440,7 +440,7 @@ lib.tvg_lookup_graph_le.restype = c_graph_p
 lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_uint64)
 lib.tvg_lookup_graph_near.restype = c_graph_p
 
-lib.tvg_compress.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_compress.argtypes = (c_tvg_p, c_snapshot_callback_p, c_void_p)
 lib.tvg_compress.restype = c_int
 
 # Query functions
@@ -2728,7 +2728,24 @@ class TVG(object):
         """ Compress the graph by aggregating timestamps differing by at most `step`. """
         if step > 0 and np.isinf(step):
             step = 0
-        res = lib.tvg_compress(self._obj, step, offset)
+        if step != 0:
+            offset = offset - (offset // step) * step
+
+        def wrapper(ts, entry, userdata):
+            if step == 0:
+                entry.contents.ts_min = 0
+                entry.contents.ts_max = 0xffffffffffffffff
+            elif ts < offset:
+                entry.contents.ts_min = 0
+                entry.contents.ts_max = offset - 1
+            else:
+                ts -= (ts - offset) % step
+                entry.contents.ts_min = ts
+                entry.contents.ts_max = ts + step - 1
+            return 1
+
+        callback = c_snapshot_callback_p(wrapper)
+        res = lib.tvg_compress(self._obj, callback, None)
         if not res:
             raise MemoryError
 
@@ -4301,7 +4318,7 @@ if __name__ == '__main__':
                 timestamps.append(g.ts)
                 edges.append(g.num_edges)
 
-            self.assertEqual(timestamps, [100000])
+            self.assertEqual(timestamps, [0])
             self.assertEqual(edges, [9097])
 
             del tvg
