@@ -13,6 +13,7 @@ from ctypes.util import find_library
 import collections
 import functools
 import itertools
+import traceback
 import warnings
 import weakref
 import numpy as np
@@ -899,6 +900,25 @@ def metric_stability_pareto(values, base=0.0):
     avg = metric_avg(values)
     std = metric_std(values)
     return metric_pareto([avg, std], maximize=[True, False], base=base)
+
+class UniformSamples(object):
+    def __init__(self, step, offset=0):
+        if step > 0 and np.isinf(step):
+            step = 0
+        if step != 0:
+            offset = offset - (offset // step) * step
+
+        self.step = step
+        self.offset = offset
+
+    def __call__(self, ts):
+        if self.step == 0:
+            return (0, 0xffffffffffffffff)
+        elif ts < self.offset:
+            return (0, self.offset - 1)
+        else:
+            ts -= (ts - self.offset) % self.step
+            return (ts, ts + self.step - 1)
 
 @libtvgobject
 class Vector(object):
@@ -2586,7 +2606,7 @@ class TVG(object):
 
         return res
 
-    def topics(self, ts_min, ts_max, step=0, offset=0):
+    def topics(self, ts_min, ts_max, step=None, offset=0, samples=None):
         """
         Extract network topics in the timeframe [ts_min, ts_max].
 
@@ -2600,22 +2620,23 @@ class TVG(object):
         if ts_max > 0xffffffffffffffff:
             ts_max = 0xffffffffffffffff
 
-        if step != 0:
-            offset = offset - (offset // step) * step
+        if step is not None:
+            if samples is not None:
+                raise ValueError("Invalid parameter combination")
+            samples = UniformSamples(step=step, offset=offset)
 
-            def wrapper(ts, entry, userdata):
-                if ts < offset:
-                    entry.contents.ts_min = 0
-                    entry.contents.ts_max = offset - 1
-                else:
-                    ts -= (ts - offset) % step
-                    entry.contents.ts_min = ts
-                    entry.contents.ts_max = ts + step - 1
+        if samples is None:
+            return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max, None, None))
+
+        @c_snapshot_callback_p
+        def callback(ts, entry, userdata):
+            try:
+                entry.contents.ts_min, entry.contents.ts_max = samples(ts)
+            except:
+                traceback.print_exc()
+                return 0
+            else:
                 return 1
-
-            callback = c_snapshot_callback_p(wrapper)
-        else:
-            callback = None
 
         return Graph(obj=lib.tvg_topics(self._obj, ts_min, ts_max, callback, None))
 
@@ -4931,6 +4952,14 @@ if __name__ == '__main__':
 
             with CaptureStderr() as stderr:
                 g = tvg.topics(0, 400, step=100, offset=51)
+            self.assertTrue(abs(g[0, 1] - 126.0 / 181.0) < 1e-7)
+
+            snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
+            self.assertEqual(snapshots, ["0, 50", "51, 150", "151, 250", "251, 350", "351, 400"])
+
+            # Repeat the test with the samples parameter instead of step and offset.
+            with CaptureStderr() as stderr:
+                g = tvg.topics(0, 400, samples=UniformSamples(step=100, offset=51))
             self.assertTrue(abs(g[0, 1] - 126.0 / 181.0) < 1e-7)
 
             snapshots = re.findall("\\[([0-9]+, [0-9]+)\\]", stderr.output)
