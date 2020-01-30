@@ -1983,7 +1983,8 @@ class Graph(object):
         if max_count is None:
             max_count = 0xffffffffffffffff
 
-        def wrapper(graph, entry, userdata):
+        @c_bfs_callback_p
+        def callback(graph, entry, userdata):
             if entry.contents.count > max_count:
                 return 1
 
@@ -1992,7 +1993,7 @@ class Graph(object):
             result.append((entry.weight, entry.count, edge_from, entry.edge_to))
             return 0
 
-        res = lib.graph_bfs(self._obj, source, 0, c_bfs_callback_p(wrapper), None)
+        res = lib.graph_bfs(self._obj, source, 0, callback, None)
         if not res:
             raise RuntimeError
 
@@ -2013,7 +2014,8 @@ class Graph(object):
 
         result = []
 
-        def wrapper(graph, entry, userdata):
+        @c_bfs_callback_p
+        def callback(graph, entry, userdata):
             if entry.contents.weight > max_weight:
                 return 1
 
@@ -2022,7 +2024,7 @@ class Graph(object):
             result.append((entry.weight, entry.count, edge_from, entry.edge_to))
             return 0
 
-        res = lib.graph_bfs(self._obj, source, 1, c_bfs_callback_p(wrapper), None)
+        res = lib.graph_bfs(self._obj, source, 1, callback, None)
         if not res:
             raise RuntimeError
 
