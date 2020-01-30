@@ -2747,27 +2747,27 @@ class TVG(object):
             graph = graph.next
             count += 1
 
-    def compress(self, step, offset=0):
+    def compress(self, step=None, offset=0, samples=None):
         """ Compress the graph by aggregating timestamps differing by at most `step`. """
-        if step > 0 and np.isinf(step):
-            step = 0
-        if step != 0:
-            offset = offset - (offset // step) * step
 
-        def wrapper(ts, entry, userdata):
-            if step == 0:
-                entry.contents.ts_min = 0
-                entry.contents.ts_max = 0xffffffffffffffff
-            elif ts < offset:
-                entry.contents.ts_min = 0
-                entry.contents.ts_max = offset - 1
+        if step is not None:
+            if samples is not None:
+                raise ValueError("Invalid parameter combination")
+            samples = UniformSamples(step=step, offset=offset)
+
+        if samples is None:
+            raise ValueError("Missing step/samples parameter")
+
+        @c_snapshot_callback_p
+        def callback(ts, entry, userdata):
+            try:
+                entry.contents.ts_min, entry.contents.ts_max = samples(ts)
+            except:
+                traceback.print_exc()
+                return 0
             else:
-                ts -= (ts - offset) % step
-                entry.contents.ts_min = ts
-                entry.contents.ts_max = ts + step - 1
-            return 1
+                return 1
 
-        callback = c_snapshot_callback_p(wrapper)
         res = lib.tvg_compress(self._obj, callback, None)
         if not res:
             raise MemoryError
@@ -4259,6 +4259,24 @@ if __name__ == '__main__':
                 tvg.link_graph(g, t)
 
             tvg.compress(step=5, offset=100)
+
+            t = 0
+            for g in tvg:
+                self.assertEqual(g.ts, t)
+                self.assertTrue(abs(g[0, 0] - np.sum(source[t:t+5])) < 1e-6)
+                t += 5
+
+            del tvg
+
+            # Repeat the test with the samples parameter instead of step and offset.
+            tvg = TVG(positive=True)
+
+            for t, s in enumerate(source):
+                g = Graph()
+                g[0, 0] = s
+                tvg.link_graph(g, t)
+
+            tvg.compress(samples=UniformSamples(step=5, offset=100))
 
             t = 0
             for g in tvg:
