@@ -739,9 +739,9 @@ struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts)
 int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entry *, void *),
                  void *userdata)
 {
-    struct graph *graph, *next_graph;
     struct graph *prev_graph = NULL;
     struct snapshot_entry prev_entry;
+    struct graph *graph;
     int ret;
 
     if (tvg->mongodb)
@@ -749,7 +749,7 @@ int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entr
 
     tvg_invalidate_queries(tvg, 0, ~0ULL);
 
-    AVL_FOR_EACH_SAFE(graph, next_graph, &tvg->graphs, struct graph, entry)
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, 0)
     {
         assert(graph->tvg == tvg);
 
