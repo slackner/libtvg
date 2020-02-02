@@ -1353,55 +1353,83 @@ static inline int __graph_vector_next_edge(struct _graph_vector_iter *iter, stru
 /* tvg macros */
 
 /* FIXME: Avoid double declaration */
-void free_graph(struct graph *graph);
+struct graph *tvg_lookup_graph_ge(struct tvg *tvg, uint64_t ts);
+struct graph *tvg_lookup_graph_le(struct tvg *tvg, uint64_t ts);
 struct graph *prev_graph(struct graph *graph);
 struct graph *next_graph(struct graph *graph);
+void free_graph(struct graph *graph);
 
-static inline int __tvg_enter_iteration(struct graph **graph)
+struct _tvg_iter
 {
-    *graph = NULL;
+    struct graph *current;
+    struct graph *next;
+};
+
+static inline struct _tvg_iter __tvg_for_each_graph_ge(struct tvg *tvg, uint64_t ts)
+{
+    struct _tvg_iter iter;
+
+    iter.current = NULL;
+    iter.next = tvg_lookup_graph_ge(tvg, ts);
+
+    return iter;
+}
+
+static inline struct _tvg_iter __tvg_for_each_graph_le(struct tvg *tvg, uint64_t ts)
+{
+    struct _tvg_iter iter;
+
+    iter.current = NULL;
+    iter.next = tvg_lookup_graph_le(tvg, ts);
+
+    return iter;
+}
+
+static inline int __tvg_next_graph(struct _tvg_iter *iter, struct graph **graph)
+{
+    free_graph(iter->current);
+    if (!(*graph = (iter->current = iter->next)))
+        return 0;
+
+    iter->next = next_graph(iter->next);
     return 1;
 }
 
-static inline void __tvg_leave_iteration(struct graph **graph)
+static inline int __tvg_prev_graph(struct _tvg_iter *iter, struct graph **graph)
 {
-    free_graph(*graph);
-    *graph = NULL;
+    free_graph(iter->current);
+    if (!(*graph = (iter->current = iter->next)))
+        return 0;
+
+    iter->next = prev_graph(iter->next);
+    return 1;
 }
 
-static inline struct graph *__tvg_next_graph(struct graph *graph)
+static inline void __tvg_free_graphs(struct _tvg_iter *iter)
 {
-    struct graph *ret = next_graph(graph);
-    free_graph(graph);
-    return ret;
+    free_graph(iter->current);
+    free_graph(iter->next);
+    iter->current = NULL;
+    iter->next = NULL;
 }
 
-static inline struct graph *__tvg_prev_graph(struct graph *graph)
-{
-    struct graph *ret = prev_graph(graph);
-    free_graph(graph);
-    return ret;
-}
+#define _TVG_FOR_EACH_GRAPH_GE(_tvg, _graph, _ts, _iter) \
+    for (__attribute__((cleanup(__tvg_free_graphs))) struct _tvg_iter (_iter) = __tvg_for_each_graph_ge((_tvg), (_ts)); \
+         __tvg_next_graph(&(_iter), &(_graph));)
 
-#define _TVG_FOR_EACH_GRAPH_GE(_tvg, _graph, _ts, _once) \
-    for (int (_once) = __tvg_enter_iteration(&(_graph)); (_once)--; __tvg_leave_iteration(&(_graph))) \
-    for ((_graph) = tvg_lookup_graph_ge((_tvg), (_ts)); \
-         (_graph) != NULL; (_graph) = __tvg_next_graph((_graph)))
-
-/* NOTE: The caller must release the graph manually when using
- * goto / return within the iteration. */
+/* NOTE: The reference to the graph is automatically
+ * released when leaving the iteration. */
 #define TVG_FOR_EACH_GRAPH_GE(_tvg, _graph, _ts) \
-    _TVG_FOR_EACH_GRAPH_GE((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__once_))
+    _TVG_FOR_EACH_GRAPH_GE((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__iter_))
 
-#define _TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts, _once) \
-    for (int (_once) = __tvg_enter_iteration(&(_graph)); (_once)--; __tvg_leave_iteration(&(_graph))) \
-    for ((_graph) = tvg_lookup_graph_le((_tvg), (_ts)); \
-         (_graph) != NULL; (_graph) = __tvg_prev_graph((_graph)))
+#define _TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts, _iter) \
+    for (__attribute__((cleanup(__tvg_free_graphs))) struct _tvg_iter (_iter) = __tvg_for_each_graph_le((_tvg), (_ts)); \
+         __tvg_prev_graph(&(_iter), &(_graph));)
 
-/* NOTE: The caller must release the graph manually when using
- * goto / return within the iteration. */
+/* NOTE: The reference to the graph is automatically
+ * released when leaving the iteration. */
 #define TVG_FOR_EACH_GRAPH_LE_REV(_tvg, _graph, _ts) \
-    _TVG_FOR_EACH_GRAPH_LE_REV((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__once_))
+    _TVG_FOR_EACH_GRAPH_LE_REV((_tvg), (_graph), (_ts), _UNIQUE_VARIABLE(__iter_))
 
 /* node macros */
 

@@ -1333,7 +1333,6 @@ static void test_tvg_for_each_graph(void)
         assert(graph->ts >= mid);
         break;  /* test for possible leaks */
     }
-    assert(!graph);
 
     TVG_FOR_EACH_GRAPH_LE_REV(tvg, graph, mid)
     {
@@ -1346,7 +1345,6 @@ static void test_tvg_for_each_graph(void)
         assert(graph->ts <= mid);
         break;  /* test for possible leaks */
     }
-    assert(!graph);
 
     free_tvg(tvg);
 }

@@ -195,10 +195,7 @@ static void *query_compute(struct tvg *tvg, struct query *current)
         {
             if (graph->ts > operation.ts_max) break;
             if (!current->ops->add_graph(current, graph, operation.weight))
-            {
-                free_graph(graph);
                 goto done;
-            }
             num_graphs++;
         }
     }

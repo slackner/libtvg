@@ -832,7 +832,6 @@ struct graph *tvg_extract(struct tvg *tvg, uint64_t ts, float (*weight_func)(str
 
         if (!graph_add_graph(out, graph, weight))
         {
-            free_graph(graph);
             free_graph(out);
             return NULL;
         }
