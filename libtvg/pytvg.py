@@ -109,6 +109,15 @@ def or_null(klass):
             return klass.from_param(obj)
     return wrapper
 
+class c_uint64_ts:
+    @classmethod
+    def from_param(cls, obj):
+        if obj < 0:
+            obj = 0
+        elif obj > 0xffffffffffffffff:
+            obj = 0xffffffffffffffff
+        return c_uint64.from_param(obj)
+
 c_double_p       = POINTER(c_double)
 c_objectid_p     = POINTER(c_objectid)
 c_vector_p       = POINTER(c_vector)
@@ -433,13 +442,13 @@ lib.tvg_disable_query_cache.restype = None
 lib.tvg_invalidate_queries.argtypes = (c_tvg_p, c_uint64, c_uint64)
 lib.tvg_invalidate_queries.restype = None
 
-lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64)
+lib.tvg_lookup_graph_ge.argtypes = (c_tvg_p, c_uint64_ts)
 lib.tvg_lookup_graph_ge.restype = c_graph_p
 
-lib.tvg_lookup_graph_le.argtypes = (c_tvg_p, c_uint64)
+lib.tvg_lookup_graph_le.argtypes = (c_tvg_p, c_uint64_ts)
 lib.tvg_lookup_graph_le.restype = c_graph_p
 
-lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_uint64)
+lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_uint64_ts)
 lib.tvg_lookup_graph_near.restype = c_graph_p
 
 lib.tvg_compress.argtypes = (c_tvg_p, c_snapshot_callback_p, c_void_p)
@@ -447,25 +456,25 @@ lib.tvg_compress.restype = c_int
 
 # Query functions
 
-lib.tvg_sum_edges.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float)
+lib.tvg_sum_edges.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts, c_float)
 lib.tvg_sum_edges.restype = c_graph_p
 
-lib.tvg_sum_nodes.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_sum_nodes.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts)
 lib.tvg_sum_nodes.restype = c_vector_p
 
-lib.tvg_sum_edges_exp.argtypes = (c_tvg_p, c_uint64, c_uint64, c_float, c_float, c_float)
+lib.tvg_sum_edges_exp.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts, c_float, c_float, c_float)
 lib.tvg_sum_edges_exp.restype = c_graph_p
 
-lib.tvg_count_edges.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_edges.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts)
 lib.tvg_count_edges.restype = c_graph_p
 
-lib.tvg_count_nodes.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_nodes.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts)
 lib.tvg_count_nodes.restype = c_vector_p
 
-lib.tvg_count_graphs.argtypes = (c_tvg_p, c_uint64, c_uint64)
+lib.tvg_count_graphs.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts)
 lib.tvg_count_graphs.restype = c_uint64
 
-lib.tvg_topics.argtypes = (c_tvg_p, c_uint64, c_uint64, or_null(c_snapshot_callback_p), c_void_p)
+lib.tvg_topics.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts, or_null(c_snapshot_callback_p), c_void_p)
 lib.tvg_topics.restype = c_graph_p
 
 # Metric functions
@@ -2492,10 +2501,6 @@ class TVG(object):
         ts_max: Right boundary of the interval.
         """
 
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
         if eps is None:
             eps = 0.0
 
@@ -2510,11 +2515,6 @@ class TVG(object):
         ts_max: Right boundary of the interval.
         """
 
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
-
         return Vector(obj=lib.tvg_sum_nodes(self._obj, ts_min, ts_max))
 
     def sum_edges_exp(self, ts_min, ts_max, beta=None, log_beta=None, weight=1.0, eps=None):
@@ -2528,10 +2528,6 @@ class TVG(object):
         beta: Exponential decay constant.
         """
 
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
         if log_beta is None:
             log_beta = math.log(beta)
         if eps is None:
@@ -2564,11 +2560,6 @@ class TVG(object):
         ts_max: Right boundary of the interval.
         """
 
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
-
         return Graph(obj=lib.tvg_count_edges(self._obj, ts_min, ts_max))
 
     def count_nodes(self, ts_min, ts_max):
@@ -2580,11 +2571,6 @@ class TVG(object):
         ts_max: Right boundary of the interval.
         """
 
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
-
         return Vector(obj=lib.tvg_count_nodes(self._obj, ts_min, ts_max))
 
     def count_graphs(self, ts_min, ts_max):
@@ -2595,11 +2581,6 @@ class TVG(object):
         ts_min: Left boundary of the interval.
         ts_max: Right boundary of the interval.
         """
-
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
 
         res = lib.tvg_count_graphs(self._obj, ts_min, ts_max)
         if res == 0xffffffffffffffff:
@@ -2615,11 +2596,6 @@ class TVG(object):
         ts_min: Left boundary of the interval.
         ts_max: Right boundary of the interval.
         """
-
-        if ts_min < 0:
-            ts_min = 0
-        if ts_max > 0xffffffffffffffff:
-            ts_max = 0xffffffffffffffff
 
         if step is not None:
             if samples is not None:
