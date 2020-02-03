@@ -738,8 +738,8 @@ struct graph *tvg_lookup_graph_near(struct tvg *tvg, uint64_t ts)
     return graph;
 }
 
-int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entry *, void *),
-                 void *userdata)
+int tvg_compress(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
+                 int (*callback)(uint64_t, struct snapshot_entry *, void *), void *userdata)
 {
     struct graph *prev_graph = NULL;
     struct snapshot_entry prev_entry;
@@ -749,11 +749,11 @@ int tvg_compress(struct tvg *tvg, int (*callback)(uint64_t, struct snapshot_entr
     if (tvg->mongodb)
         return 0;
 
-    tvg_invalidate_queries(tvg, 0, ~0ULL);
+    tvg_invalidate_queries(tvg, ts_min, ts_max);
 
-    TVG_FOR_EACH_GRAPH_GE(tvg, graph, 0)
+    TVG_FOR_EACH_GRAPH_GE(tvg, graph, ts_min)
     {
-        assert(graph->tvg == tvg);
+        if (graph->ts > ts_max) break;
 
         if (prev_graph && graph->ts <= prev_entry.ts_max)
         {

@@ -451,7 +451,7 @@ lib.tvg_lookup_graph_le.restype = c_graph_p
 lib.tvg_lookup_graph_near.argtypes = (c_tvg_p, c_uint64_ts)
 lib.tvg_lookup_graph_near.restype = c_graph_p
 
-lib.tvg_compress.argtypes = (c_tvg_p, c_snapshot_callback_p, c_void_p)
+lib.tvg_compress.argtypes = (c_tvg_p, c_uint64_ts, c_uint64_ts, c_snapshot_callback_p, c_void_p)
 lib.tvg_compress.restype = c_int
 
 # Query functions
@@ -2724,7 +2724,7 @@ class TVG(object):
             graph = graph.next
             count += 1
 
-    def compress(self, step=None, offset=0, samples=None):
+    def compress(self, ts_min=0, ts_max=0xffffffffffffffff, step=None, offset=0, samples=None):
         """ Compress the graph by aggregating timestamps differing by at most `step`. """
 
         if step is not None:
@@ -2745,7 +2745,7 @@ class TVG(object):
             else:
                 return 1
 
-        res = lib.tvg_compress(self._obj, callback, None)
+        res = lib.tvg_compress(self._obj, ts_min, ts_max, callback, None)
         if not res:
             raise MemoryError
 
