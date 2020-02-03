@@ -101,12 +101,13 @@ class c_snapshot_entry(Structure):
                 ("ts_max",   c_uint64)]
 
 # Hacky: we need optional ndpointer parameters at some places.
-def or_null(t):
-    class wrap:
+def or_null(klass):
+    class wrapper:
+        @classmethod
         def from_param(cls, obj):
             if obj is None: return None
-            return t.from_param(obj)
-    return wrap()
+            return klass.from_param(obj)
+    return wrapper
 
 c_double_p       = POINTER(c_double)
 c_objectid_p     = POINTER(c_objectid)
