@@ -4190,6 +4190,13 @@ if __name__ == '__main__':
             graphs = list(tvg.documents(250, 350))
             self.assertEqual(graphs, [g3])
 
+            graphs = list(tvg.documents(0, 0xffffffffffffffff))
+            self.assertEqual(graphs, [g1, g2, g3])
+            graphs = list(tvg.documents(-100, 0xffffffffffffffff + 100))
+            self.assertEqual(graphs, [g1, g2, g3])
+            graphs = list(tvg.documents(0x8000000000000000, 0xffffffffffffffff))
+            self.assertEqual(graphs, [])
+
             # For backwards compatibility, we still allow passing float values.
 
             g = tvg.lookup_ge(100.0)
