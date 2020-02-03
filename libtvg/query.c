@@ -99,6 +99,27 @@ static void *query_compute(struct tvg *tvg, struct query *current)
 
     duration = clock_monotonic();
 
+    /* Handle invalid ranges. If ts_min > INT64_MAX, then the interval
+     * is guaranteed to be empty, and we can return right away. Otherwise,
+     * if ts_max > INT64_MAX, we clamp it to INT64_MAX. */
+
+    if ((int64_t)current->ts_min < 0)
+    {
+        if (!current->ops->finalize(current))
+            goto done;
+
+        result = current->ops->grab(current);
+
+        current->tvg = NULL;
+        current->cache = 0;
+        goto done;
+    }
+
+    current->ts_max = MIN(current->ts_max, INT64_MAX);
+
+    /* Handle generic queries, either by computing the result from scratch
+     * or by reusing (partial) results in the query cache. */
+
     if (!(ranges = alloc_ranges()))
         goto done;
 
