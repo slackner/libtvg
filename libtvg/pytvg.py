@@ -4594,6 +4594,11 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 2.0)
             self.assertEqual(g[0, 2], 3.0)
 
+            g = tvg.sum_edges(-100, 0xffffffffffffffff + 100, eps=0.5)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 2.0)
+            self.assertEqual(g[0, 2], 3.0)
+
             g = tvg.sum_edges(0x8000000000000000, 0xffffffffffffffff, eps=0.5)
             self.assertEqual(g.as_dict(), {})
 
@@ -4641,6 +4646,11 @@ if __name__ == '__main__':
             self.assertEqual(v[2], 1.0)
 
             v = tvg.sum_nodes(0, 0xffffffffffffffff)
+            self.assertEqual(v[0], 4.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 1.0)
+
+            v = tvg.sum_nodes(-100, 0xffffffffffffffff + 100)
             self.assertEqual(v[0], 4.0)
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 1.0)
@@ -4742,6 +4752,11 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 1.0)
             self.assertEqual(g[0, 2], 1.0)
 
+            g = tvg.count_edges(-100, 0xffffffffffffffff + 100)
+            self.assertEqual(g[0, 0], 1.0)
+            self.assertEqual(g[0, 1], 1.0)
+            self.assertEqual(g[0, 2], 1.0)
+
             g = tvg.count_edges(0x8000000000000000, 0xffffffffffffffff)
             self.assertEqual(g.as_dict(), {})
 
@@ -4792,6 +4807,11 @@ if __name__ == '__main__':
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 2.0)
 
+            v = tvg.count_nodes(-100, 0xffffffffffffffff + 100)
+            self.assertEqual(v[0], 3.0)
+            self.assertEqual(v[1], 1.0)
+            self.assertEqual(v[2], 2.0)
+
             v = tvg.count_nodes(0x8000000000000000, 0xffffffffffffffff)
             self.assertEqual(v.as_dict(), {})
 
@@ -4835,6 +4855,9 @@ if __name__ == '__main__':
             self.assertEqual(c, 6)
 
             c = tvg.count_graphs(0, 0xffffffffffffffff)
+            self.assertEqual(c, 6)
+
+            c = tvg.count_graphs(-100, 0xffffffffffffffff + 100)
             self.assertEqual(c, 6)
 
             v = tvg.count_graphs(0x8000000000000000, 0xffffffffffffffff)
@@ -4910,6 +4933,15 @@ if __name__ == '__main__':
 
             g = tvg.topics(0, 400)
             self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            g = tvg.topics(0, 0xffffffffffffffff)
+            self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            g = tvg.topics(-100, 0xffffffffffffffff + 100)
+            self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
+
+            g = tvg.topics(0x8000000000000000, 0xffffffffffffffff)
+            self.assertEqual(g.as_dict(), {})
 
             # |D(0) \cup D(1)| = 1.0
             # |D((0, 1))| = 1.0
