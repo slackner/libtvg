@@ -850,6 +850,7 @@ static void tvg_load_batch_from_mongodb(struct tvg *tvg, struct graph *other_gra
 
         /* Keep in sync with tvg_link_graph! */
         assert(!graph->tvg);
+        assert((int64_t)ts >= 0);
         graph->ts  = ts;
         graph->objectid = objectid;
         graph->flags |= TVG_FLAGS_READONLY;  /* block changes */

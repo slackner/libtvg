@@ -110,7 +110,7 @@ struct graph
     uint64_t    refcount;
     uint32_t    flags;
     uint64_t    revision;
-    uint64_t    ts;
+    uint64_t    ts;          /* timestamp should be within [0, INT64_MAX] */
     struct objectid objectid;
 
     /* private: */

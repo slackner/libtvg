@@ -195,6 +195,8 @@ int tvg_link_graph(struct tvg *tvg, struct graph *graph, uint64_t ts)
         return 0;
     if ((tvg->flags ^ graph->flags) & TVG_FLAGS_DIRECTED)
         return 0;
+    if ((int64_t)ts < 0)
+        return 0;
 
     graph->ts = ts;
     if (avl_insert(&tvg->graphs, &graph->entry, objectid_empty(&graph->objectid)))

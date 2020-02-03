@@ -25,6 +25,11 @@ static uint64_t random_uint64(void)
     return value;
 }
 
+static uint64_t random_ts(void)
+{
+    return random_uint64() & INT64_MAX;
+}
+
 static uint64_t abs_sub_uint64(uint64_t a, uint64_t b)
 {
     return (a < b) ? (b - a) : (a - b);
@@ -49,7 +54,7 @@ static struct tvg *alloc_random_tvg(uint32_t flags, uint32_t count)
     {
         graph = alloc_graph(graph_flags);
         assert(graph != NULL);
-        ret = tvg_link_graph(tvg, graph, random_uint64());
+        ret = tvg_link_graph(tvg, graph, random_ts());
         assert(ret);
         free_graph(graph);
     }
@@ -139,7 +144,7 @@ static void test_lookup_graph(void)
     {
         graph = alloc_graph(0);
         assert(graph != NULL);
-        ts = random_uint64();
+        ts = random_ts();
         ret = tvg_link_graph(tvg, graph, ts);
         assert(ret);
         free_graph(graph);
@@ -150,7 +155,7 @@ static void test_lookup_graph(void)
 
     for (i = 0; i < 10000; i++)
     {
-        ts = random_uint64();
+        ts = random_ts();
 
         graph = tvg_lookup_graph_ge(tvg, ts);
         if (ts > max_ts) assert(graph == NULL);
@@ -1317,7 +1322,7 @@ static void test_tvg_for_each_graph(void)
     {
         graph = alloc_graph(0);
         assert(graph != NULL);
-        ret = tvg_link_graph(tvg, graph, random_uint64());
+        ret = tvg_link_graph(tvg, graph, random_ts());
         assert(ret);
         free_graph(graph);
     }

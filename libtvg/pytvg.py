@@ -4213,12 +4213,17 @@ if __name__ == '__main__':
             tvg = TVG()
             g1 = Graph()
             g2 = Graph(directed=True)
+            g3 = Graph()
 
             tvg.link_graph(g1, 10)
             with self.assertRaises(RuntimeError):
                 tvg.link_graph(g1, 20)
             with self.assertRaises(RuntimeError):
                 tvg.link_graph(g2, 20)
+            with self.assertRaises(RuntimeError):
+                tvg.link_graph(g3, 0x8000000000000000)
+            with self.assertRaises(RuntimeError):
+                tvg.link_graph(g3, 0xffffffffffffffff)
 
             g = tvg.lookup_near(10)
             self.assertEqual(g.ts, 10)
