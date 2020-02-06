@@ -949,28 +949,36 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
     if (!(result = alloc_graph(graph_flags)))
         goto error;
 
-    /* The metric uses a combination of the following terms:
+    /* According to the original publication, "if the same words co-occur again
+     * in the same document, we simply update the distance if necessary". This
+     * means that L(e) = <(d_1, t_1, \delta_1), ...> contains at most one entry
+     * per document. If the graph was loaded with sum_edges=False the number of
+     * co-occurrences for a given edge e is equal to the number of documents
+     * containing that specific edge, so we can set |L(e)| := |D(e)|.
      *
-     * Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)|
-     * Temporal coverage density: \Delta T / |T(e)|
-     * Min distance per article weight: |L(e)| / \sum exp(-\delta)
+     * If sum_edges=True, however, we have two options:
      *
-     * Note: In the original publication, the metric is only defined
-     * for sum_weights=False. As a result |D(e)| = |L(e)|, and
-     * \sum exp(-\delta) is always smaller or equal to |L(e)|. In the
-     * following we also allow sum_weights=True, but since we don't
-     * know how many weights contributed to each edge, the metric
-     * is no longer a value in [0, 1], but instead in [0, 1.5].
+     * - Use the definitions from the original paper as-is. This would require
+     *   us to track |L(e)| separately, i.e., we still need to know exactly how
+     *   often each co-occurrence was present in the original document.
+     *
+     * - Replace |L(e)| -> |D(e)| in the formula. This has the effect that the
+     *   metric is no longer restricted to values in [0, 1], but instead in
+     *   [0, 1.5]. This the approach currently used by the code below.
      */
 
     GRAPH_FOR_EACH_EDGE(count_edges, edge)
     {
+        /* Article jaccard weight: |D(v1) \cup D(v2)| / |D(e)| */
         weight  = (vector_get_entry(count_nodes, edge->source) +
                    vector_get_entry(count_nodes, edge->target) - edge->weight) / edge->weight;
+
+        /* Min distance per article weight: |L(e)| / \sum exp(-\delta) */
         weight += edge->weight / graph_get_edge(sum_edges, edge->source, edge->target);
 
         if (count_times)
         {
+            /* Temporal coverage density: \Delta T / |T(e)| */
             weight += (float)num_snapshots / graph_get_edge(count_times, edge->source, edge->target);
             weight = 3.0 / weight;
         }
