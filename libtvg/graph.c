@@ -669,10 +669,11 @@ uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weig
     struct minheap *queue;
     struct entry2 *edge;
     struct entry2 new_edge;
+    float weight;
     uint64_t count = 0;
 
-    if (!max_edges || (!indices && !weights))
-        return graph_num_edges(graph);
+    if (!max_edges)
+        return 0;
 
     if (!(queue = alloc_minheap(sizeof(struct entry2), _sort_entry2_by_weight, NULL)))
         return 0;
@@ -687,9 +688,9 @@ uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weig
         }
     }
 
+    assert(max_edges >= 1);
     while (minheap_pop(queue, &new_edge))
     {
-        if (count++ >= max_edges) break;
         if (indices)
         {
             *indices++ = new_edge.source;
@@ -699,9 +700,19 @@ uint64_t graph_get_top_edges(struct graph *graph, uint64_t *indices, float *weig
         {
             *weights++ = new_edge.weight;
         }
+        if (++count == max_edges)
+        {
+            /* Count how many other edges have the same weight. */
+            weight = new_edge.weight;
+            while (minheap_pop(queue, &new_edge))
+            {
+                if (new_edge.weight != weight) break;
+                count++;
+            }
+            break;
+        }
     }
 
-    count += minheap_count(queue);
     free_minheap(queue);
     return count;
 }

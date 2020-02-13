@@ -1050,9 +1050,9 @@ class Vector(object):
             if num_entries <= max_entries:
                 break
 
-        if indices is not None:
+        if indices is not None and num_entries < max_entries:
             indices.resize((num_entries,), refcheck=False)
-        if weights is not None:
+        if weights is not None and num_entries < max_entries:
             weights.resize((num_entries,), refcheck=False)
 
         if as_dict:
@@ -1536,9 +1536,9 @@ class Graph(object):
             if num_edges <= max_edges:
                 break
 
-        if indices is not None:
+        if indices is not None and num_edges < max_edges:
             indices.resize((num_edges, 2), refcheck=False)
-        if weights is not None:
+        if weights is not None and num_edges < max_edges:
             weights.resize((num_edges,), refcheck=False)
 
         if as_dict:
@@ -1569,7 +1569,8 @@ class Graph(object):
         """ Iterate over indices of a graph. """
         return self.keys()
 
-    def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False):
+    def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False,
+                  query_all=False):
         """
         Return indices and/or weights of the top edges.
 
@@ -1578,6 +1579,7 @@ class Graph(object):
         ret_indices: Return indices consisting of (source, target), otherwise None.
         ret_weights: Return weights, otherwise None.
         as_dict: Return result as dictionary instead of tuple.
+        query_all: Return all elements if they have the same weight.
 
         # Returns
         `(indices, weights)` or dictionary
@@ -1586,9 +1588,16 @@ class Graph(object):
         if as_dict and not ret_indices:
             raise ValueError("Invalid parameter combination")
 
-        indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
-        weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C') if ret_weights else None
-        num_edges = lib.graph_get_top_edges(self._obj, indices, weights, max_edges)
+        num_edges = max_edges
+        while True:
+            max_edges = num_edges
+            indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
+            weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C') if ret_weights else None
+            num_edges = lib.graph_get_top_edges(self._obj, indices, weights, max_edges)
+            if not query_all:
+                break
+            if num_edges <= max_edges:
+                break
 
         if indices is not None and num_edges < max_edges:
             indices.resize((num_edges, 2), refcheck=False)
@@ -1650,9 +1659,9 @@ class Graph(object):
             if num_edges <= max_edges:
                 break
 
-        if indices is not None:
+        if indices is not None and num_edges < max_edges:
             indices.resize((num_edges,), refcheck=False)
-        if weights is not None:
+        if weights is not None and num_edges < max_edges:
             weights.resize((num_edges,), refcheck=False)
 
         if as_dict:
@@ -4095,6 +4104,48 @@ if __name__ == '__main__':
 
             result = g.top_edges(5, as_dict=True)
             self.assertEqual(result, {(2, 3): 99.0, (4, 6): 98.0, (6, 9): 97.0, (9, 2): 96.0, (1, 5): 95.0})
+
+            del g
+            g = Graph(directed=True)
+
+            for i in range(100):
+                s, t = i//10, i%10
+                g[s, t] = (s + t) % 10
+
+            result = g.top_edges(0, as_dict=True)
+            self.assertEqual(result, {})
+
+            result = g.top_edges(0, as_dict=True, query_all=True)
+            self.assertEqual(result, {})
+
+            result = g.top_edges(1, as_dict=True)
+            self.assertEqual(result, {(9, 0): 9.0})
+
+            result = g.top_edges(1, as_dict=True, query_all=True)
+            self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
+                                      (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0})
+
+            result = g.top_edges(1, as_dict=True, ret_weights=False, query_all=True)
+            self.assertEqual(result, {(9, 0): None, (8, 1): None, (6, 3): None, (3, 6): None, (2, 7): None,
+                                      (5, 4): None, (1, 8): None, (0, 9): None, (7, 2): None, (4, 5): None})
+
+            result = g.top_edges(5, as_dict=True)
+            self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0})
+
+            result = g.top_edges(5, as_dict=True, query_all=True)
+            self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
+                                      (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0})
+
+            result = g.top_edges(11, as_dict=True)
+            self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
+                                      (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0,
+                                      (8, 0): 8.0})
+
+            result = g.top_edges(11, as_dict=True, query_all=True)
+            self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
+                                      (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0,
+                                      (8, 0): 8.0, (7, 1): 8.0, (1, 7): 8.0, (5, 3): 8.0, (0, 8): 8.0,
+                                      (4, 4): 8.0, (9, 9): 8.0, (3, 5): 8.0, (6, 2): 8.0, (2, 6): 8.0})
 
             del g
 
