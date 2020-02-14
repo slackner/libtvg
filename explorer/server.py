@@ -154,6 +154,7 @@ class Client(WebSocket):
             subgraph = topics.sparse_subgraph(seeds=seeds)
             for i, j in seeds:
                 edge_colors[i, j] = "red"
+                edge_colors[j, i] = "red"
 
         else:
             print('Error: Unimplemented edge weight "%s"!' % self.context['edgeWeight'])
