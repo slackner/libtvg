@@ -1967,7 +1967,7 @@ class Graph(object):
             raise IOError
         return Graph(obj=obj)
 
-    def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3):
+    def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3, query_all=False):
         """
         Create a sparse subgraph by seleting a few seed edges, and then
         using 'triangular growth' to add additional neighbors.
@@ -1976,6 +1976,7 @@ class Graph(object):
         seeds: List of seed edges
         num_seeds: Number of seed edges to select
         num_neighbors: Number of neighbors to add per seed node
+        query_all: Return all elements if they have the same weight.
 
         # Returns
         Resulting graph.
@@ -1985,7 +1986,7 @@ class Graph(object):
             raise NotImplementedError("Not implemented for directed graphs")
 
         if seeds is None:
-            seeds = self.top_edges(num_seeds, as_dict=True)
+            seeds = self.top_edges(num_seeds, as_dict=True, query_all=query_all)
         if not isinstance(seeds, dict):
             seeds = dict([(tuple(i), self[i]) for i in seeds])
 
