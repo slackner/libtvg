@@ -1544,7 +1544,7 @@ class Graph(object):
         if as_dict:
             if weights is None:
                 weights = [None] * num_edges
-            return dict([(tuple(i), w) for i, w in zip(indices, weights)])
+            return dict((tuple(i), w) for i, w in zip(indices, weights))
 
         return indices, weights
 
@@ -1607,7 +1607,7 @@ class Graph(object):
         if as_dict:
             if weights is None:
                 weights = [None] * num_edges
-            return collections.OrderedDict([(tuple(i), w) for i, w in zip(indices, weights)])
+            return collections.OrderedDict((tuple(i), w) for i, w in zip(indices, weights))
 
         return indices, weights
 
@@ -1988,7 +1988,7 @@ class Graph(object):
         if seeds is None:
             seeds = self.top_edges(num_seeds, as_dict=True, truncate=truncate)
         if not isinstance(seeds, dict):
-            seeds = dict([(tuple(i), self[i]) for i in seeds])
+            seeds = dict((tuple(i), self[i]) for i in seeds)
 
         edges = copy.deepcopy(seeds)
         for i, j in seeds.keys():
@@ -5643,7 +5643,7 @@ if __name__ == '__main__':
                 values.append(dict(enumerate(np.random.random(100))))
             result1 = metric_stability_pareto(values)
 
-            graphs = [Graph.from_dict(dict([((0, i), w) for i, w in v.items()])) for v in values]
+            graphs = [Graph.from_dict(dict(((0, i), w) for i, w in v.items())) for v in values]
             result2 = metric_stability_pareto(graphs)
             self.assertTrue(isinstance(result2, Graph))
             self.assertEqual(result2.num_edges, 100)
