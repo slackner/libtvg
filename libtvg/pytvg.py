@@ -1570,7 +1570,7 @@ class Graph(object):
         return self.keys()
 
     def top_edges(self, max_edges, ret_indices=True, ret_weights=True, as_dict=False,
-                  query_all=False):
+                  truncate=False):
         """
         Return indices and/or weights of the top edges.
 
@@ -1579,7 +1579,7 @@ class Graph(object):
         ret_indices: Return indices consisting of (source, target), otherwise None.
         ret_weights: Return weights, otherwise None.
         as_dict: Return result as dictionary instead of tuple.
-        query_all: Return all elements if they have the same weight.
+        truncate: Truncate list of results if too many.
 
         # Returns
         `(indices, weights)` or dictionary
@@ -1594,7 +1594,7 @@ class Graph(object):
             indices = np.empty(shape=(max_edges, 2), dtype=np.uint64,  order='C') if ret_indices else None
             weights = np.empty(shape=(max_edges,),   dtype=np.float32, order='C') if ret_weights else None
             num_edges = lib.graph_get_top_edges(self._obj, indices, weights, max_edges)
-            if not query_all:
+            if truncate:
                 break
             if num_edges <= max_edges:
                 break
@@ -1967,7 +1967,7 @@ class Graph(object):
             raise IOError
         return Graph(obj=obj)
 
-    def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3, query_all=False):
+    def sparse_subgraph(self, seeds=None, num_seeds=8, num_neighbors=3, truncate=False):
         """
         Create a sparse subgraph by seleting a few seed edges, and then
         using 'triangular growth' to add additional neighbors.
@@ -1976,7 +1976,7 @@ class Graph(object):
         seeds: List of seed edges
         num_seeds: Number of seed edges to select
         num_neighbors: Number of neighbors to add per seed node
-        query_all: Return all elements if they have the same weight.
+        truncate: Truncate list of results if too many.
 
         # Returns
         Resulting graph.
@@ -1986,7 +1986,7 @@ class Graph(object):
             raise NotImplementedError("Not implemented for directed graphs")
 
         if seeds is None:
-            seeds = self.top_edges(num_seeds, as_dict=True, query_all=query_all)
+            seeds = self.top_edges(num_seeds, as_dict=True, truncate=truncate)
         if not isinstance(seeds, dict):
             seeds = dict([(tuple(i), self[i]) for i in seeds])
 
@@ -4087,23 +4087,23 @@ if __name__ == '__main__':
                 s, t = i//10, i%10
                 g[s, t] = (i * 13) % 100
 
-            indices, weights = g.top_edges(5)
+            indices, weights = g.top_edges(5, truncate=True)
             self.assertEqual(indices.tolist(), [[2, 3], [4, 6], [6, 9], [9, 2], [1, 5]])
             self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
 
-            indices, _ = g.top_edges(5, ret_weights=False)
+            indices, _ = g.top_edges(5, ret_weights=False, truncate=True)
             self.assertEqual(indices.tolist(), [[2, 3], [4, 6], [6, 9], [9, 2], [1, 5]])
 
-            _, weights = g.top_edges(5, ret_indices=False)
+            _, weights = g.top_edges(5, ret_indices=False, truncate=True)
             self.assertEqual(weights.tolist(), [99.0, 98.0, 97.0, 96.0, 95.0])
 
             with self.assertRaises(ValueError):
-                g.top_edges(5, ret_indices=False, as_dict=True)
+                g.top_edges(5, ret_indices=False, as_dict=True, truncate=True)
 
-            result = g.top_edges(5, ret_weights=False, as_dict=True)
+            result = g.top_edges(5, ret_weights=False, as_dict=True, truncate=True)
             self.assertEqual(result, {(2, 3): None, (4, 6): None, (6, 9): None, (9, 2): None, (1, 5): None})
 
-            result = g.top_edges(5, as_dict=True)
+            result = g.top_edges(5, as_dict=True, truncate=True)
             self.assertEqual(result, {(2, 3): 99.0, (4, 6): 98.0, (6, 9): 97.0, (9, 2): 96.0, (1, 5): 95.0})
 
             del g
@@ -4113,36 +4113,36 @@ if __name__ == '__main__':
                 s, t = i//10, i%10
                 g[s, t] = (s + t) % 10
 
+            result = g.top_edges(0, as_dict=True, truncate=True)
+            self.assertEqual(result, {})
+
             result = g.top_edges(0, as_dict=True)
             self.assertEqual(result, {})
 
-            result = g.top_edges(0, as_dict=True, query_all=True)
-            self.assertEqual(result, {})
-
-            result = g.top_edges(1, as_dict=True)
+            result = g.top_edges(1, as_dict=True, truncate=True)
             self.assertEqual(result, {(9, 0): 9.0})
 
-            result = g.top_edges(1, as_dict=True, query_all=True)
+            result = g.top_edges(1, as_dict=True)
             self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
                                       (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0})
 
-            result = g.top_edges(1, as_dict=True, ret_weights=False, query_all=True)
+            result = g.top_edges(1, as_dict=True, ret_weights=False)
             self.assertEqual(result, {(9, 0): None, (8, 1): None, (6, 3): None, (3, 6): None, (2, 7): None,
                                       (5, 4): None, (1, 8): None, (0, 9): None, (7, 2): None, (4, 5): None})
 
-            result = g.top_edges(5, as_dict=True)
+            result = g.top_edges(5, as_dict=True, truncate=True)
             self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0})
 
-            result = g.top_edges(5, as_dict=True, query_all=True)
+            result = g.top_edges(5, as_dict=True)
             self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
                                       (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0})
 
-            result = g.top_edges(11, as_dict=True)
+            result = g.top_edges(11, as_dict=True, truncate=True)
             self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
                                       (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0,
                                       (8, 0): 8.0})
 
-            result = g.top_edges(11, as_dict=True, query_all=True)
+            result = g.top_edges(11, as_dict=True)
             self.assertEqual(result, {(9, 0): 9.0, (8, 1): 9.0, (6, 3): 9.0, (3, 6): 9.0, (2, 7): 9.0,
                                       (5, 4): 9.0, (1, 8): 9.0, (0, 9): 9.0, (7, 2): 9.0, (4, 5): 9.0,
                                       (8, 0): 8.0, (7, 1): 8.0, (1, 7): 8.0, (5, 3): 8.0, (0, 8): 8.0,
