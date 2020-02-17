@@ -161,6 +161,18 @@ Structure/Union member
 ### weight
 Structure/Union member
 
+## c_snapshot_entry
+```python
+c_snapshot_entry(*args, **kwargs)
+```
+
+
+### ts_max
+Structure/Union member
+
+### ts_min
+Structure/Union member
+
 ## metric_entropy
 ```python
 metric_entropy(values, num_bins=50)
@@ -399,6 +411,12 @@ Vector.items()
 ```
 Iterate over indices and weights of a vector.
 
+### tolist
+```python
+Vector.tolist()
+```
+Return list of indices of a vector.
+
 ### set_entries
 ```python
 Vector.set_entries(indices, weights=None)
@@ -521,6 +539,27 @@ Return a dictionary containing all vector entries.
 
 ### from_dict
 Generate a Vector object from a dictionary.
+
+### save_binary
+```python
+Vector.save_binary(filename)
+```
+
+Store a vector in a file using binary format.
+
+__Arguments__
+
+- __filename__: Path to the file to create
+
+
+### load_binary
+
+Load a vector from a binary file into memory.
+
+__Arguments__
+
+- __filename__: Path to the file to load
+
 
 ## Graph
 ```python
@@ -652,7 +691,11 @@ Iterate over indices and weights of a graphs.
 
 ### top_edges
 ```python
-Graph.top_edges(max_edges, ret_indices=True, ret_weights=True, as_dict=False)
+Graph.top_edges(max_edges,
+                ret_indices=True,
+                ret_weights=True,
+                as_dict=False,
+                truncate=False)
 ```
 
 Return indices and/or weights of the top edges.
@@ -663,6 +706,7 @@ __Arguments__
 - __ret_indices__: Return indices consisting of (source, target), otherwise None.
 - __ret_weights__: Return weights, otherwise None.
 - __as_dict__: Return result as dictionary instead of tuple.
+- __truncate__: Truncate list of results if too many.
 
 __Returns__
 
@@ -674,8 +718,10 @@ __Returns__
 Graph.nodes()
 ```
 
-Return a list of all nodes. A node is considered present, when it is connected
-to at least one other node (either as a source or target).
+Return nodes and their frequencies. A node is considered present, when it is
+connected to at least one other node (either as a source or target). For MongoDB
+graphs, a node is present when it appears at least once in the occurrence list
+(even if it doesn't co-occur with any other node).
 
 
 ### adjacent_edges
@@ -915,7 +961,7 @@ __Arguments__
 
 ### sparse_subgraph
 ```python
-Graph.sparse_subgraph(seeds=None, num_seeds=8, num_neighbors=3)
+Graph.sparse_subgraph(seeds=None, num_seeds=8, num_neighbors=3, truncate=False)
 ```
 
 Create a sparse subgraph by seleting a few seed edges, and then
@@ -926,6 +972,7 @@ __Arguments__
 - __seeds__: List of seed edges
 - __num_seeds__: Number of seed edges to select
 - __num_neighbors__: Number of neighbors to add per seed node
+- __truncate__: Truncate list of results if too many.
 
 __Returns__
 
@@ -1240,6 +1287,19 @@ __Arguments__
 - __ts_max__: Right boundary of the interval.
 
 
+### sum_nodes
+```python
+TVG.sum_nodes(ts_min, ts_max)
+```
+
+Add node frequencies in a given timeframe [ts_min, ts_max].
+
+__Arguments__
+
+- __ts_min__: Left boundary of the interval.
+- __ts_max__: Right boundary of the interval.
+
+
 ### sum_edges_exp
 ```python
 TVG.sum_edges_exp(ts_min,
@@ -1316,7 +1376,7 @@ __Arguments__
 
 ### topics
 ```python
-TVG.topics(ts_min, ts_max, step=0, offset=0)
+TVG.topics(ts_min, ts_max, step=None, offset=0, samples=None)
 ```
 
 Extract network topics in the timeframe [ts_min, ts_max].
@@ -1402,9 +1462,19 @@ TVG.lookup_near(ts)
 ```
 Search for a graph with a timestamp close to `ts`.
 
+### documents
+```python
+TVG.documents(ts_min=0, ts_max=18446744073709551615, limit=None)
+```
+Iterates through all graphs in the given time frame.
+
 ### compress
 ```python
-TVG.compress(step, offset=0)
+TVG.compress(ts_min=0,
+             ts_max=18446744073709551615,
+             step=None,
+             offset=0,
+             samples=None)
 ```
 Compress the graph by aggregating timestamps differing by at most `step`.
 
