@@ -534,6 +534,21 @@ def cacheable(func):
         return result
     return wrapper
 
+class memoized(object):
+    def __init__(self, func, typed=True):
+        self._func  = func
+        self._typed = typed
+        self._cache = {}
+
+    def __call__(self, *args, **kwargs):
+        key = functools._make_key(args, kwargs, self._typed)
+        try:
+            return self._cache[key]
+        except KeyError:
+            value = self._func(*args, **kwargs)
+            self._cache[key] = value
+            return value
+
 # The 'libtvgobject' decorator should be used for classes corresponding to objects in
 # the libtvg library. It ensures that there is at most one Python object corresponding
 # to each libtvg object.
@@ -1991,9 +2006,11 @@ class Graph(object):
             seeds = dict((tuple(i), self[i]) for i in seeds)
 
         edges = copy.deepcopy(seeds)
+        adjacent_edges = memoized(self.adjacent_edges)
+
         for i, j in seeds.keys():
-            edges_i = self.adjacent_edges(i, as_dict=True)
-            edges_j = self.adjacent_edges(j, as_dict=True)
+            edges_i = adjacent_edges(i, as_dict=True)
+            edges_j = adjacent_edges(j, as_dict=True)
             del edges_i[j]
             del edges_j[i]
 
