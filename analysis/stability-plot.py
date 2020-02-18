@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import matplotlib.pyplot as plt
 import numpy as np
+import collections
 import datetime
 import argparse
 import json
@@ -9,27 +11,67 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../libtvg"))
 import pytvg
 
-def analyze_stability(tvg, ts_min, ts_max):
-    # Print the current time frame.
-    dt_min = datetime.datetime.utcfromtimestamp(ts_min / 1000.0)
-    dt_max = datetime.datetime.utcfromtimestamp(ts_max / 1000.0)
-    print ("%s - %s" % (dt_min, dt_max))
+class Analyzer(object):
+    def __init__(self, tvg, ranges):
+        self.tvg = tvg
+        self.ranges = ranges
 
-    # Print the importance of edges.
-    print ("Important edges:")
-    graph = tvg.sum_edges(ts_min, ts_max)
-    edges = graph.top_edges(10, as_dict=True)
-    for (i, j), w in edges.items():
-        print ("Edge %s - %s: %f" % (tvg.node_label(i), tvg.node_label(j), w))
+    def run(self):
+        self.times       = []
+        self.sums        = collections.defaultdict(list)
+        self.stabilities = collections.defaultdict(list)
 
-    # Print the stable edges (within the timeframe).
-    print ("Stable edges:")
-    graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
-    graphs = [g.normalize() for g in graphs]
-    graph = pytvg.metric_stability_pareto(graphs, base=0.5)
-    edges = graph.top_edges(10, as_dict=True)
-    for (i, j), w in edges.items():
-        print ("Edge %s - %s: %f" % (tvg.node_label(i), tvg.node_label(j), w))
+        self.top_edges = self.tvg.sum_edges().top_edges(10, as_dict=True).keys()
+
+        for (ts_min, ts_max) in self.ranges(self.tvg):
+            self.analyze(ts_min, ts_max)
+
+    def analyze(self, ts_min, ts_max):
+        # Print the current time frame.
+        dt_min = datetime.datetime.utcfromtimestamp(ts_min / 1000.0)
+        dt_max = datetime.datetime.utcfromtimestamp(ts_max / 1000.0)
+        print ("%s - %s" % (dt_min, dt_max))
+
+        self.times.append(dt_min)
+
+        # Track the importance of edges.
+        graph = self.tvg.sum_edges(ts_min, ts_max)
+        for edge in self.top_edges:
+            self.sums[edge].append(graph[edge])
+
+        # Track the stable edges (within the timeframe).
+        graphs = dataset_tvg.sample_graphs(ts_min, ts_max, sample_width=(ts_max - ts_min) / 3)
+        graphs = [g.normalize() for g in graphs]
+        graph = pytvg.metric_stability_pareto(graphs, base=0.5)
+        # alternatively, but much slower:
+        # graph = pytvg.Graph.from_dict(pytvg.metric_stability_ratio(graphs))
+        for edge in self.top_edges:
+            self.stabilities[edge].append(graph[edge])
+
+    def plot(self):
+        ticks = range(len(self.times))
+
+        # Plot importance of edges over time.
+        plt.title("Importance of edges over time")
+        for edge in self.top_edges:
+            label = " - ".join(map(self.tvg.node_label, edge))
+            plt.plot(range(len(self.times)), self.sums[edge], label=label)
+        plt.xticks(ticks, [t.strftime("%d/%m/%y") for t in self.times])
+        plt.ylabel("Importance")
+        plt.xlabel("Time")
+        plt.legend()
+        plt.show()
+
+        # Plot stability of edges over time.
+        plt.title("Stability of edges over time")
+        for edge in self.top_edges:
+            label = " - ".join(map(self.tvg.node_label, edge))
+            plt.plot(range(len(self.times)), self.stabilities[edge], label=label)
+        plt.xticks(ticks, [t.strftime("%d/%m/%y") for t in self.times])
+        plt.ylabel("Stability")
+        plt.xlabel("Time")
+        plt.legend()
+        plt.show()
 
 if __name__ == "__main__":
     def cache_size(s):
@@ -172,5 +214,6 @@ if __name__ == "__main__":
     dataset_tvg.enable_query_cache(cache_size=args.query_cache)
     dataset_tvg.verbosity = args.verbose
 
-    for (ts_min, ts_max) in args.sample_ranges(dataset_tvg):
-        analyze_stability(dataset_tvg, ts_min, ts_max)
+    analyzer = Analyzer(dataset_tvg, ranges=args.sample_ranges)
+    analyzer.run()
+    analyzer.plot()
