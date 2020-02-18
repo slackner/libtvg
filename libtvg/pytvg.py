@@ -2519,7 +2519,7 @@ class TVG(object):
         """ Iterates (in reverse order) through all graphs of a time-varying graph object. """
         return GraphIterReversed(self.lookup_le())
 
-    def sum_edges(self, ts_min, ts_max, eps=None):
+    def sum_edges(self, ts_min=0, ts_max=0xffffffffffffffff, eps=None):
         """
         Add edges in a given timeframe [ts_min, ts_max].
 
@@ -2533,7 +2533,7 @@ class TVG(object):
 
         return Graph(obj=lib.tvg_sum_edges(self._obj, ts_min, ts_max, eps))
 
-    def sum_nodes(self, ts_min, ts_max):
+    def sum_nodes(self, ts_min=0, ts_max=0xffffffffffffffff):
         """
         Add node frequencies in a given timeframe [ts_min, ts_max].
 
@@ -2578,7 +2578,7 @@ class TVG(object):
 
         return self.sum_edges_exp(ts_min, ts_max, log_beta=log_beta, weight=-np.expm1(log_beta), eps=eps)
 
-    def count_edges(self, ts_min, ts_max):
+    def count_edges(self, ts_min=0, ts_max=0xffffffffffffffff):
         """
         Count edges in a given timeframe [ts_min, ts_max].
 
@@ -2589,7 +2589,7 @@ class TVG(object):
 
         return Graph(obj=lib.tvg_count_edges(self._obj, ts_min, ts_max))
 
-    def count_nodes(self, ts_min, ts_max):
+    def count_nodes(self, ts_min=0, ts_max=0xffffffffffffffff):
         """
         Count nodes in a given timeframe [ts_min, ts_max].
 
@@ -2600,7 +2600,7 @@ class TVG(object):
 
         return Vector(obj=lib.tvg_count_nodes(self._obj, ts_min, ts_max))
 
-    def count_graphs(self, ts_min, ts_max):
+    def count_graphs(self, ts_min=0, ts_max=0xffffffffffffffff):
         """
         Count graphs in a given timeframe [ts_min, ts_max].
 
@@ -2615,7 +2615,7 @@ class TVG(object):
 
         return res
 
-    def topics(self, ts_min, ts_max, step=None, offset=0, samples=None):
+    def topics(self, ts_min=0, ts_max=0xffffffffffffffff, step=None, offset=0, samples=None):
         """
         Extract network topics in the timeframe [ts_min, ts_max].
 
@@ -4665,7 +4665,7 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = tvg.sum_edges(0, 0xffffffffffffffff, eps=0.5)
+            g = tvg.sum_edges(eps=0.5)
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 2.0)
             self.assertEqual(g[0, 2], 3.0)
@@ -4721,7 +4721,7 @@ if __name__ == '__main__':
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 1.0)
 
-            v = tvg.sum_nodes(0, 0xffffffffffffffff)
+            v = tvg.sum_nodes()
             self.assertEqual(v[0], 4.0)
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 1.0)
@@ -4823,7 +4823,7 @@ if __name__ == '__main__':
             self.assertEqual(g[0, 1], 0.0)
             self.assertEqual(g[0, 2], 0.0)
 
-            g = tvg.count_edges(0, 0xffffffffffffffff)
+            g = tvg.count_edges()
             self.assertEqual(g[0, 0], 1.0)
             self.assertEqual(g[0, 1], 1.0)
             self.assertEqual(g[0, 2], 1.0)
@@ -4878,7 +4878,7 @@ if __name__ == '__main__':
             self.assertEqual(v[1], 0.0)
             self.assertEqual(v[2], 0.0)
 
-            v = tvg.count_nodes(0, 0xffffffffffffffff)
+            v = tvg.count_nodes()
             self.assertEqual(v[0], 3.0)
             self.assertEqual(v[1], 1.0)
             self.assertEqual(v[2], 2.0)
@@ -4930,7 +4930,7 @@ if __name__ == '__main__':
             c = tvg.count_graphs(51, 350)
             self.assertEqual(c, 6)
 
-            c = tvg.count_graphs(0, 0xffffffffffffffff)
+            c = tvg.count_graphs()
             self.assertEqual(c, 6)
 
             c = tvg.count_graphs(-100, 0xffffffffffffffff + 100)
@@ -5010,7 +5010,7 @@ if __name__ == '__main__':
             g = tvg.topics(0, 400)
             self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
 
-            g = tvg.topics(0, 0xffffffffffffffff)
+            g = tvg.topics()
             self.assertTrue(abs(g[0, 1] - 28.0 / 37.0) < 1e-7)
 
             g = tvg.topics(-100, 0xffffffffffffffff + 100)
