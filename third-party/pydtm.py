@@ -54,6 +54,15 @@ class Topics(object):
         return [self._tvg.node_by_index(i) for i in rank]
 
 def dynamic_topic_model(tvg, ranges, num_topics=10):
+    """
+    Method based on:
+
+    D. Blei and J. Lafferty. 2006. Dynamic topic models. Proceedings of the
+    Twenty-Third International Conference on Machine Learning (ICML 2006),
+    June 25-29, 2006, Pittsburgh, Pennsylvania, USA.
+    https://doi.org/10.1145/1143844.1143859
+    """
+
     ranges = sorted(list(ranges))
     num_snapshots = len(ranges)
 

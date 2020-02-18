@@ -100,3 +100,9 @@ cd explorer
 
 In each case, open explorer/html/index.html in a web-browser of your
 choice to interact with the server.
+
+## References
+
+* A. Spitz and M. Gertz. 2018. Entity-Centric Topic Extraction and Exploration: A Network-Based Approach. Proceedings of the 40th European Conference on Information Retrieval (ECIR ’18), March 26–29, 2018, Grenoble, France. https://doi.org/10.1007/978-3-319-76941-7_1
+
+* D. Blei and J. Lafferty. 2006. Dynamic topic models. Proceedings of the Twenty-Third International Conference on Machine Learning (ICML 2006), June 25-29, 2006, Pittsburgh, Pennsylvania, USA. https://doi.org/10.1145/1143844.1143859

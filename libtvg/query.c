@@ -869,6 +869,14 @@ struct graph *tvg_topics(struct tvg *tvg, uint64_t ts_min, uint64_t ts_max,
     static int warned = 0;
     float weight;
 
+    /* Implementation based on:
+     *
+     * A. Spitz and M. Gertz. 2018. Entity-Centric Topic Extraction and
+     * Exploration: A Network-Based Approach. Proceedings of the 40th European
+     * Conference on Information Retrieval (ECIR ’18), March 26–29, 2018,
+     * Grenoble, France. https://doi.org/10.1007/978-3-319-76941-7_1
+     */
+
     if (ts_max < ts_min)
         return NULL;
 
