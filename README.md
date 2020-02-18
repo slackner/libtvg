@@ -1,5 +1,38 @@
-Time Varying Graph Explorer
+Time-Varying Graph Explorer
 ===========================
+
+## What is a time-varying graph?
+
+A static graph is defined as `G = (V, E)` where `V` is the set of vertices
+and `E` is the set of edges. A time-varying graph is an extension of static
+graphs with an additional time dimension added, i.e., either the vertices or
+the edges (or both) become functions and can change over time.
+
+See the paper **Time-varying graphs and dynamic networks** by A. Casteigts,
+P. Flocchini, W. Quattrociocchi and N. Santoro for a mathematical definition
+of time-varying graphs and a survey of various attributes and properties.
+
+In this project we assume that the vertices are fixed, and only the edges can
+change over time. Moreover, we assume that we don't have perfect knowledge of
+how the network evolves at all times. We only know what the network (or a
+subset of the network) looks like at certain points in time.
+
+## Overview
+
+The core component provided by this repository is `libtvg`, a library for
+dealing with time-varying graphs. The underlying AVL tree and hash-based data
+structure allows efficient operations for loading graphs (either from a file
+or from a MongoDB), manipulating graphs (additions, multiplications,
+eigenvector computations, ...), aggregating graphs over a specific time frame
+(summation or counting of nodes/edges, ...), computing topics (topic model by
+A. Spitz et al.), metrics to analyze time-varying graphs (stable nodes/edges,
+trend analysis, ...), and much more. This repository also contains Python
+bindings (`pytvg`) to use the library directly from Python.
+
+As a sample use-case, this repository provides `TVG Explorer`, a web-based
+interactive tool to view and analyze time-varying graphs, as well as sample
+scripts to perform certain analysis tasks on the data (see `analysis`
+directory).
 
 ## Installation
 
@@ -102,6 +135,8 @@ In each case, open explorer/html/index.html in a web-browser of your
 choice to interact with the server.
 
 ## References
+
+* A. Casteigts, P. Flocchini, W. Quattrociocchi and N. Santoro. 2012. Time-varying graphs and dynamic networks. IJPEDS, 2012. https://doi.org/10.1080/17445760.2012.668546
 
 * A. Spitz and M. Gertz. 2018. Entity-Centric Topic Extraction and Exploration: A Network-Based Approach. Proceedings of the 40th European Conference on Information Retrieval (ECIR ’18), March 26–29, 2018, Grenoble, France. https://doi.org/10.1007/978-3-319-76941-7_1
 
