@@ -2,8 +2,8 @@
 all: events.json
 
 current-events-20191011.zip:
-	# FIXME: Verify that sha1sum is 83ee8f40f2bc904915e03c631d8e97673eeacce6.
-	wget -O current-events-20191011.zip "https://heibox.uni-heidelberg.de/f/4f8f07a6d1674cfdada3/?raw=1"
+	wget -O current-events-20191011.zip "https://www.dropbox.com/s/ap2gfdg4ztqck5d/current-events-20191011.zip?dl=1"
+	sha1sum -c current-events-20191011.zip.sha1
 
 events.json: current-events-20191011.zip
 	unzip -o "current-events-20191011.zip"

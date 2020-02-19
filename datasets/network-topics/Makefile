@@ -2,16 +2,16 @@
 all: result-norm.graph
 
 network-topics-20190625.zip:
-	# FIXME: Verify that sha1sum is 2c34a24897200d2123d570444ce58181f1bef5d9.
-	wget -O network-topics-20190625.zip "https://heibox.uni-heidelberg.de/f/11d550e95c/?raw=1"
+	wget -O network-topics-20190625.zip "https://www.dropbox.com/s/6h1dq2msxv20msz/network-topics-20190625.zip?dl=1"
+	sha1sum -c network-topics-20190625.zip.sha1
 
 result-norm.graph: network-topics-20190625.zip
 	unzip -o "network-topics-20190625.zip"
 	@touch result-norm.graph
 
 networkTopics_data.zip:
-	# FIXME: Verify that sha1sum is 6b4a4924155b30d0202ae9c2b6537edd806914bb.
-	wget "https://dbs.ifi.uni-heidelberg.de/download/networkTopics_data.zip"
+	wget -O networkTopics_data.zip "https://dbs.ifi.uni-heidelberg.de/download/networkTopics_data.zip"
+	sha1sum -c networkTopics_data.zip.sha1
 
 news_edgelist.tsv: networkTopics_data.zip
 	unzip -o "networkTopics_data.zip"
