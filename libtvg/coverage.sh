@@ -6,7 +6,7 @@ make clean
 make CC="clang" CFLAGS="-ftest-coverage -fprofile-arcs" tests
 
 ./tests
-./pytvg.py
+./tests.py
 
 lcov --directory ./ --capture \
      --gcov-tool "$(pwd)/llvm-gcov.sh" \

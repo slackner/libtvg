@@ -1,23 +1,17 @@
 Time-Varying Graph Explorer
 ===========================
 
-## What is a time-varying graph?
+## Overview
 
 A static graph is defined as `G = (V, E)` where `V` is the set of vertices
 and `E ⊆ V×V` is the set of edges. A time-varying graph is an extension of
-static graphs with an additional time dimension added, i.e., either the
+static graphs with an additional time dimension `T` added, i.e., either the
 vertices or the edges (or both) become functions and can change over time.
-
-See the paper **Time-varying graphs and dynamic networks** by A. Casteigts,
-P. Flocchini, W. Quattrociocchi and N. Santoro for a mathematical definition
-of time-varying graphs and a survey of various attributes and properties.
-
-In this project we assume that the vertices are fixed, and only the edges can
-change over time. Moreover, we assume that we don't have perfect knowledge of
-how the network evolves at all times. We only know what the network (or a
+To keep things simple, in this project we make the assumption that the set
+of vertices `V` is fixed, and only the edges depend on a time parameter,
+i.e., `E: T → V×V`. Moreover, we assume that we don't have perfect knowledge
+of how the network evolves at all times. We only know what the network (or a
 subset of the network) looks like at certain points in time.
-
-## Overview
 
 The core component provided by this repository is `libtvg`, a library for
 dealing with time-varying graphs. The underlying AVL tree and hash-based data
@@ -25,9 +19,9 @@ structure allows efficient operations for loading graphs (either from a file
 or from a MongoDB), manipulating graphs (additions, multiplications,
 eigenvector computations, ...), aggregating graphs over a specific time frame
 (summation or counting of nodes/edges, ...), computing topics (topic model by
-A. Spitz et al.), metrics to analyze time-varying graphs (stable nodes/edges,
-trend analysis, ...), and much more. This repository also contains Python
-bindings (`pytvg`) to use the library directly from Python.
+A. Spitz et al. and extensions), metrics to analyze time-varying graphs
+(stable nodes/edges, trend analysis, ...), and much more. This repository also
+contains Python bindings (`pytvg`) to use the library directly from Python.
 
 ![Sample analysis](images/edge_importance.png "Sample analysis")
 
@@ -37,6 +31,11 @@ scripts to perform certain analysis tasks on the data (see `analysis`
 directory).
 
 ![TVG Explorer](images/explorer.png "TVG Explorer")
+
+We recommend to take a look at the paper **Time-varying graphs and dynamic
+networks** by A. Casteigts, P. Flocchini, W. Quattrociocchi and N. Santoro
+for a mathematical definition of time-varying graphs and a survey of various
+attributes and properties.
 
 ## Installation
 
@@ -97,12 +96,6 @@ To run the tests, just execute:
 
 ```bash
 make test
-```
-
-To run tests for the Python 3 bindings, execute:
-
-```bash
-./libtvg/pytvg.py
 ```
 
 ## Documentation

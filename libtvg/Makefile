@@ -36,6 +36,7 @@ all: $(LIBNAME)
 .PHONY: test
 test: tests
 	./tests
+	./tests.py
 
 .PHONY: clean
 clean:

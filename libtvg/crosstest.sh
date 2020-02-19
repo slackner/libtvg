@@ -4,7 +4,6 @@ set -e -x
 for CC in gcc clang; do
 	make clean
 	make CC="$CC" test
-	./pytvg.py
 
 	make clean
 	make CC="$CC" NOMONGODB=1 test
