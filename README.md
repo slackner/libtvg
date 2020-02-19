@@ -29,10 +29,14 @@ A. Spitz et al.), metrics to analyze time-varying graphs (stable nodes/edges,
 trend analysis, ...), and much more. This repository also contains Python
 bindings (`pytvg`) to use the library directly from Python.
 
+![Sample analysis](images/edge_importance.png "Sample analysis")
+
 As a sample use-case, this repository provides `TVG Explorer`, a web-based
 interactive tool to view and analyze time-varying graphs, as well as sample
 scripts to perform certain analysis tasks on the data (see `analysis`
 directory).
+
+![TVG Explorer](images/explorer.png "TVG Explorer")
 
 ## Installation
 
