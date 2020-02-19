@@ -4,9 +4,9 @@ Time-Varying Graph Explorer
 ## What is a time-varying graph?
 
 A static graph is defined as `G = (V, E)` where `V` is the set of vertices
-and `E` is the set of edges. A time-varying graph is an extension of static
-graphs with an additional time dimension added, i.e., either the vertices or
-the edges (or both) become functions and can change over time.
+and `E ⊆ V×V` is the set of edges. A time-varying graph is an extension of
+static graphs with an additional time dimension added, i.e., either the
+vertices or the edges (or both) become functions and can change over time.
 
 See the paper **Time-varying graphs and dynamic networks** by A. Casteigts,
 P. Flocchini, W. Quattrociocchi and N. Santoro for a mathematical definition
