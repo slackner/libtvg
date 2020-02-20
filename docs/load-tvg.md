@@ -1,7 +1,7 @@
 Loading TVGs from external data sources
 =======================================
 
-libtvg supports different file formats and data sources. In the following, we
+libTVG supports different file formats and data sources. In the following, we
 discuss the different methods and provide short code snippets to demonstrate
 the different options.
 
@@ -20,7 +20,7 @@ file (often much smaller) storing the node information.
 
 For `*.graph` files the format must be as follows (placeholders replaced by
 actual values, of course). If the source dataset uses a different file format,
-it will be necessary to perform conversion prior to loading with libtvg.
+it will be necessary to perform conversion prior to loading with libTVG.
 
 ```
 # Lines starting with '#' are ignored
@@ -166,7 +166,7 @@ for record in source:
 
 When working with timestamps, we typically use a UNIX timestamp with
 millisecond precision, as used by MongoDB, for example. This is not strictly
-required though, since the libtvg code does not make any assumptions about the
+required though, since the libTVG code does not make any assumptions about the
 time domain. Note that once a graph has been linked to the `tvg` object, it is
 no longer possible to perform any modifications.
 
@@ -195,8 +195,8 @@ g.set_edges(indices, weights)
 ```
 
 One step we skipped so far is the mapping of entities to integer values. This
-could be done manually - but libtvg also offers functions to simplify this
-task. First, it is necessary to tell libtvg which attribute(s) are used to
+could be done manually - but libTVG also offers functions to simplify this
+task. First, it is necessary to tell libTVG which attribute(s) are used to
 identify entities. Assume our entities have attributes `type`, `name` and
 `description`, and that the first two are sufficient to identify an entity. We
 can then set a primary key as follows:

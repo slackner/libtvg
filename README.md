@@ -1,10 +1,14 @@
-Time-Varying Graph Explorer
-===========================
+libTVG
+======
 
 ## Overview
 
+**libTVG** is a library for working with **time-varying graphs** developed
+at the [Database Systems Research Group](http://dbs.ifi.uni-heidelberg.de/)
+at [Heidelberg University](http://www.uni-heidelberg.de/index_e.html).
+
 A static graph is defined as `G = (V, E)` where `V` is the set of vertices
-and `E ⊆ V×V` is the set of edges. A time-varying graph is an extension of
+and `E ⊆ V×V` is the set of edges. **Time-varying graphs** are an extension of
 static graphs with an additional time dimension `T` added, i.e., either the
 vertices or the edges (or both) become functions and can change over time.
 To keep things simple, in this project we make the assumption that the set
@@ -25,7 +29,7 @@ contains Python bindings (`pytvg`) to use the library directly from Python.
 
 ![Sample analysis](images/edge_importance.png "Sample analysis")
 
-As a sample use-case, this repository provides `TVG Explorer`, a web-based
+As a sample use-case, this repository provides **TVG Explorer**, a web-based
 interactive tool to view and analyze time-varying graphs, as well as sample
 scripts to perform certain analysis tasks on the data (see `analysis`
 directory).
